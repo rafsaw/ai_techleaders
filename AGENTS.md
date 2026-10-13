@@ -60,3 +60,29 @@ locations for specs, logs, or notes.
 - Format: `YYYY-MM-DD-slug.md`, date first, then a short kebab-case slug.
 - Use the date the file was created/the run started — never update it later.
 - Slugs should be short and descriptive (e.g. `2026-10-13-auth-session-fix.md`).
+
+# Working rules (distilled from Boris Cherny's Claude Code tips)
+
+Source: https://ykdojo.github.io/claude-code-tips/content/boris-claude-code-tips
+
+1. **Plan before you build. If it goes wrong, plan again.** Start non-trivial
+   work in plan mode or with a spec in `.ai/specs/`. Make the plan detailed
+   enough that the implementation can be done in one pass. If the
+   implementation goes off track, stop and update the plan instead of piling
+   patches on top.
+2. **Turn every correction into a rule.** When a human corrects you, write a
+   lesson to `.ai/lessons.md` (or update this file if it's a standing
+   convention) so the same mistake doesn't come back. Keep rules short and
+   specific, and refine them until the mistake actually stops happening.
+3. **Fix things yourself and prove they work.** When you're given a bug
+   report, a failing test, or a CI failure, find the root cause and fix it
+   without waiting for step-by-step instructions. Before you say it's done,
+   run the relevant tests, lint, and build. Ask for review only after the
+   checks pass.
+4. **Prefer the elegant fix over the first one that works.** If a fix feels
+   hacky, throw it out and rewrite it cleanly using what you've learned.
+   Specific specs and prompts produce better output than vague ones.
+5. **Use subagents, and turn repeated work into reusable tools.** Hand off
+   research, exploration, and parallel subtasks to subagents so the main
+   context stays focused. Anything you do more than once a day should become
+   a skill or slash command and be committed to git.
