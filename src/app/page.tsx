@@ -5,6 +5,10 @@ export default function Home() {
     <div className="starter">
       <Backdrop />
       <main>
+        <header>
+          <h1>AI Techleaders</h1>
+          <p className="lede">A project for tech leaders who use AI in their teams&apos; daily work.</p>
+        </header>
         <svg className="framework-mark" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <circle cx="12" cy="12" r="10.4" stroke="currentColor" strokeWidth="1.3" />
           <path d="M8.4 16.4V7.9l8 10.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
