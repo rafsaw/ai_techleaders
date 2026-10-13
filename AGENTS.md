@@ -7,3 +7,56 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+# Spec-Driven Development (SDD) & agent metadata
+
+This project uses a `.ai/` folder as the source of truth for specs, run logs,
+and lessons learned. Every agent (human-directed or autonomous) working in
+this repo MUST follow this structure — do not improvise alternative
+locations for specs, logs, or notes.
+
+## `.ai/specs/` — specifications
+
+- Every feature/change that goes through SDD gets a spec file named
+  `YYYY-MM-DD-slug.md` (date the spec was created, kebab-case slug).
+- New specs are written directly in `.ai/specs/`.
+- Once a spec has been fully implemented, move the file into
+  `.ai/specs/implemented/` (keep the original filename — don't rename or
+  change the date).
+- If a spec is abandoned, superseded, or no longer relevant, move it into
+  `.ai/specs/archive/` instead of deleting it.
+- Before starting implementation work, check `.ai/specs/` for an existing
+  spec covering the task. If none exists and the task is non-trivial, write
+  one first and get it reviewed before coding.
+
+## `.ai/runs/` — autonomous run logs
+
+- Every autonomous AI run (unattended / agentic execution, not a normal
+  interactive session) writes a log file to `.ai/runs/` named
+  `YYYY-MM-DD-slug.md` (date the run started, kebab-case slug describing the
+  task).
+- The log should capture: what the run was asked to do, what it did, key
+  decisions, and the outcome (success/failure/partial).
+- Do not overwrite or delete past run logs. If a run is retried, use a new
+  slug (or append `-2`, `-3`, ...) rather than clobbering the original file.
+
+## `.ai/lessons.md` + `.ai/lessons/` — long-term memory
+
+- `.ai/lessons.md` is the append-only index of lessons learned: gotchas,
+  bug-fix root causes, and improvements worth remembering across sessions.
+- After fixing a non-trivial bug, or whenever you discover something future
+  agents should know, add an entry to `.ai/lessons.md` using the template at
+  the top of that file.
+- If a lesson is substantial enough to warrant a full write-up, create
+  `.ai/lessons/YYYY-MM-DD-slug.md` and link it from `.ai/lessons.md` instead
+  of inlining the whole thing.
+- Never delete lessons. If a lesson becomes outdated, mark it as superseded
+  inline rather than removing it.
+- Check `.ai/lessons.md` before starting non-trivial work, especially in
+  areas with a history of bugs — a relevant lesson may already exist.
+
+## Naming rules (applies to all of the above)
+
+- Format: `YYYY-MM-DD-slug.md`, date first, then a short kebab-case slug.
+- Use the date the file was created/the run started — never update it later.
+- Slugs should be short and descriptive (e.g. `2026-10-13-auth-session-fix.md`).
