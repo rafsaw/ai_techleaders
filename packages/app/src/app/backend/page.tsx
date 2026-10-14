@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 
-import { User } from "@devmentor/db";
 import { Badge } from "@devmentor/ui/components/badge";
 import {
   Card,
@@ -20,9 +19,9 @@ type DatabaseStatus = { ok: true; users: number } | { ok: false; error: string }
 async function getDatabaseStatus(): Promise<DatabaseStatus> {
   // Query at request time, never during the build's prerender.
   await connection();
-  const { em } = createRequestScope().cradle;
+  const { userService } = createRequestScope().cradle;
   try {
-    return { ok: true, users: await em.count(User) };
+    return { ok: true, users: await userService.count() };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : String(error) };
   }

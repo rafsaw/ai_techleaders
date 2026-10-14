@@ -4,12 +4,14 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./validators/*": "./src/validators/*.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "awilix": "^13.0.5"
+    "awilix": "^13.0.5",
+    "zod": "^4.6.7"
   }
 }

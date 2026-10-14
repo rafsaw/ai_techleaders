@@ -40,7 +40,9 @@ packages/
 
 - **Dependency direction:** `app → ui, db, core`, `db → core`. `core` and
   `ui` depend on no other workspace package. Never introduce cycles, and
-  never import from `@devmentor/app` in another package.
+  never import from `@devmentor/app` in another package. ESLint
+  `no-restricted-imports` enforces this, and also enforces that only `db`
+  imports `@mikro-orm/*`.
 - **`core` stays framework-agnostic:** no React, no Next.js, no MikroORM.
 - **`ui` is presentation only:** no data access, no server-only code.
 - **`db` is server-only.** Import it only from Server Components, Route
@@ -57,6 +59,100 @@ packages/
 - **Dependencies:** add each one to the package that uses it
   (`npm install <dep> -w @devmentor/<pkg>`). Only repo-wide tooling (eslint,
   typescript, @types/node) goes in the root `package.json`.
+
+## Domain concept convention
+
+Domain code is not organized into `modules/`. Each concept (`auth`, `mentors`,
+`availability`, `bookings`, `payments`, `messages`, `favorites`, `reviews`, …)
+is a same-named sub-folder repeated across the layers that need it:
+
+- `packages/db/src/entities/<concept>/<name>.entity.ts`
+- `packages/app/src/server/services/<concept>/<name>.service.ts`. Services
+  need entities and `em`, so they can't live in `core` (`db → core`). They
+  live in app's server-only zone and are registered in `container.ts`.
+- `packages/core/src/validators/<concept>/<name>-<action>.schema.ts`: the
+  shared Zod schemas, imported as
+  `@devmentor/core/validators/<concept>/<file>`.
+- `packages/app/src/app/api/<concept>/route.ts` and the matching `page.tsx`.
+
+Create a concept folder only when its first file is added. Never scaffold
+empty ones. This is a directory convention, not a module runtime: there is
+no per-concept setup, ACL or auto-discovery. Full naming table and rules:
+`.ai/specs/implemented/2026-09-01-engineering-standards.md`.
+
+- **Adding a service:**
+  - Add one explicit line to `container.ts`
+    (`asClass(X)`, transient by default).
+  - Add its type to `packages/app/src/server/cradle.ts`.
+  - Never glob-load services with `loadModules`.
+- **Service return values:** services return plain DTOs, never entities.
+  Client components import the DTO *type* with `import type`.
+- **External integrations** (payments, later notifications and video) go
+  through a port interface (`*.port.ts`) with a mock adapter under
+  `adapters/`. Callers depend on the port, never on a vendor SDK.
+- **Domain events:**
+  - Event IDs follow `concept.entity.action` (e.g.
+    `bookings.booking.created`).
+  - They're emitted through a typed in-process emitter in
+    `packages/core/src/events`, registered on the `Cradle`. There is no
+    queue or worker.
+  - Add the emitter with the first feature that emits an event, not before.
+
+## Reusable API & UI layer
+
+Every route and page reuses two shared layers. Don't re-implement fetch,
+validation, auth or error handling per feature.
+
+- **Server: `packages/core/src/http/`, exported from `@devmentor/core`.**
+  - `errors.ts` is the typed `AppError` hierarchy: `ValidationError` 400,
+    `UnauthorizedError` 401, `ForbiddenError` 403, `NotFoundError` 404,
+    `ConflictError` 409. Services throw these and never build responses.
+  - `apiHandler.ts` provides the wrapper every route goes through. It:
+    - checks the CSRF header on non-GET requests,
+    - creates a container scope and passes its `cradle`,
+    - returns `{ ok: true, data }` or
+      `{ ok: false, error: { code, message, fieldErrors? } }`,
+    - maps `AppError`s to their status, and logs anything else as a 500
+      without leaking details.
+  - `makeCrudRoute.ts` builds handlers for plain CRUD resources. You pass
+    `methods`, `service` and the schemas; it returns the handlers. `PUT` and
+    `DELETE` take `?id=<uuid>`. Workflow endpoints (booking, reschedule,
+    payment) use `apiHandler` directly.
+  - `validation.ts`: `parseInput(schema, input)` throws a `ValidationError`
+    with per-field messages.
+  - `auth.ts` (`requireSession`, `requireRole`, ownership assertions) is
+    added together with the auth concept.
+- **App wiring: `packages/app/src/server/http.ts`.** It binds `apiHandler`
+  and `makeCrudRoute` to the container. Route files import them from
+  `@/server/http` and never write their own `try/catch` or
+  `NextResponse.json`.
+- **Client: `packages/ui/src/backend/`.**
+  - `api/apiCall.ts`: `apiCall` and `apiCallOrThrow` are the only sanctioned
+    way to `fetch()` `/api/*`. They always send the CSRF header and parse the
+    envelope defensively.
+  - `forms/CrudForm.tsx`: a schema-driven form bound to the same Zod schema
+    as the route.
+  - `tables/DataTable.tsx`: column-config lists with loading, error and
+    empty states, pagination, and row actions.
+  - `feedback/{LoadingMessage,ErrorMessage,EmptyState}.tsx`: the only
+    loading, error and empty renderers.
+- **Envelope types:** `core` and `ui` each declare the envelope and
+  `CSRF_HEADER`, because ui may not import core. Keep the two in sync. Zod
+  is a peer dependency of `ui`, since ui only uses its types.
+- **Reference example:** `api/users/route.ts` together with
+  `backend/users/` is the example to copy for a new concept.
+
+Every new reusable component has one designated home:
+
+1. **shadcn primitive:** `ui/src/components/`, added via `npm run ui:add`
+   and never hand-written.
+2. **Generic, concept-agnostic panel pattern:**
+   `ui/src/backend/<category>/`.
+3. **Component tied to one concept's domain shape:**
+   `ui/src/components/<concept>/`, named after the concept folder used in
+   `db` and `app`.
+4. **Used by exactly one page:** colocate it next to that `page.tsx` until a
+   second consumer appears.
 
 ## Dependency injection (Awilix)
 
@@ -175,6 +271,13 @@ also apply cleanly.
   through `tsx`, which it auto-detects. Don't add `ts-node`.
 - `packages/app/AGENTS.md` exists so `next dev` finds its managed block
   there. Keep project rules in this root file.
+- The root `node_modules/zod` is **v3**, pulled in by shadcn and
+  eslint-plugin-react-hooks. Workspaces use zod **v4**
+  (`z.email()`, `z.uuid()`), installed under `packages/core/node_modules`.
+  Run zod scripts from inside a workspace package, not the repo root.
+- `CrudForm` seeds every field with `""`. Keep it that way: an `undefined`
+  value makes Zod report "expected string" instead of the schema's own
+  message (e.g. "Name is required").
 
 # Spec-Driven Development (SDD) & agent metadata
 

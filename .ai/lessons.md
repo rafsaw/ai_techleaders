@@ -27,6 +27,32 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-14 — CrudForm must seed every field with "" before validating
+
+**Context:** In the browser, submitting the empty `/backend/users` form
+showed no "Name is required" message. The form state started as `{}`, so
+untouched fields were `undefined`. Zod then failed with its generic
+"expected string" type error, not the schema's own `.min(1, …)` message.
+**Lesson:** Form state must hold the same value the input displays (`""`
+for empty text inputs), so the shared schema produces the messages its
+author wrote. Check client-side validation in a real browser, not only
+with curl.
+**Applies to:** `packages/ui/src/backend/forms/CrudForm.tsx`, any bespoke
+form validated with a shared Zod schema.
+
+### 2026-10-14 — Domain services can't live in `core`
+
+**Context:** The engineering-standards spec put services in
+`core/src/services/<concept>/`. Services need entities and `em` from `db`,
+but `db` already depends on `core`, so that placement would create a
+cycle.
+**Lesson:** Domain services live in
+`packages/app/src/server/services/<concept>/` (server-only, next to the
+composition root). `core` keeps only the framework-agnostic pieces:
+`http/` helpers, `validators/`, ports and events.
+**Applies to:** every new `*.service.ts`, and future specs that place code
+by layer.
+
 ### 2026-10-13 — `next build` breaks if the shell exports NODE_ENV=development
 
 **Context:** The production build failed while prerendering `/_global-error`
