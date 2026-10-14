@@ -55,9 +55,15 @@ Next.js reads them from there too) with a single variable:
 DATABASE_URL=postgres://devmentor:devmentor@127.0.0.1:5432/devmentor
 ```
 
-The file is git-ignored and must never be committed. Only `DATABASE_URL` is
-read; `DB_HOST`/`DB_USER`-style variables are not supported. Optional:
-`DB_POOL_MIN`, `DB_POOL_MAX`, `DB_DEBUG`.
+You can copy the template instead (it already matches `docker-compose.yml`):
+
+```bash
+cp packages/app/.env.example packages/app/.env
+```
+
+The file is git-ignored and must never be committed. `DATABASE_URL` is the
+only required variable; `DB_HOST`/`DB_USER`-style variables are not
+supported. Optional: `DB_POOL_MIN`, `DB_POOL_MAX`, `DB_DEBUG`.
 
 ### 5. Run migrations
 
