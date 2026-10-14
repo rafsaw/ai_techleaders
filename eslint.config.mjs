@@ -2,6 +2,12 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 
+// Package boundaries from AGENTS.md: app → ui, db, core; db → core.
+const frameworks = ["react", "react/*", "react-dom", "react-dom/*", "next", "next/*"];
+const restrictImports = (...patterns) => ({
+  rules: { "no-restricted-imports": ["error", { patterns }] },
+});
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -10,6 +16,34 @@ const eslintConfig = defineConfig([
       // The Next.js app lives in a workspace package, not at the repo root.
       next: { rootDir: "packages/app/" },
     },
+  },
+  {
+    files: ["packages/core/**"],
+    ...restrictImports(
+      { group: ["@devmentor/*"], message: "core depends on no other workspace package." },
+      { group: [...frameworks, "@mikro-orm/*"], message: "core stays framework-agnostic." },
+    ),
+  },
+  {
+    files: ["packages/db/**"],
+    ...restrictImports(
+      { group: ["@devmentor/app", "@devmentor/app/*", "@devmentor/ui", "@devmentor/ui/*"], message: "db depends only on core." },
+      { group: frameworks, message: "db is server-only persistence code." },
+    ),
+  },
+  {
+    files: ["packages/ui/**"],
+    ...restrictImports({
+      group: ["@devmentor/app", "@devmentor/app/*", "@devmentor/core", "@devmentor/core/*", "@devmentor/db", "@devmentor/db/*", "@mikro-orm/*"],
+      message: "ui is presentation only and depends on no other workspace package.",
+    }),
+  },
+  {
+    files: ["packages/app/**"],
+    ...restrictImports({
+      group: ["@mikro-orm/*"],
+      message: "Only @devmentor/db imports MikroORM; import what you need from it.",
+    }),
   },
   globalIgnores([
     "**/.next/**",

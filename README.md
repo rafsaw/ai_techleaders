@@ -46,19 +46,29 @@ npm run dev                                             # http://localhost:3000
 │   │   └── src/
 │   │       ├── app/(frontend)/    public pages — Tailwind utilities
 │   │       ├── app/backend/       admin pages (/backend) — shadcn/ui
-│   │       └── server/container.ts  DI composition root (server-only)
+│   │       ├── app/api/<concept>/ route handlers (apiHandler / makeCrudRoute)
+│   │       └── server/            server-only code
+│   │           ├── container.ts   DI composition root
+│   │           ├── cradle.ts      Cradle types of the app's services
+│   │           ├── http.ts        apiHandler + makeCrudRoute bound to the container
+│   │           └── services/<concept>/  domain services
 │   ├── core/   @devmentor/core  reusable, framework-agnostic code
-│   │   └── src/di/                Awilix container factory + Cradle type
+│   │   └── src/
+│   │       ├── di/                Awilix container factory + Cradle type
+│   │       ├── http/              AppError hierarchy, apiHandler, makeCrudRoute
+│   │       ├── validators/<concept>/  Zod schemas shared by routes and forms
+│   │       └── logger.ts          logger with secret redaction
 │   ├── db/     @devmentor/db    data layer
 │   │   ├── mikro-orm.config.ts    MikroORM CLI entry (loads env)
 │   │   └── src/
 │   │       ├── config.ts          runtime ORM config (pool, migrations)
-│   │       ├── entities/          defineEntity-based entities
+│   │       ├── entities/<concept>/  defineEntity-based entities
 │   │       ├── migrations/        generated, committed migrations
 │   │       └── register.ts        registers `orm` + `em` in the container
 │   └── ui/     @devmentor/ui    reusable UI
 │       └── src/
 │           ├── components/        shadcn/ui components
+│           ├── backend/           apiCall, CrudForm, DataTable, feedback states
 │           ├── lib/utils.ts       cn()
 │           └── styles/globals.css Tailwind + theme tokens
 ├── tsconfig.base.json             shared compiler options
@@ -173,7 +183,9 @@ All scripts run from the repository root.
 
 Specs, run logs and lessons learned live in `.ai/` (see `AGENTS.md`):
 
-- `.ai/specs/`: specifications. The one for this setup is
-  `.ai/specs/implemented/2026-10-13-monorepo-foundation.md`.
+- `.ai/specs/`: specifications. The ones for this setup are
+  `.ai/specs/implemented/2026-10-13-monorepo-foundation.md` and
+  `.ai/specs/implemented/2026-09-01-engineering-standards.md`
+  (domain-concept folders and the reusable API/UI layer).
 - `.ai/runs/`: autonomous run logs.
 - `.ai/lessons.md`: gotchas and root causes worth remembering.

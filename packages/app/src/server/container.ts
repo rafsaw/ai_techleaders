@@ -1,12 +1,19 @@
 import "server-only";
 
-import { createAppContainer, type AppContainer } from "@devmentor/core";
+import { asClass, createAppContainer, registerCore, type AppContainer } from "@devmentor/core";
 import { registerDb } from "@devmentor/db";
 
+import { UserService } from "@/server/services/auth/user.service";
+
 // The composition root: the only place where dependencies are registered.
+// Every service is listed explicitly (no folder scanning) and typed in cradle.ts.
 function buildContainer(): AppContainer {
   const container = createAppContainer();
+  registerCore(container);
   registerDb(container);
+  container.register({
+    userService: asClass(UserService),
+  });
   return container;
 }
 

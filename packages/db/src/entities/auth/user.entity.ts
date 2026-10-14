@@ -1,6 +1,6 @@
 import { defineEntity, p } from "@mikro-orm/core";
 
-import { baseProperties } from "./base";
+import { baseProperties } from "../base";
 
 const UserSchema = defineEntity({
   name: "User",
