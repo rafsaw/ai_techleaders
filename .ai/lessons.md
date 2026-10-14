@@ -27,6 +27,35 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-14 — Keep specs aligned with implementation
+
+**Context:** The monorepo foundation spec described DB configuration, ORM
+access (`getOrm()` versus `registerDb()`) and backend routes inaccurately;
+its `Corrections (2026-10-14)` section now records the implementation.
+Run logs were also skipped twice: CI/testing and monorepo foundation.
+Related case: the 2026-10-14 entry "Domain services can't live in `core`".
+**Lesson:** Verify spec claims against code. When implementation deviates,
+update the spec or add a Corrections section in the same PR. After all gates
+pass, the spec must match the code and move to `.ai/specs/implemented/`.
+Use the completion checklist in `AGENTS.md` as the primary enforcement for
+updating the spec and creating the run log before reporting completion;
+the repeated omissions explain why that check is required.
+**Applies to:** `.ai/specs/`, `.ai/runs/`, `AGENTS.md`, implementation PRs
+and documentation audits.
+
+### 2026-10-14 — Check env file precedence before debugging migrations
+
+**Context:** The Next.js development app and MikroORM CLI can load different
+env files. The CLI wrapper calls `loadEnvConfig` without the development
+argument, selecting production files even when `NODE_ENV=development`
+(`NODE_ENV=test` selects test files instead).
+**Lesson:** If a migration hits the wrong database, check env file precedence
+first; see README, "Configure env". Existing process env values win, and the
+first file defining a variable wins, so mode-specific files can make the app
+and CLI use different databases.
+**Applies to:** `packages/db/mikro-orm.config.ts`, `.env*` files in
+`packages/app`, migration commands and Next.js env loading.
+
 ### 2026-10-14 — Create the run log before reporting completion
 
 **Context:** The user identified that the CI/testing task had no required
