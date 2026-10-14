@@ -256,9 +256,45 @@ Every new reusable component has one designated home:
 | Apply / revert / list migrations | `npm run db:migrate` / `db:migrate:down` / `db:migration:list` |
 | Add shadcn component | `npm run ui:add -- <name>` |
 
-Before calling work done, `npm run lint`, `npm run typecheck` and
-`npm run build` must all pass. If the schema changed, the migration must
-also apply cleanly.
+Before calling work done, `npm run lint`, `npm run typecheck`,
+`npm run build`, `npm run test:coverage`, and `npm run test:integration`
+must all pass. If the schema changed, the migration must also apply cleanly.
+A task is not complete until its run log exists in .ai/runs/ and its spec is updated. Check this before reporting completion.
+
+## Testing and pull request CI
+
+- **Every new feature and every change must have 100% unit test coverage:**
+  statements, branches, functions, and lines, enforced **per source file** by
+  `npm run test:coverage`. Cover successful behavior, validation, errors, and
+  relevant edge cases with meaningful assertions. Never lower thresholds,
+  omit source files, add coverage-ignore directives, or mock the code under
+  test to make the gate pass.
+- Use **Vitest** for TypeScript units and **React Testing Library** with
+  **jsdom** for components. Colocate `*.test.ts` / `*.test.tsx` with source.
+  Keep package import boundaries in tests. Coverage includes all workspace
+  `src` runtime TypeScript, including generated UI primitives and migrations,
+  plus the executable `eslint.config.mjs` package-boundary configuration;
+  tests and declaration files are excluded. Type-only files have no runtime.
+  Migration tests live one directory above `src/migrations/` so the MikroORM
+  CLI cannot discover them as migrations. Repository tooling tests live in
+  `tests/`; `tests/eslint-config.test.ts` exercises forbidden and allowed imports.
+- Mock external resources for unit tests. Async Server Component orchestration
+  may be invoked directly with mocked request dependencies; verify actual
+  server rendering through integration tests too.
+- Use **Testcontainers PostgreSQL + agent-browser** for integration tests in
+  `packages/app/tests/integration/`. Apply committed migrations to a fresh
+  container, run the production build, use isolated browser sessions, and
+  clean up resources on success and failure. Never use a developer/shared
+  database, depend on demo data, or silently skip when Docker is unavailable.
+- Before integration tests: `npm run build` and
+  `npm run test:integration:install` (Linux may need `-- --with-deps`).
+  Docker must be running. Run `npm run test:integration`; evidence is written
+  to `test-results/integration/`, coverage to `coverage/`.
+- Add integration cases for new user flows and persistence behavior. The
+  existing home, dashboard, and users scenarios are the baseline.
+- `.github/workflows/ci.yml` checks each PR with Build, Lint, Typecheck,
+  Unit tests (100% coverage), and Integration tests (PostgreSQL + agent-browser).
+  A feature is complete only when all checks pass.
 
 ## Gotchas
 
