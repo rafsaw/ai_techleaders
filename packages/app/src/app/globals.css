@@ -1,0 +1,4 @@
+@import "@devmentor/ui/globals.css";
+
+/* Tailwind only scans this package by default; include the shared UI sources. */
+@source "../../../ui/src";

@@ -1,0 +1,28 @@
+{
+  "name": "@devmentor/app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "NODE_ENV=production next build",
+    "start": "next start",
+    "typecheck": "next typegen && tsc --noEmit",
+    "ui:add": "shadcn add"
+  },
+  "dependencies": {
+    "@devmentor/core": "^0.1.0",
+    "@devmentor/db": "^0.1.0",
+    "@devmentor/ui": "^0.1.0",
+    "next": "^16.4.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "tailwindcss": "^4.3.3"
+  }
+}

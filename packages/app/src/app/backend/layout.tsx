@@ -1,0 +1,27 @@
+import Link from "next/link";
+import type { ReactNode } from "react";
+
+import { Button } from "@devmentor/ui/components/button";
+
+// Backend (admin) pages: composed from @devmentor/ui shadcn components.
+export default function BackendLayout({
+  children,
+}: Readonly<{
+  children: ReactNode;
+}>) {
+  return (
+    <div className="flex min-h-dvh flex-col bg-muted/40">
+      <header className="border-b bg-background">
+        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
+          <Link href="/backend" className="font-semibold">
+            DevMentor <span className="font-normal text-muted-foreground">Backend</span>
+          </Link>
+          <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/" />}>
+            View site
+          </Button>
+        </div>
+      </header>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>
+    </div>
+  );
+}
