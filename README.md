@@ -8,15 +8,9 @@ architecture rules this README explains.
 
 ## Getting started
 
-Prerequisites: **Node.js ≥ 22.17** (MikroORM v7 requirement), **npm**, and a
-running **PostgreSQL** server.
-
-```bash
-npm install
-cp packages/app/.env.example packages/app/.env.local   # set DATABASE_URL
-npm run db:migrate                                      # apply migrations
-npm run dev                                             # http://localhost:3000
-```
+Prerequisites: **Node.js ≥ 22.17** (MikroORM v7 requirement) and **npm**. For
+the full step-by-step setup (database, env, migrations), see
+[Local setup](#local-setup) below.
 
 - `/` is the public frontend (Tailwind).
 - `/backend` is the admin area (shadcn/ui). It also shows the database
