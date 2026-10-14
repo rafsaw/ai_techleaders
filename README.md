@@ -8,19 +8,92 @@ architecture rules this README explains.
 
 ## Getting started
 
-Prerequisites: **Node.js ≥ 22.17** (MikroORM v7 requirement), **npm**, and a
-running **PostgreSQL** server.
-
-```bash
-npm install
-cp packages/app/.env.example packages/app/.env.local   # set DATABASE_URL
-npm run db:migrate                                      # apply migrations
-npm run dev                                             # http://localhost:3000
-```
+Prerequisites: **Node.js ≥ 22.17** (MikroORM v7 requirement) and **npm**. For
+the full step-by-step setup (database, env, migrations), see
+[Local setup](#local-setup) below.
 
 - `/` is the public frontend (Tailwind).
 - `/backend` is the admin area (shadcn/ui). It also shows the database
   connection status.
+
+## Local setup
+
+### 1. Prerequisites
+
+- **Node.js ≥ 22.17** and npm.
+- **Docker**: Docker Desktop on Windows. If you work in WSL, enable
+  Settings -> Resources -> WSL integration for your distro.
+- Keep the repo in the WSL filesystem (e.g. `~/projects`), not under `/mnt/c`.
+
+### 2. Install dependencies
+
+Run from the repo root; it installs all workspaces:
+
+```bash
+npm install
+```
+
+### 3. Start PostgreSQL
+
+```bash
+docker compose up -d
+docker compose ps
+```
+
+Wait until the status is `healthy`. `docker-compose.yml` defines user,
+password and database `devmentor` on port 5432. If port 5432 is taken, change
+the host port mapping (e.g. `"5433:5432"`) and use the same port in
+`DATABASE_URL`.
+
+### 4. Configure env
+
+Create `packages/app/.env` (not in the repo root: the MikroORM CLI in
+`packages/db` loads env files from `packages/app` via `@next/env`, and
+Next.js reads them from there too) with a single variable:
+
+```bash
+DATABASE_URL=postgres://devmentor:devmentor@127.0.0.1:5432/devmentor
+```
+
+The file is git-ignored and must never be committed. Only `DATABASE_URL` is
+read; `DB_HOST`/`DB_USER`-style variables are not supported. Optional:
+`DB_POOL_MIN`, `DB_POOL_MAX`, `DB_DEBUG`.
+
+### 5. Run migrations
+
+```bash
+npm run db:migrate
+npm run db:migration:list   # optional: verify
+```
+
+### 6. Start the app
+
+```bash
+npm run dev
+```
+
+Open http://localhost:3000. Backend pages are under `/backend`; the users
+panel is at `/backend/users`.
+
+### Daily workflow
+
+Make sure Docker is running, then:
+
+```bash
+docker compose up -d
+npm run dev
+```
+
+Stop the database with `docker compose down`. Data is kept in the `pgdata`
+volume.
+
+### Reset the database
+
+```bash
+docker compose down -v
+docker compose up -d
+npm run db:migrate
+```
 
 ## Stack
 
