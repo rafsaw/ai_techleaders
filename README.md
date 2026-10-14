@@ -65,12 +65,40 @@ The file is git-ignored and must never be committed. `DATABASE_URL` is the
 only required variable; `DB_HOST`/`DB_USER`-style variables are not
 supported. Optional: `DB_POOL_MIN`, `DB_POOL_MAX`, `DB_DEBUG`.
 
+Both loaders read files from `packages/app`. Existing `process.env` values
+win over all files. Files are loaded in the order below; for each variable,
+the first file defining it wins (missing files are skipped):
+
+| Command | File load order, highest priority first |
+| ------- | -------------------------------------- |
+| `npm run dev` (development mode) | `.env.development.local` → `.env.local` → `.env.development` → `.env` |
+| `npm run build` (production mode) | `.env.production.local` → `.env.local` → `.env.production` → `.env` |
+| `npm run db:migrate` and the other migration scripts (unless `NODE_ENV=test`) | `.env.production.local` → `.env.local` → `.env.production` → `.env` |
+
+The CLI wrapper calls `loadEnvConfig` without the development argument, so
+it selects production files even when `NODE_ENV=development`. With
+`NODE_ENV=test`, the loader instead reads `.env.test.local` → `.env.test` →
+`.env`, skipping `.env.local`. Thus `.env.local` overrides `.env` outside
+test mode, but mode-specific files can make the app and CLI use different
+values.
+
 ### 5. Run migrations
 
 ```bash
 npm run db:migrate
 npm run db:migration:list   # optional: verify
 ```
+
+To roll back the last applied migration, use:
+
+```bash
+npm run db:migrate:down
+```
+
+This delegates to `mikro-orm migration:down` and requires that migration to
+implement `down()`. The current initial migration,
+`Migration20261013225312`, implements only `up()`; attempting to revert it
+throws `This migration cannot be reverted`.
 
 ### 6. Start the app
 
@@ -218,8 +246,9 @@ const users = await em.count(User);
   `npm run db:migrate`. The schema never changes outside migrations.
 - **Bundling:** MikroORM runs as a native Node dependency. The v7 packages
   are listed in `serverExternalPackages` in `packages/app/next.config.ts`.
-- **Env:** the app and the MikroORM CLI read the same `.env*` files in
-  `packages/app`, with Next.js precedence.
+- **Env:** the app and the MikroORM CLI load files from `packages/app`,
+  with the precedence and mode differences described in
+  [Configure env](#4-configure-env).
 
 | Variable       | Default | Purpose                          |
 | -------------- | ------- | -------------------------------- |
@@ -254,7 +283,7 @@ All scripts run from the repository root.
 | `npm run typecheck`           | `tsc --noEmit` in every package               |
 | `npm run db:migration:create` | Generate a migration from entity changes      |
 | `npm run db:migrate`          | Apply pending migrations                      |
-| `npm run db:migrate:down`     | Revert the last migration                     |
+| `npm run db:migrate:down`     | Revert the last migration if it implements `down()` |
 | `npm run db:migration:list`   | List executed migrations                      |
 | `npm run ui:add -- <name>`    | Add a shadcn/ui component to `@devmentor/ui`  |
 

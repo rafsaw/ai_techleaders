@@ -96,3 +96,23 @@ Authentication, real domain modules, testing framework, CI, Docker.
   existing `openmercato.toml` preview command keeps working.
 - `AGENTS.md` (architecture rules) and `README.md` (architecture notes) are
   updated.
+
+## Corrections (2026-10-14)
+
+The documentation audit found three inaccurate descriptions in Design.
+Current source and the initial foundation commit (`d0b01cd`) confirm the
+following; these correct the original description, rather than record later
+refactors:
+
+- **DB configuration:** `packages/db/src/config.ts` is the shared runtime
+  configuration. `packages/db/mikro-orm.config.ts` is the CLI-only wrapper
+  that loads env files from `packages/app` before importing that config.
+  The app uses the runtime config directly through the DB registration.
+- **ORM access:** the implementation uses `registerDb()`, not `getOrm()`.
+  `packages/db/src/register.ts` registers the ORM as a singleton and `em`
+  as scoped, with `orm.em.fork()`. The app caches the container on
+  `globalThis` and exposes `createRequestScope()` for per-request access.
+- **Backend routes:** admin routes live in the plain directory
+  `packages/app/src/app/backend/`, which supplies the `/backend` URL
+  segment. There is no `(backend)` route group; `(frontend)` remains the
+  public-page route group.
