@@ -27,6 +27,47 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-14 — Create the run log before reporting completion
+
+**Context:** The user identified that the CI/testing task had no required
+`.ai/runs/` log after implementation and verification were reported complete.
+**Lesson:** For autonomous task execution, create the dated run log at the
+start and finalize it before reporting completion, even when work spans user
+follow-ups. Record branch, start commit, spec link, steps, decisions, problems,
+and verification. Never overwrite an earlier run; use a new slug for a retry.
+**Applies to:** `.ai/runs/`, autonomous implementation and CI/testing tasks.
+
+### 2026-10-14 — Verify agent-browser commands against the installed CLI
+
+**Context:** Browser smoke tests found real headings in snapshots, but the
+installed CLI's semantic `find` command returned no match; a URL glob wait
+also timed out after navigation had already succeeded.
+**Lesson:** Resolve current snapshot refs by accessible role/name before
+acting, wait for concrete page content, and assert the resulting URL with
+`get url`. Never persist refs across navigation. Confirm command behavior
+in a real browser before using it in CI.
+**Applies to:** `packages/app/tests/integration/browser.ts`, agent-browser tests.
+
+### 2026-10-14 — Keep unit tests out of the migrations directory
+
+**Context:** Ephemeral database setup failed because MikroORM imported a
+colocated `Migration*.test.ts` as a migration, executing Vitest outside its runner.
+**Lesson:** Put migration unit tests in `packages/db/src/`, with imports into
+`./migrations/`. MikroORM's default migration glob includes `.test.ts` files.
+Always validate fresh migration application through integration tests.
+**Applies to:** MikroORM CLI discovery and database unit test placement.
+
+### 2026-10-14 — Base UI links rendered as buttons retain the button role
+
+**Context:** The first navigation unit test queried `View site` as a link,
+but Base UI's `Button` with `render={<Link />}` renders an anchor with
+`role="button"`. The same assumption would break agent-browser navigation.
+**Lesson:** Query the rendered semantic role, not the HTML tag or component
+name. In the current backend layout, `View site` is a button with an href;
+`Open backend` and `Users` are links. Verify accessibility snapshots when
+adding browser locators.
+**Applies to:** Base UI polymorphic buttons, React Testing Library, agent-browser.
+
 ### 2026-10-14 — CrudForm must seed every field with "" before validating
 
 **Context:** In the browser, submitting the empty `/backend/users` form

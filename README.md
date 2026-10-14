@@ -258,6 +258,40 @@ All scripts run from the repository root.
 | `npm run db:migration:list`   | List executed migrations                      |
 | `npm run ui:add -- <name>`    | Add a shadcn/ui component to `@devmentor/ui`  |
 
+## Tests and continuous integration
+
+Unit tests use [Vitest](https://vitest.dev/) and React Testing Library.
+Run `npm run test:unit` for a single run, `npm run test:watch` during development,
+and `npm run test:coverage` for the CI gate. Every runtime TypeScript file in
+workspace `src`, plus the ESLint package-boundary configuration, must reach
+**100% lines, statements, functions, and branches**.
+The HTML report is at `coverage/index.html`; LCOV and JSON summaries are also
+generated. New features must include tests for their success and failure paths.
+
+Integration tests run the production app using
+[Testcontainers PostgreSQL](https://node.testcontainers.org/modules/postgresql/)
+and [agent-browser](https://agent-browser.dev/commands). With Docker running:
+
+```bash
+npm run test:integration:install # once; Linux: append -- --with-deps if needed
+npm run build
+npm run test:integration
+```
+
+The suite allocates a disposable PostgreSQL instance, applies committed
+migrations, chooses an available app port, and cleans up the browser, app,
+and container. It never uses your `.env` database. It covers the public home,
+admin database status/navigation, and users validation, creation, reload, and
+duplicate-email handling. Logs, screenshots, accessibility snapshots, and
+JUnit results are saved in `test-results/integration/`.
+
+GitHub Actions runs Build, Lint, Typecheck, Unit tests (100% coverage), and
+Integration tests (PostgreSQL + agent-browser) for every pull request and push
+to `main`. Integration reuses the build artifact. Coverage and browser evidence
+are uploaded for debugging. No database secrets or shared test database are
+required. To prevent merging failed checks, make these five check names required
+in the repository's GitHub branch protection/ruleset settings.
+
 ## Project process
 
 Specs, run logs and lessons learned live in `.ai/` (see `AGENTS.md`):

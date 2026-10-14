@@ -14,7 +14,13 @@
     "build": "npm run build --workspace @devmentor/app",
     "start": "npm run start --workspace @devmentor/app --",
     "lint": "eslint .",
-    "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present && tsc -p tests/tsconfig.json",
+    "test": "vitest run",
+    "test:unit": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:integration": "vitest run --config packages/app/vitest.integration.config.ts",
+    "test:integration:install": "agent-browser install",
     "db:migration:create": "npm run migration:create --workspace @devmentor/db --",
     "db:migrate": "npm run migration:up --workspace @devmentor/db",
     "db:migrate:down": "npm run migration:down --workspace @devmentor/db",
@@ -23,8 +29,11 @@
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
+    "@vitest/coverage-v8": "^5.0.4",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.4.0",
-    "typescript": "^5.9.3"
+    "jsdom": "^26.1.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.4"
   }
 }
