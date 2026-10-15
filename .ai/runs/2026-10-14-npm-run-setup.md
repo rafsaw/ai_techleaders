@@ -47,7 +47,7 @@ Add one root command, `npm run setup`. It takes a fresh clone to "ready for `npm
 
 ### Phase 1: npm run setup
 
-- [ ] 1.1 Runner, entry and Prerequisites step
+- [x] 1.1 Runner, entry and Prerequisites step — d626ceb
 - [ ] 1.2 Dependencies and PostgreSQL steps
 - [ ] 1.3 Env and Migrations steps
 - [ ] 1.4 README and AGENTS.md
