@@ -254,6 +254,7 @@ Every new reusable component has one designated home:
 | Typecheck (all packages) | `npm run typecheck` |
 | New migration | `npm run db:migration:create` (first one: `-- --initial`) |
 | Apply / revert / list migrations | `npm run db:migrate` / `db:migrate:down` / `db:migration:list` |
+| Seed sample data (idempotent) | `npm run db:seed` |
 | Add shadcn component | `npm run ui:add -- <name>` |
 
 Before calling work done, `npm run lint`, `npm run typecheck`,

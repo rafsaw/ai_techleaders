@@ -25,7 +25,7 @@ database, create the env file and apply migrations; see
 npm run setup
 ```
 
-Run it from the repository root. It runs the manual steps below in order and
+Run it from the repository root. It runs manual steps 1–5 below in order and
 prints one line per step:
 
 - **Prerequisites:** Node ≥ 22.17, plus Docker and the Compose plugin.
@@ -38,8 +38,9 @@ Each step first checks whether it is already done and reports
 `↷ skipped` if so. That makes `npm run setup` safe to re-run at any time,
 for example after a `git pull`: it only does what is missing. It never
 overwrites an existing `packages/app/.env`. On a failure it stops with
-`✖ <step> — failed: … → <fix>` and exits non-zero. It does not start the app;
-run `npm run dev` next.
+`✖ <step> — failed: … → <fix>` and exits non-zero. It does not seed sample
+data or start the app: run `npm run db:seed` (optional, step 6) and then
+`npm run dev`.
 
 **Without Docker** (e.g. the course Sandbox, or your own PostgreSQL), export
 `DATABASE_URL` for the run, for example
@@ -106,7 +107,7 @@ the first file defining it wins (missing files are skipped):
 | ------- | -------------------------------------- |
 | `npm run dev` (development mode) | `.env.development.local` → `.env.local` → `.env.development` → `.env` |
 | `npm run build` (production mode) | `.env.production.local` → `.env.local` → `.env.production` → `.env` |
-| `npm run db:migrate` and the other migration scripts (unless `NODE_ENV=test`) | `.env.production.local` → `.env.local` → `.env.production` → `.env` |
+| `npm run db:migrate`, `npm run db:seed` and the other migration scripts (unless `NODE_ENV=test`) | `.env.production.local` → `.env.local` → `.env.production` → `.env` |
 
 The CLI wrapper calls `loadEnvConfig` without the development argument, so
 it selects production files even when `NODE_ENV=development`. With
@@ -133,7 +134,19 @@ implement `down()`. The current initial migration,
 `Migration20261013225312`, implements only `up()`; attempting to revert it
 throws `This migration cannot be reverted`.
 
-#### 6. Start the app
+#### 6. Seed sample data (optional)
+
+```bash
+npm run db:seed
+```
+
+This adds one sample user, Ada Lovelace (`ada@devmentor.dev`), so
+`/backend/users` isn't empty. It is safe to re-run: if a user with that email
+already exists, the seeder leaves it unchanged and creates no duplicate. Run it
+after `npm run db:migrate`; on a database without the `users` table it fails
+with `relation "users" does not exist`.
+
+#### 7. Start the app
 
 ```bash
 npm run dev
@@ -160,6 +173,7 @@ volume.
 docker compose down -v
 docker compose up -d
 npm run db:migrate
+npm run db:seed   # optional: sample user
 ```
 
 ## Stack
@@ -319,6 +333,7 @@ All scripts run from the repository root.
 | `npm run db:migrate`          | Apply pending migrations                      |
 | `npm run db:migrate:down`     | Revert the last migration if it implements `down()` |
 | `npm run db:migration:list`   | List executed migrations                      |
+| `npm run db:seed`             | Insert the sample user (idempotent)           |
 | `npm run ui:add -- <name>`    | Add a shadcn/ui component to `@devmentor/ui`  |
 
 ## Tests and continuous integration
@@ -345,8 +360,9 @@ npm run test:integration
 The suite allocates a disposable PostgreSQL instance, applies committed
 migrations, chooses an available app port, and cleans up the browser, app,
 and container. It never uses your `.env` database. It covers the public home,
-admin database status/navigation, and users validation, creation, reload, and
-duplicate-email handling. Logs, screenshots, accessibility snapshots, and
+admin database status/navigation, users validation, creation, reload, and
+duplicate-email handling, and running `npm run db:seed` twice without creating a
+duplicate. Logs, screenshots, accessibility snapshots, and
 JUnit results are saved in `test-results/integration/`.
 
 GitHub Actions runs Build, Lint, Typecheck, Unit tests (100% coverage), and
