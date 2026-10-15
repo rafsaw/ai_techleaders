@@ -68,6 +68,7 @@ Add one root command, `npm run setup`. It takes a fresh clone to "ready for `npm
   - README steps 1–6 are nested under "Manual setup".
   - Added a failure-path secret test.
   - The entry test's mock cleanup now runs in `finally`.
+- **Review on #14 (2026-10-15):** `setup` is now documented in README and AGENTS.md, so it was added to the `BACKWARD_COMPATIBILITY.md` §6 script list.
 - **Worktree caveat (not in scope):** Compose derives the project name from the directory. Running setup in a git worktree without `COMPOSE_PROJECT_NAME` would try to start a second Postgres on port 5432, and that fails with the port hint.
 
 ## Progress
