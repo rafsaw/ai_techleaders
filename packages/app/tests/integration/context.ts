@@ -8,6 +8,7 @@ export const browserExecutable = join(repositoryRoot, "node_modules/.bin/agent-b
 declare module "vitest" {
   export interface ProvidedContext {
     baseURL: string;
+    databaseURL: string;
     browserSession: string;
     integrationArtifactsDirectory: string;
   }

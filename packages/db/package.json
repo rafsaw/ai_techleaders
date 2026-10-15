@@ -13,7 +13,8 @@
     "migration:up": "mikro-orm migration:up",
     "migration:down": "mikro-orm migration:down",
     "migration:list": "mikro-orm migration:list",
-    "migration:pending": "mikro-orm migration:pending"
+    "migration:pending": "mikro-orm migration:pending",
+    "seed": "mikro-orm seeder:run"
   },
   "mikro-orm": {
     "configPaths": [
