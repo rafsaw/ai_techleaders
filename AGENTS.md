@@ -273,7 +273,8 @@ A task is not complete until its run log exists in .ai/runs/ and its spec is upd
   **jsdom** for components. Colocate `*.test.ts` / `*.test.tsx` with source.
   Keep package import boundaries in tests. Coverage includes all workspace
   `src` runtime TypeScript, including generated UI primitives and migrations,
-  plus the executable `eslint.config.mjs` package-boundary configuration;
+  plus the executable `eslint.config.mjs` package-boundary configuration and
+  the Node-only repo scripts in `scripts/**/*.mjs` (e.g. `npm run setup`);
   tests and declaration files are excluded. Type-only files have no runtime.
   Migration tests live one directory above `src/migrations/` so the MikroORM
   CLI cannot discover them as migrations. Repository tooling tests live in
