@@ -25,7 +25,7 @@ Register `SeedManager` from `@mikro-orm/seeder` in the shared ORM config. Add on
 | `em.upsert(User, …)` | Overwrites `name` on every run, which contradicts the confirmed "leave existing rows unchanged" rule. |
 | Raw `INSERT … ON CONFLICT DO NOTHING` in a SQL script or migration | Seed data in a migration would reach every environment, including shared ones. Raw SQL bypasses entity metadata and `baseProperties` defaults. |
 | Glob discovery of `src/seeders/*.ts` (MikroORM default, used by the reference) | `seeder:run` dynamically imports **every** file matching the glob (`SeedManager.seedString`). A colocated `*.test.ts` would be imported outside Vitest, the same trap `.ai/lessons.md` records for migrations. It also contradicts the repo's "no folder discovery" rule for entities. We use the explicit `seedersList` option instead. |
-| Register `SeedManager` only in the CLI entry `packages/db/mikro-orm.config.ts` | It gains nothing: v7 `MikroORM` auto-registers `@mikro-orm/seeder` whenever the package resolves (`tryRegisterExtension('SeedManager', …)` in `@mikro-orm/core/MikroORM.js`). So the app loads it either way, and the `serverExternalPackages` entry is required regardless. It would also move config outside `src/` and the coverage gate, and split it across two files. |
+| Register `SeedManager` only in the CLI entry `packages/db/mikro-orm.config.ts` | This would keep `@mikro-orm/seeder` out of the app server. The app builds its ORM with the synchronous `new MikroORM(config)` (`packages/db/src/register.ts`), and that constructor does not auto-load extensions. Only the async `MikroORM.init()` that the CLI uses does. It lost anyway: the wiring would move outside `src/` and the coverage gate, and the config would be split across two files. Shipping one lazily built extension that the app never calls costs nothing at runtime: `SeedManager` is only built when `orm.seeder` is accessed. |
 | Seeding inside `npm run setup` | Out of scope: `scripts/setup.mjs` is still in open PR #15. This is a follow-up. |
 
 ## 📝 Architecture
@@ -37,7 +37,7 @@ Register `SeedManager` from `@mikro-orm/seeder` in the shared ORM config. Add on
   - New package script: `"seed": "mikro-orm seeder:run"`.
   - The seeder is **not** exported from `@devmentor/db` (`exports` stays `.` and `./config`).
 - **Root `package.json`.** Add `"db:seed": "npm run seed --workspace @devmentor/db"`. It runs through the existing CLI entry, so it uses the same `.env` loading as `db:migrate`.
-- **`packages/app/next.config.ts`.** Add `"@mikro-orm/seeder"` to `serverExternalPackages`. The app imports `config.ts`, and `AGENTS.md` requires every new MikroORM package to be listed there.
+- **`packages/app/next.config.ts`.** Add `"@mikro-orm/seeder"` to `serverExternalPackages`. The app imports `config.ts`, which now imports `SeedManager` and `DatabaseSeeder`, and `AGENTS.md` requires every new MikroORM package to be listed there.
 - **No runtime change in the app.** No DI registration, route, page or event changes. The ORM gains a seeder extension that only the CLI invokes.
 
 ```mermaid
