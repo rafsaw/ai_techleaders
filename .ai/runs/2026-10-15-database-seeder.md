@@ -62,7 +62,15 @@ Success. The run produced:
 
 Gate: `lint`, `typecheck`, `test:coverage` (150 tests, 100% per file, including `database.seeder.ts` and `config.ts`), `build` and `test:integration` (4/4, including the new seed case) all pass.
 
-Pending: move the spec to `.ai/specs/implemented/` once spec PR #18 has merged. The spec is not on `main` yet.
+Review (`om-auto-review-pr`, independent reviewer): approve, no blockers or majors. Nits fixed in f880ad9:
+- seed-helper cleanup on `close`, with a 30-second timeout;
+- README wording;
+- CLI header comment;
+- a seeder rule in `AGENTS.md`.
+
+The reviewer also corrected one rationale. The app builds its ORM with `new MikroORM(config)`, which does not auto-load extensions. So the seeder reaches the app because `config.ts` imports it, not through auto-load. That correction goes into the spec on #18.
+
+Pending: merge #18 first, then rebase this PR and move the spec to `.ai/specs/implemented/`. The spec is not on `main` yet.
 
 ## Progress
 
