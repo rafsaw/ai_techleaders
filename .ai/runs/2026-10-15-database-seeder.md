@@ -47,7 +47,26 @@ Add a `DatabaseSeeder` in `@devmentor/db` and an `npm run db:seed` script. The s
 - The app imports `config.ts`, so a missing `serverExternalPackages` entry would break the build. The gate's `npm run build` catches this.
 - The integration seed case shares the container with earlier cases, so it must stay last.
 
+## Decisions
+
+- **Explicit `seedersList` instead of glob discovery.** `seeder:run` would otherwise dynamic-import every file in `src/seeders/`, including the colocated `database.seeder.test.ts`.
+- **`config.test.ts` re-imports `DatabaseSeeder` after `loadConfig()`.** `vi.resetModules()` gives the config a fresh module instance, so a statically imported class is not `===` to the one in the config.
+- **No manual local seed run.** The developer's Postgres wasn't running, and the run did not start it. The Testcontainers integration case is the end-to-end proof: two runs, one row.
+
+## Outcome
+
+Success. The run produced:
+- `DatabaseSeeder` (find-or-create by email) registered through `SeedManager` and `seedersList`;
+- `npm run db:seed`;
+- docs in README › Local setup, the scripts table and `AGENTS.md`.
+
+Gate: `lint`, `typecheck`, `test:coverage` (150 tests, 100% per file, including `database.seeder.ts` and `config.ts`), `build` and `test:integration` (4/4, including the new seed case) all pass.
+
+Pending: move the spec to `.ai/specs/implemented/` once spec PR #18 has merged. The spec is not on `main` yet.
+
 ## Progress
+
+PR: #19
 
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
@@ -64,4 +83,4 @@ Add a `DatabaseSeeder` in `@devmentor/db` and an `npm run db:seed` script. The s
 
 ### Phase 3: Gate
 
-- [ ] 3.1 Full validation gate and run log outcome
+- [x] 3.1 Full validation gate and run log outcome — e7c9baa
