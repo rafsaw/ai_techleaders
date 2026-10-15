@@ -96,7 +96,7 @@ tests/
 
 | Situation | Behaviour |
 |-----------|-----------|
-| Node < 22.17 | `✖ Prerequisites — failed: Node <ver> < 22.17.0 → install Node ≥ 22.17`, exit 1, nothing else runs |
+| Node < 22.17 | `✖ Prerequisites — failed: Node <ver> is older than 22.17.0 → install Node ≥ 22.17.0`, exit 1, nothing else runs |
 | Docker CLI missing / daemon down (no `DATABASE_URL`) | `✖ Prerequisites` naming `docker info` or `docker compose version`; fix hints: start Docker Desktop / enable WSL integration, **or** export `DATABASE_URL` |
 | `package-lock.json` or any `package.json` changed by `git pull` | its mtime is newer than the hidden lockfile → `npm install` runs |
 | Package folder deleted by hand, hidden lockfile intact | not detected (accepted, see A2); `rm -rf node_modules` forces a reinstall |
@@ -106,7 +106,7 @@ tests/
 | `.env` deleted | only the Env step runs on re-run |
 | `.env` already exists with custom values | skipped, never overwritten |
 | `.env.example` missing | `✖ Env — failed` naming the file |
-| Database unreachable | `migration:pending` **exits 0** with no stdout when the connection is refused (verified locally), so its exit code is not a usable signal. The step treats missing `No pending migrations` text as "pending" and runs `db:migrate`, which exits 1 → `✖ Migrations — failed → check DATABASE_URL (process env or packages/app/.env) and that PostgreSQL is reachable` |
+| Database unreachable | `migration:pending` **exits 0** with no stdout when the connection is refused (verified locally), so its exit code is not a usable signal. The step treats missing `No pending migrations` text as "pending" and runs `db:migrate`, which exits 1 → `` ✖ Migrations — failed: `npm run db:migrate` failed → check DATABASE_URL (exported, or in packages/app/.env) and that PostgreSQL is reachable `` |
 | `DATABASE_URL` exported but `packages/app/.env` also present | Env step skipped (environment reason). Process env wins in both loaders, per README precedence table |
 | `DATABASE_URL` only in `packages/app/.env*` (e.g. remapped port, non-Docker DB), not exported | Treated as the Docker path: Prerequisites requires Docker and PostgreSQL runs `docker compose up`. To use your own database, export it for the run: `DATABASE_URL=… npm run setup`. README › Quick setup says this. (A6) |
 | `npm run setup` invoked inside `packages/<pkg>` | npm reports "Missing script" (npm's normal behaviour). Run it from the repo root. |
@@ -114,8 +114,10 @@ tests/
 ## 📝 Risks & Impact Review
 
 - **Surfaces changed:** a new root `setup` script, plus `vitest.config.ts`
-  `coverage.include` and `tests/tsconfig.json`. No `BACKWARD_COMPATIBILITY.md` surface
-  is touched. Rollback is deleting the files and the script entry.
+  `coverage.include` and `tests/tsconfig.json`. No existing `BACKWARD_COMPATIBILITY.md`
+  surface changes. Because README and AGENTS.md document `setup`, it joins the §6
+  "Repository scripts and commands" list from then on. Rollback is deleting the files
+  and the script entry.
 - **Local DB side effect:** the script runs existing migrations against whatever
   `DATABASE_URL` resolves to. That is the same as running `npm run db:migrate` by hand,
   with no new risk. It never runs `migration:down`, `schema:update` or a reset.
@@ -139,7 +141,7 @@ Docker-less `DATABASE_URL` path. The table covers only the gaps left after that.
 | # | Question | Assumed answer | Rationale |
 |---|----------|----------------|-----------|
 | A1 | Support native Windows shells (not WSL)? | **No.** POSIX/WSL/macOS only. README already requires WSL. | Avoids `npm.cmd`/`shell: true` special-casing. Can be added later without changing the contract. |
-| A2 | Is the hidden-lockfile mtime check good enough for Dependencies? | **Yes.** Skip when `node_modules/.package-lock.json` mtime ≥ `package-lock.json` mtime. | Verified on a real install: the hidden lockfile (13:19) is newer than the committed lockfile (13:00). A `git pull` that changes the lockfile bumps its mtime and triggers a reinstall. A full integrity check is npm's job. |
+| A2 | Is the hidden-lockfile mtime check good enough for Dependencies? | **Yes.** Skip when `node_modules/.package-lock.json` mtime ≥ the newest mtime of `package-lock.json`, the root `package.json` and every `packages/*/package.json`. | Verified on a real install: the hidden lockfile (13:19) is newer than the committed lockfile (13:00). A `git pull` that changes the lockfile bumps its mtime and triggers a reinstall. A full integrity check is npm's job. |
 | A3 | How do we detect migrations when `migration:pending` exits 0 even on connection errors? | Match `No pending migrations` in stdout. Anything else → run `db:migrate` and trust its exit code. | Verified locally: `migration:pending` exits 0 on ECONNREFUSED and `migration:up` exits 1. |
 | A4 | How should tests import the `.mjs` modules under typecheck? | `"allowJs": true` in `tests/tsconfig.json` only (the imports pull the scripts in). | Smallest change. It doesn't loosen the workspace packages' configs. |
 | A5 | Should Prerequisites also check `docker compose` (the plugin), not just `docker info`? | **Yes**, both, and only when `DATABASE_URL` is not set. | The PostgreSQL step depends on the Compose plugin. Failing early names the real fix. |
@@ -207,7 +209,10 @@ One phase. The command is only useful once all five steps exist.
   now reflects this.
 - Verified during implementation: npm rewrites `node_modules/.package-lock.json`
   about 40 ms after `package-lock.json` on every install, including a no-op one.
-  So the Dependencies check settles after a single install (A2).
+  So the Dependencies check settles after a single install (A2). Re-checked in the
+  #14 review on 2026-10-15: a no-op `npm install` left the hidden lockfile 44 ms newer.
+- The Edge Cases table now uses the exact status strings from `scripts/setup/steps.mjs`.
+  `BACKWARD_COMPATIBILITY.md` §6 lists `setup` (added in #15).
 - Running setup inside a git worktree derives a different Compose project name.
   Without `COMPOSE_PROJECT_NAME`, it would try to start a second Postgres on port
   5432 and fail with the port hint. This is accepted and is outside the spec's scope.
