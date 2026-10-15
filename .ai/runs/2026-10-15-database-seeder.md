@@ -59,8 +59,8 @@ Add a `DatabaseSeeder` in `@devmentor/db` and an `npm run db:seed` script. The s
 
 ### Phase 2: Command, integration proof, docs
 
-- [ ] 2.1 Add db:seed scripts and integration case
-- [ ] 2.2 Document db:seed in README and AGENTS.md
+- [x] 2.1 Add db:seed scripts and integration case — b434478
+- [x] 2.2 Document db:seed in README and AGENTS.md — 17bb6cf
 
 ### Phase 3: Gate
 
