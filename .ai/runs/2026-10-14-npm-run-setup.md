@@ -50,5 +50,5 @@ Add one root command, `npm run setup`. It takes a fresh clone to "ready for `npm
 - [x] 1.1 Runner, entry and Prerequisites step — d626ceb
 - [x] 1.2 Dependencies and PostgreSQL steps — 9c32fd0
 - [x] 1.3 Env and Migrations steps — 43673ad
-- [ ] 1.4 README and AGENTS.md
+- [x] 1.4 README and AGENTS.md — b501461
 - [ ] 1.5 Full gate and bookkeeping
