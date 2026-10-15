@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { existsSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -7,15 +8,21 @@ import { runSetup } from "../scripts/setup/run.mjs";
 import {
   MIN_NODE,
   StepError,
+  ENV_REASON,
   createContext,
+  dependencies,
   exec,
   hasEnvDatabaseUrl,
+  newestManifestMtime,
   nodeSatisfies,
+  postgres,
+  postgresHealthy,
   prerequisites,
   steps,
 } from "../scripts/setup/steps.mjs";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn() }));
+vi.mock("node:fs", () => ({ existsSync: vi.fn(), readdirSync: vi.fn(), statSync: vi.fn() }));
 
 const spawn = vi.mocked(spawnSync);
 const ROOT = "/repo";
@@ -35,6 +42,21 @@ function respond(results: Record<string, SpawnResult> = {}) {
     const result = results[[command, ...args].join(" ")] ?? {};
     return { status: 0, stdout: "", ...result };
   }) as unknown as typeof spawnSync);
+}
+
+// A fake repo: file path (relative to ROOT) → mtime in ms.
+function files(mtimes: Record<string, number>, packageDirs = ["app", "core"]) {
+  const abs = (path: string) => path.slice(ROOT.length + 1);
+  vi.mocked(existsSync).mockImplementation((path) => abs(String(path)) in mtimes);
+  vi.mocked(statSync).mockImplementation(((path: string) => {
+    const mtimeMs = mtimes[abs(String(path))];
+    if (mtimeMs === undefined) throw new Error(`ENOENT: ${String(path)}`);
+    return { mtimeMs };
+  }) as unknown as typeof statSync);
+  vi.mocked(readdirSync).mockReturnValue([
+    ...packageDirs.map((name) => ({ name, isDirectory: () => true })),
+    { name: "README.md", isDirectory: () => false },
+  ] as never);
 }
 
 function spawned() {
@@ -150,9 +172,9 @@ describe("helpers", () => {
 });
 
 describe("Prerequisites step", () => {
-  it("always runs", () => {
+  it("always runs, first", () => {
     expect(prerequisites.check()).toBeNull();
-    expect(steps[0]).toBe(prerequisites);
+    expect(steps.map((step: { name: string }) => step.name)).toEqual(["Prerequisites", "Dependencies", "PostgreSQL"]);
   });
 
   it("passes with a supported Node and a working Docker", () => {
@@ -186,6 +208,109 @@ describe("Prerequisites step", () => {
     respond({ "docker info": { status: 1 } });
     expect(() => prerequisites.action(ctx({ env: { DATABASE_URL: SECRET_URL } }))).not.toThrow();
     expect(spawn).not.toHaveBeenCalled();
+  });
+});
+
+describe("Dependencies step", () => {
+  const installed = {
+    "package-lock.json": 100,
+    "package.json": 90,
+    "packages/app/package.json": 80,
+    "packages/core/package.json": 80,
+    "node_modules/.package-lock.json": 140,
+  };
+
+  it("takes the newest of the lockfile and every workspace package.json", () => {
+    files({ ...installed, "packages/core/package.json": 150 });
+    expect(newestManifestMtime(ctx())).toBe(150);
+    expect(readdirSync).toHaveBeenCalledWith(`${ROOT}/packages`, { withFileTypes: true });
+  });
+
+  it("ignores manifests that do not exist", () => {
+    files({ "package.json": 90 }, ["app"]);
+    expect(newestManifestMtime(ctx())).toBe(90);
+  });
+
+  it("skips when node_modules is newer than every manifest", () => {
+    files(installed);
+    expect(dependencies.check(ctx())).toBe("node_modules is up to date");
+  });
+
+  it("installs when node_modules is missing", () => {
+    files({ "package-lock.json": 100 });
+    expect(dependencies.check(ctx())).toBeNull();
+  });
+
+  it("installs when the lockfile changed after the last install", () => {
+    files({ ...installed, "package-lock.json": 200 });
+    expect(dependencies.check(ctx())).toBeNull();
+  });
+
+  it("installs when a workspace package.json changed after the last install", () => {
+    files({ ...installed, "packages/app/package.json": 200 });
+    expect(dependencies.check(ctx())).toBeNull();
+  });
+
+  it("runs npm install with visible output", () => {
+    respond();
+    dependencies.action(ctx());
+    expect(spawn).toHaveBeenCalledWith("npm", ["install"], expect.objectContaining({ stdio: "inherit" }));
+  });
+
+  it("fails when npm install fails", () => {
+    respond({ "npm install": { status: 1 } });
+    expect(() => dependencies.action(ctx())).toThrow(expect.objectContaining({ message: "`npm install` failed" }));
+  });
+});
+
+describe("PostgreSQL step", () => {
+  const healthy = { Service: "postgres", Health: "healthy" };
+
+  it("reads the JSON array printed by older Compose versions", () => {
+    expect(postgresHealthy(JSON.stringify([{ Service: "other", Health: "healthy" }, healthy]))).toBe(true);
+  });
+
+  it("reads the one-object-per-line output of newer Compose versions", () => {
+    expect(postgresHealthy(`${JSON.stringify({ Service: "other" })}\n${JSON.stringify(healthy)}\n`)).toBe(true);
+  });
+
+  it("is not healthy while starting, when absent, or when output is not JSON", () => {
+    expect(postgresHealthy(JSON.stringify({ Service: "postgres", Health: "starting" }))).toBe(false);
+    expect(postgresHealthy(JSON.stringify({ Service: "other", Health: "healthy" }))).toBe(false);
+    expect(postgresHealthy("")).toBe(false);
+    expect(postgresHealthy("no configuration file provided")).toBe(false);
+  });
+
+  it("skips when the container is healthy", () => {
+    respond({ "docker compose ps --format json": { stdout: JSON.stringify(healthy) } });
+    expect(postgres.check(ctx())).toBe("postgres container is healthy");
+  });
+
+  it("starts the container when it is not healthy or compose ps fails", () => {
+    respond({ "docker compose ps --format json": { stdout: "" } });
+    expect(postgres.check(ctx())).toBeNull();
+    respond({ "docker compose ps --format json": { status: 1, stdout: JSON.stringify(healthy) } });
+    expect(postgres.check(ctx())).toBeNull();
+  });
+
+  it("skips Docker entirely when DATABASE_URL is set, without printing the URL", () => {
+    respond();
+    const { lines, log } = captureLog();
+    expect(runSetup([postgres], ctx({ env: { DATABASE_URL: SECRET_URL } }), log)).toBe(0);
+    expect(lines[0]).toBe(`↷ PostgreSQL — skipped (${ENV_REASON})`);
+    expect(lines.join("\n")).not.toContain("s3cret");
+    expect(spawn).not.toHaveBeenCalled();
+  });
+
+  it("starts the container and waits for its healthcheck", () => {
+    respond();
+    postgres.action(ctx());
+    expect(spawned()).toEqual(["docker compose up -d --wait"]);
+  });
+
+  it("fails with a port hint when compose up fails", () => {
+    respond({ "docker compose up -d --wait": { status: 1 } });
+    expect(() => postgres.action(ctx())).toThrow(expect.objectContaining({ fix: expect.stringContaining("port 5432") }));
   });
 });
 
