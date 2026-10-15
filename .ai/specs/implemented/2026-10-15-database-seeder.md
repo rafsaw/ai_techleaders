@@ -1,6 +1,7 @@
 # Idempotent database seeder (`npm run db:seed`)
 
 Tracking issue: #17
+Status: implemented in #19. Follow-up: wire `db:seed` into `npm run setup` (#15 has merged).
 
 ## 📝 TLDR
 

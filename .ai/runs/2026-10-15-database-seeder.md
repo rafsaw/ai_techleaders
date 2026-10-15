@@ -1,6 +1,6 @@
 # Run: idempotent database seeder (`npm run db:seed`)
 
-Source doc: .ai/specs/2026-10-15-database-seeder.md (spec PR #18)
+Source doc: .ai/specs/implemented/2026-10-15-database-seeder.md (spec PR #18)
 Issue: #17
 
 ## Goal
@@ -70,7 +70,14 @@ Review (`om-auto-review-pr`, independent reviewer): approve, no blockers or majo
 
 The reviewer also corrected one rationale. The app builds its ORM with `new MikroORM(config)`, which does not auto-load extensions. So the seeder reaches the app because `config.ts` imports it, not through auto-load. That correction goes into the spec on #18.
 
-Pending: merge #18 first, then rebase this PR and move the spec to `.ai/specs/implemented/`. The spec is not on `main` yet.
+Rebase (after #15 and #18 merged):
+- rebased onto `main` (3ecedae);
+- resolved the README conflict by keeping #15's `####` "Manual setup" headings and adding the seed step as `#### 6`, with "Start the app" now `#### 7`;
+- Quick setup now says that setup runs manual steps 1–5 and does not seed;
+- the `AGENTS.md` changes from both sides are kept;
+- the spec moved to `.ai/specs/implemented/`.
+
+Open follow-up: wire `db:seed` into `npm run setup`.
 
 ## Progress
 
