@@ -1,4 +1,4 @@
-// Entry point for the MikroORM CLI only (migrations, schema, debug).
+// Entry point for the MikroORM CLI only (migrations, seeding, schema, debug).
 // The app imports `src/config.ts` directly and gets env vars from Next.js.
 import { fileURLToPath } from "node:url";
 

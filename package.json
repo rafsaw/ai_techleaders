@@ -26,6 +26,7 @@
     "db:migrate": "npm run migration:up --workspace @devmentor/db",
     "db:migrate:down": "npm run migration:down --workspace @devmentor/db",
     "db:migration:list": "npm run migration:list --workspace @devmentor/db",
+    "db:seed": "npm run seed --workspace @devmentor/db",
     "ui:add": "npm run ui:add --workspace @devmentor/app --"
   },
   "devDependencies": {

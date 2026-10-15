@@ -13,7 +13,8 @@
     "migration:up": "mikro-orm migration:up",
     "migration:down": "mikro-orm migration:down",
     "migration:list": "mikro-orm migration:list",
-    "migration:pending": "mikro-orm migration:pending"
+    "migration:pending": "mikro-orm migration:pending",
+    "seed": "mikro-orm seeder:run"
   },
   "mikro-orm": {
     "configPaths": [
@@ -24,7 +25,8 @@
     "@devmentor/core": "^0.1.0",
     "@mikro-orm/core": "^7.2.5",
     "@mikro-orm/migrations": "^7.2.5",
-    "@mikro-orm/postgresql": "^7.2.5"
+    "@mikro-orm/postgresql": "^7.2.5",
+    "@mikro-orm/seeder": "^7.2.5"
   },
   "devDependencies": {
     "@mikro-orm/cli": "^7.2.5",

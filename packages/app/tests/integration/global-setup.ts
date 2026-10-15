@@ -167,6 +167,7 @@ export default async function setup(project: TestProject) {
     await waitForApplication(baseURL, server, join(artifactsDirectory, "server.log"));
     if (spawnError) throw spawnError;
     project.provide("baseURL", baseURL);
+    project.provide("databaseURL", environment.DATABASE_URL!);
     project.provide("browserSession", browserSession);
     project.provide("integrationArtifactsDirectory", artifactsDirectory);
     browserReady = true;

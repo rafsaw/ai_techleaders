@@ -1,13 +1,53 @@
+import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { createWriteStream } from "node:fs";
 import { appendFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { afterAll, afterEach, describe, expect, inject, it } from "vitest";
 
 import { IntegrationBrowser } from "./browser";
+import { repositoryRoot } from "./context";
+
+/**
+ * Runs `npm run db:seed` against the test container. Settles on "close" (stdio
+ * drained) so the log is never ended under a late write; on timeout it kills the
+ * process group and waits for it to close before rejecting.
+ */
+async function runSeed(databaseURL: string, logPath: string): Promise<void> {
+  const log = createWriteStream(logPath, { flags: "a" });
+  const seed = spawn("npm", ["run", "db:seed"], {
+    cwd: repositoryRoot,
+    env: { ...process.env, NODE_ENV: "production", DATABASE_URL: databaseURL, DB_DEBUG: "false" },
+    detached: process.platform !== "win32",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  seed.stdout.pipe(log, { end: false });
+  seed.stderr.pipe(log, { end: false });
+  try {
+    await new Promise<void>((resolve, reject) => {
+      let timedOut = false;
+      const timeout = setTimeout(() => {
+        timedOut = true;
+        if (process.platform !== "win32" && seed.pid) process.kill(-seed.pid, "SIGKILL");
+        else seed.kill("SIGKILL");
+      }, 30_000);
+      seed.once("error", (error) => { clearTimeout(timeout); reject(error); });
+      seed.once("close", (code, signal) => {
+        clearTimeout(timeout);
+        if (timedOut) reject(new Error(`db:seed did not finish in 30 seconds; see ${logPath}`));
+        else if (code === 0) resolve();
+        else reject(new Error(`db:seed failed (${code ?? signal}); see ${logPath}`));
+      });
+    });
+  } finally {
+    log.end();
+  }
+}
 
 describe("production application with ephemeral PostgreSQL", () => {
   const baseURL = inject("baseURL");
+  const databaseURL = inject("databaseURL");
   const artifactsDirectory = inject("integrationArtifactsDirectory");
   const browser = new IntegrationBrowser(inject("browserSession"), artifactsDirectory);
 
@@ -108,5 +148,26 @@ describe("production application with ephemeral PostgreSQL", () => {
     await browser.command("open", `${baseURL}/backend`);
     expect(await browser.heading("Dashboard")).toBe("Dashboard");
     expect(await browser.snapshot()).toContain("1 registered users");
+  });
+
+  // Keep last: it adds the sample user to the container shared by every
+  // integration file (one globalSetup), and earlier cases assert the empty
+  // state and exact user counts. A new integration file must not assume an
+  // empty users table once this case has run.
+  it("seeds the sample user idempotently with npm run db:seed", async () => {
+    const seedLog = join(artifactsDirectory, "seed.log");
+    await runSeed(databaseURL, seedLog);
+    await runSeed(databaseURL, seedLog);
+
+    await browser.command("open", `${baseURL}/backend/users`);
+    await browser.waitForText("ada@devmentor.dev");
+    const users = await browser.snapshot();
+    expect(users).toContain('cell "Ada Lovelace"');
+    expect(users.split('cell "ada@devmentor.dev"').length - 1).toBe(1);
+    await browser.capture("users-seeded");
+
+    await browser.command("open", `${baseURL}/backend`);
+    expect(await browser.heading("Dashboard")).toBe("Dashboard");
+    expect(await browser.snapshot()).toContain("2 registered users");
   });
 });

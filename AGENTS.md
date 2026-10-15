@@ -199,6 +199,9 @@ Every new reusable component has one designated home:
   - Name files `*.entity.ts` under `packages/db/src/entities/`.
   - List every entity in the `entities` array in `entities/index.ts`.
     There's no folder discovery.
+- **Seeders:** live in `packages/db/src/seeders/` and must be listed in
+  `seeder.seedersList` in `src/config.ts`. Without the list, `seeder:run`
+  imports every file in that folder, colocated tests included.
 - **Entity manager:**
   - Use the scoped `em` from a container scope (a fork).
   - Never use `orm.em` (the global EM) for request work.
@@ -254,6 +257,7 @@ Every new reusable component has one designated home:
 | Typecheck (all packages) | `npm run typecheck` |
 | New migration | `npm run db:migration:create` (first one: `-- --initial`) |
 | Apply / revert / list migrations | `npm run db:migrate` / `db:migrate:down` / `db:migration:list` |
+| Seed sample data (idempotent) | `npm run db:seed` |
 | Add shadcn component | `npm run ui:add -- <name>` |
 
 Before calling work done, `npm run lint`, `npm run typecheck`,
