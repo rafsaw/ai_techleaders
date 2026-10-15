@@ -1,7 +1,9 @@
 import { Migrator } from "@mikro-orm/migrations";
 import { defineConfig } from "@mikro-orm/postgresql";
+import { SeedManager } from "@mikro-orm/seeder";
 
 import { entities } from "./entities";
+import { DatabaseSeeder } from "./seeders/database.seeder";
 
 function intFromEnv(name: string, fallback: number): number {
   const raw = process.env[name];
@@ -14,7 +16,7 @@ function intFromEnv(name: string, fallback: number): number {
 export default defineConfig({
   clientUrl: process.env.DATABASE_URL,
   entities,
-  extensions: [Migrator],
+  extensions: [Migrator, SeedManager],
   pool: {
     min: intFromEnv("DB_POOL_MIN", 0),
     max: intFromEnv("DB_POOL_MAX", 10),
@@ -25,6 +27,12 @@ export default defineConfig({
     snapshot: false,
     transactional: true,
     allOrNothing: true,
+  },
+  seeder: {
+    // Explicit list, like `entities`: without it `seeder:run` imports every
+    // file in the seeders folder, test files included.
+    seedersList: [DatabaseSeeder],
+    defaultSeeder: DatabaseSeeder.name,
   },
   debug: process.env.DB_DEBUG === "true",
 });

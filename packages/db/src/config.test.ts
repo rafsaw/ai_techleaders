@@ -1,3 +1,5 @@
+import { Migrator } from "@mikro-orm/migrations";
+import { SeedManager } from "@mikro-orm/seeder";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 afterEach(() => { vi.unstubAllEnvs(); vi.resetModules(); });
@@ -16,9 +18,12 @@ describe("database configuration", () => {
     expect(config.pool).toEqual({ min: 0, max: 10 });
     expect(config.debug).toBe(false);
     expect(config.entities).toHaveLength(1);
-    expect(config.extensions).toHaveLength(1);
+    expect(config.extensions).toEqual([Migrator, SeedManager]);
     expect(config.migrations).toEqual({ path: "src/migrations", snapshot: false,
       transactional: true, allOrNothing: true });
+    // Same module registry as the freshly loaded config (loadConfig resets modules).
+    const { DatabaseSeeder } = await import("./seeders/database.seeder");
+    expect(config.seeder).toEqual({ seedersList: [DatabaseSeeder], defaultSeeder: "DatabaseSeeder" });
   });
 
   it("reads explicit connection, pool and debugging settings", async () => {
