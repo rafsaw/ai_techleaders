@@ -78,7 +78,7 @@ Required path: update `.env.example`, `README.md` and the CI workflow in the sam
 
 ### 6. Repository scripts and commands
 
-The surface is the root `package.json` scripts that `AGENTS.md`, `README.md`, CI and the agent pipeline invoke: `dev`, `build`, `lint`, `typecheck`, `test:coverage`, `test:integration`, `test:integration:install`, the `db:*` scripts, and `ui:add`.
+The surface is the root `package.json` scripts that `AGENTS.md`, `README.md`, CI and the agent pipeline invoke: `setup`, `dev`, `build`, `lint`, `typecheck`, `test:coverage`, `test:integration`, `test:integration:install`, the `db:*` scripts, and `ui:add`.
 
 Breaking changes include renaming or removing a script, or changing what it validates (for example dropping a package from `typecheck`).
 

@@ -8,8 +8,9 @@ architecture rules this README explains.
 
 ## Getting started
 
-Prerequisites: **Node.js ≥ 22.17** (MikroORM v7 requirement) and **npm**. For
-the full step-by-step setup (database, env, migrations), see
+Prerequisites: **Node.js ≥ 22.17** (MikroORM v7 requirement) and **npm**. Run
+`npm run setup` from the repository root to install dependencies, start the
+database, create the env file and apply migrations; see
 [Local setup](#local-setup) below.
 
 - `/` is the public frontend (Tailwind).
@@ -18,14 +19,46 @@ the full step-by-step setup (database, env, migrations), see
 
 ## Local setup
 
-### 1. Prerequisites
+### Quick setup
+
+```bash
+npm run setup
+```
+
+Run it from the repository root. It runs the manual steps below in order and
+prints one line per step:
+
+- **Prerequisites:** Node ≥ 22.17, plus Docker and the Compose plugin.
+- **Dependencies:** `npm install`.
+- **PostgreSQL:** `docker compose up -d --wait`.
+- **Env:** copies `packages/app/.env.example` to `packages/app/.env`.
+- **Migrations:** `npm run db:migrate`.
+
+Each step first checks whether it is already done and reports
+`↷ skipped` if so. That makes `npm run setup` safe to re-run at any time,
+for example after a `git pull`: it only does what is missing. It never
+overwrites an existing `packages/app/.env`. On a failure it stops with
+`✖ <step> — failed: … → <fix>` and exits non-zero. It does not start the app;
+run `npm run dev` next.
+
+**Without Docker** (e.g. the course Sandbox, or your own PostgreSQL), export
+`DATABASE_URL` for the run, for example
+`DATABASE_URL=postgres://… npm run setup`. Setup then skips Docker and `.env`
+creation and migrates that database. A `DATABASE_URL` that is only in a
+`packages/app/.env*` file does not count: export it.
+
+### Manual setup (alternative)
+
+The same steps, by hand.
+
+#### 1. Prerequisites
 
 - **Node.js ≥ 22.17** and npm.
 - **Docker**: Docker Desktop on Windows. If you work in WSL, enable
   Settings -> Resources -> WSL integration for your distro.
 - Keep the repo in the WSL filesystem (e.g. `~/projects`), not under `/mnt/c`.
 
-### 2. Install dependencies
+#### 2. Install dependencies
 
 Run from the repo root; it installs all workspaces:
 
@@ -33,7 +66,7 @@ Run from the repo root; it installs all workspaces:
 npm install
 ```
 
-### 3. Start PostgreSQL
+#### 3. Start PostgreSQL
 
 ```bash
 docker compose up -d
@@ -45,7 +78,7 @@ password and database `devmentor` on port 5432. If port 5432 is taken, change
 the host port mapping (e.g. `"5433:5432"`) and use the same port in
 `DATABASE_URL`.
 
-### 4. Configure env
+#### 4. Configure env
 
 Create `packages/app/.env` (not in the repo root: the MikroORM CLI in
 `packages/db` loads env files from `packages/app` via `@next/env`, and
@@ -82,7 +115,7 @@ it selects production files even when `NODE_ENV=development`. With
 test mode, but mode-specific files can make the app and CLI use different
 values.
 
-### 5. Run migrations
+#### 5. Run migrations
 
 ```bash
 npm run db:migrate
@@ -100,7 +133,7 @@ implement `down()`. The current initial migration,
 `Migration20261013225312`, implements only `up()`; attempting to revert it
 throws `This migration cannot be reverted`.
 
-### 6. Start the app
+#### 6. Start the app
 
 ```bash
 npm run dev
@@ -277,6 +310,7 @@ All scripts run from the repository root.
 
 | Script                        | Description                                   |
 | ----------------------------- | --------------------------------------------- |
+| `npm run setup`               | Idempotent local setup (deps, DB, env, migrations) |
 | `npm run dev`                 | Start the Next.js dev server                  |
 | `npm run build` / `start`     | Production build / serve it                   |
 | `npm run lint`                | ESLint across all packages                    |
@@ -292,7 +326,8 @@ All scripts run from the repository root.
 Unit tests use [Vitest](https://vitest.dev/) and React Testing Library.
 Run `npm run test:unit` for a single run, `npm run test:watch` during development,
 and `npm run test:coverage` for the CI gate. Every runtime TypeScript file in
-workspace `src`, plus the ESLint package-boundary configuration, must reach
+workspace `src`, plus the ESLint package-boundary configuration and the
+repo scripts in `scripts/**/*.mjs`, must reach
 **100% lines, statements, functions, and branches**.
 The HTML report is at `coverage/index.html`; LCOV and JSON summaries are also
 generated. New features must include tests for their success and failure paths.

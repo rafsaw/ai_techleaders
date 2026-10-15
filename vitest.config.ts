@@ -35,7 +35,7 @@ export default defineConfig({
     ],
     coverage: {
       provider: "v8",
-      include: ["packages/*/src/**/*.{ts,tsx}", "eslint.config.mjs"],
+      include: ["packages/*/src/**/*.{ts,tsx}", "scripts/**/*.mjs", "eslint.config.mjs"],
       exclude: ["**/*.test.{ts,tsx}", "**/*.d.ts"],
       reporter: ["text", "html", "lcov", "json-summary"],
       thresholds: { perFile: true, lines: 100, statements: 100, functions: 100, branches: 100 },
