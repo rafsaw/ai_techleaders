@@ -74,7 +74,7 @@ The surface:
 
 Breaking changes include renaming or removing a variable, changing its default or its parsing (for example `DB_DEBUG` accepting only `"true"`), making an optional variable required, or moving where env files are loaded from.
 
-Required path: update `.env.example`, `README.md` and the CI workflow in the same PR, and call out the change under `💥 Breaking` so so developers update their `packages/app/.env`. Changes to `agentic.config.json` also update `SDLC.md`.
+Required path: update `.env.example`, `README.md` and the CI workflow in the same PR, and call out the change under `💥 Breaking` so developers update their `packages/app/.env`. Changes to `agentic.config.json` also update `SDLC.md`.
 
 ### 6. Repository scripts and commands
 
