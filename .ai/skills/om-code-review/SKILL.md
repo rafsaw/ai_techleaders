@@ -4,12 +4,12 @@ Apply these on top of the base om-code-review skill. Everything not mentioned he
 
 ## Extra rule: changes to agent instruction files
 
-If the PR changes `AGENTS.md` or `CLAUDE.md`, add a report section **"🤖 Agent instruction changes"** right after Findings. For each changed file list:
+Agent instruction files are `AGENTS.md`, `CLAUDE.md`, `SDLC.md`, and the repo-local skill overrides in `.ai/skills/**/SKILL.md`. If the PR changes any of them, add a report section **"🤖 Agent instruction changes"** right after Findings. For each changed file list:
 - what changed, in one line per change,
 - whether the change fits the PR scope (yes / no, with a reason),
 - a finding (Minor or higher) if it does not fit the scope or contradicts other rules in the repo.
 
-If neither file changed, write one line: "No changes to agent instruction files."
+If none of them changed, write one line: "No changes to agent instruction files."
 
 ## Extra report section: manual checks
 
