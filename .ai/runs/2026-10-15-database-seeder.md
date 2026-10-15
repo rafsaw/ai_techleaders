@@ -53,9 +53,9 @@ Add a `DatabaseSeeder` in `@devmentor/db` and an `npm run db:seed` script. The s
 
 ### Phase 1: Seeder in @devmentor/db
 
-- [ ] 1.1 Add @mikro-orm/seeder dependency and serverExternalPackages entry
-- [ ] 1.2 Add DatabaseSeeder with unit test
-- [ ] 1.3 Register SeedManager and seedersList in config
+- [x] 1.1 Add @mikro-orm/seeder dependency and serverExternalPackages entry — 11d75a7
+- [x] 1.2 Add DatabaseSeeder with unit test — d615741
+- [x] 1.3 Register SeedManager and seedersList in config — 5357594
 
 ### Phase 2: Command, integration proof, docs
 
