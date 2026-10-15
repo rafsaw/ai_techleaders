@@ -199,6 +199,9 @@ Every new reusable component has one designated home:
   - Name files `*.entity.ts` under `packages/db/src/entities/`.
   - List every entity in the `entities` array in `entities/index.ts`.
     There's no folder discovery.
+- **Seeders:** live in `packages/db/src/seeders/` and must be listed in
+  `seeder.seedersList` in `src/config.ts`. Without the list, `seeder:run`
+  imports every file in that folder, colocated tests included.
 - **Entity manager:**
   - Use the scoped `em` from a container scope (a fork).
   - Never use `orm.em` (the global EM) for request work.

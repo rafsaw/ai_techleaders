@@ -107,7 +107,7 @@ the first file defining it wins (missing files are skipped):
 | ------- | -------------------------------------- |
 | `npm run dev` (development mode) | `.env.development.local` → `.env.local` → `.env.development` → `.env` |
 | `npm run build` (production mode) | `.env.production.local` → `.env.local` → `.env.production` → `.env` |
-| `npm run db:migrate`, `npm run db:seed` and the other migration scripts (unless `NODE_ENV=test`) | `.env.production.local` → `.env.local` → `.env.production` → `.env` |
+| `npm run db:migrate`, `npm run db:seed` and the other `db:*` scripts (unless `NODE_ENV=test`) | `.env.production.local` → `.env.local` → `.env.production` → `.env` |
 
 The CLI wrapper calls `loadEnvConfig` without the development argument, so
 it selects production files even when `NODE_ENV=development`. With

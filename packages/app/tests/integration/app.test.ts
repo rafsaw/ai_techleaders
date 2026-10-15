@@ -9,7 +9,11 @@ import { afterAll, afterEach, describe, expect, inject, it } from "vitest";
 import { IntegrationBrowser } from "./browser";
 import { repositoryRoot } from "./context";
 
-/** Runs `npm run db:seed` against the test container; kills the process group on timeout. */
+/**
+ * Runs `npm run db:seed` against the test container. Settles on "close" (stdio
+ * drained) so the log is never ended under a late write; on timeout it kills the
+ * process group and waits for it to close before rejecting.
+ */
 async function runSeed(databaseURL: string, logPath: string): Promise<void> {
   const log = createWriteStream(logPath, { flags: "a" });
   const seed = spawn("npm", ["run", "db:seed"], {
@@ -22,15 +26,17 @@ async function runSeed(databaseURL: string, logPath: string): Promise<void> {
   seed.stderr.pipe(log, { end: false });
   try {
     await new Promise<void>((resolve, reject) => {
+      let timedOut = false;
       const timeout = setTimeout(() => {
+        timedOut = true;
         if (process.platform !== "win32" && seed.pid) process.kill(-seed.pid, "SIGKILL");
         else seed.kill("SIGKILL");
-        reject(new Error("db:seed did not finish in 60 seconds"));
-      }, 60_000);
+      }, 30_000);
       seed.once("error", (error) => { clearTimeout(timeout); reject(error); });
-      seed.once("exit", (code, signal) => {
+      seed.once("close", (code, signal) => {
         clearTimeout(timeout);
-        if (code === 0) resolve();
+        if (timedOut) reject(new Error(`db:seed did not finish in 30 seconds; see ${logPath}`));
+        else if (code === 0) resolve();
         else reject(new Error(`db:seed failed (${code ?? signal}); see ${logPath}`));
       });
     });
@@ -144,8 +150,10 @@ describe("production application with ephemeral PostgreSQL", () => {
     expect(await browser.snapshot()).toContain("1 registered users");
   });
 
-  // Keep last: it adds the sample user to the shared container, and earlier
-  // cases assert the empty state and exact user counts.
+  // Keep last: it adds the sample user to the container shared by every
+  // integration file (one globalSetup), and earlier cases assert the empty
+  // state and exact user counts. A new integration file must not assume an
+  // empty users table once this case has run.
   it("seeds the sample user idempotently with npm run db:seed", async () => {
     const seedLog = join(artifactsDirectory, "seed.log");
     await runSeed(databaseURL, seedLog);
