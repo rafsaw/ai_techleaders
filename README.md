@@ -51,14 +51,14 @@ creation and migrates that database. A `DATABASE_URL` that is only in a
 
 The same steps, by hand.
 
-### 1. Prerequisites
+#### 1. Prerequisites
 
 - **Node.js ≥ 22.17** and npm.
 - **Docker**: Docker Desktop on Windows. If you work in WSL, enable
   Settings -> Resources -> WSL integration for your distro.
 - Keep the repo in the WSL filesystem (e.g. `~/projects`), not under `/mnt/c`.
 
-### 2. Install dependencies
+#### 2. Install dependencies
 
 Run from the repo root; it installs all workspaces:
 
@@ -66,7 +66,7 @@ Run from the repo root; it installs all workspaces:
 npm install
 ```
 
-### 3. Start PostgreSQL
+#### 3. Start PostgreSQL
 
 ```bash
 docker compose up -d
@@ -78,7 +78,7 @@ password and database `devmentor` on port 5432. If port 5432 is taken, change
 the host port mapping (e.g. `"5433:5432"`) and use the same port in
 `DATABASE_URL`.
 
-### 4. Configure env
+#### 4. Configure env
 
 Create `packages/app/.env` (not in the repo root: the MikroORM CLI in
 `packages/db` loads env files from `packages/app` via `@next/env`, and
@@ -115,7 +115,7 @@ it selects production files even when `NODE_ENV=development`. With
 test mode, but mode-specific files can make the app and CLI use different
 values.
 
-### 5. Run migrations
+#### 5. Run migrations
 
 ```bash
 npm run db:migrate
@@ -133,7 +133,7 @@ implement `down()`. The current initial migration,
 `Migration20261013225312`, implements only `up()`; attempting to revert it
 throws `This migration cannot be reverted`.
 
-### 6. Start the app
+#### 6. Start the app
 
 ```bash
 npm run dev

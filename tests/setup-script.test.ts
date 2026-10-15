@@ -436,6 +436,15 @@ describe("full setup", () => {
     expect(lines).toContain(`↷ Env — skipped (${ENV_REASON})`);
     expect(lines.join("\n")).not.toContain("s3cret");
   });
+
+  it("names the failing step without printing DATABASE_URL when migrating fails", () => {
+    files(done);
+    respond({ "npm run db:migrate": { status: 1 } });
+    const { lines, log } = captureLog();
+    expect(runSetup(steps, ctx({ env: { DATABASE_URL: SECRET_URL } }), log)).toBe(1);
+    expect(lines.at(-1)).toMatch(/^✖ Migrations — failed: `npm run db:migrate` failed → check DATABASE_URL/);
+    expect(lines.join("\n")).not.toContain("s3cret");
+  });
 });
 
 describe("setup entry", () => {
@@ -443,10 +452,13 @@ describe("setup entry", () => {
     vi.resetModules();
     const runSetupMock = vi.fn(() => 1);
     vi.doMock("../scripts/setup/run.mjs", () => ({ runSetup: runSetupMock }));
-    await import("../scripts/setup.mjs");
-    const stepsModule = await import("../scripts/setup/steps.mjs");
-    expect(runSetupMock).toHaveBeenCalledWith(stepsModule.steps, expect.objectContaining({ env: process.env }), console.log);
-    expect(process.exitCode).toBe(1);
-    vi.doUnmock("../scripts/setup/run.mjs");
+    try {
+      await import("../scripts/setup.mjs");
+      const stepsModule = await import("../scripts/setup/steps.mjs");
+      expect(runSetupMock).toHaveBeenCalledWith(stepsModule.steps, expect.objectContaining({ env: process.env }), console.log);
+      expect(process.exitCode).toBe(1);
+    } finally {
+      vi.doUnmock("../scripts/setup/run.mjs");
+    }
   });
 });

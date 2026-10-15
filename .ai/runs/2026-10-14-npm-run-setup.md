@@ -1,6 +1,6 @@
 # Execution plan — idempotent `npm run setup`
 
-Source doc: .ai/specs/2026-10-14-npm-run-setup.md (design PR #14, issue #13)
+Source doc: .ai/specs/implemented/2026-10-14-npm-run-setup.md (design PR #14, issue #13)
 Engine: om-auto-create-pr (steps: 5, --loop: no)
 
 This file is both the execution plan and the run log that AGENTS.md requires.
@@ -62,6 +62,12 @@ Add one root command, `npm run setup`. It takes a fresh clone to "ready for `npm
   - `test:coverage`: pass (100% on 46 files)
   - build: pass
   - `test:integration`: pass (3/3)
+- **Review on #15:** the review requested changes because the spec bookkeeping wasn't done (major). Fixed as follows:
+  - On #14 the spec now carries a Corrections section and lives in `.ai/specs/implemented/`. Merge #14 before #15.
+  - The path references now point at `implemented/`.
+  - README steps 1–6 are nested under "Manual setup".
+  - Added a failure-path secret test.
+  - The entry test's mock cleanup now runs in `finally`.
 - **Worktree caveat (not in scope):** Compose derives the project name from the directory. Running setup in a git worktree without `COMPOSE_PROJECT_NAME` would try to start a second Postgres on port 5432, and that fails with the port hint.
 
 ## Progress
