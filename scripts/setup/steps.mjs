@@ -1,7 +1,7 @@
 // Steps for `npm run setup`. This runs before `npm install`, so only Node
 // built-ins may be imported here.
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { constants, copyFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -120,4 +120,39 @@ export const postgres = {
   },
 };
 
-export const steps = [prerequisites, dependencies, postgres];
+export const env = {
+  name: "Env",
+  check(ctx) {
+    if (hasEnvDatabaseUrl(ctx)) return ENV_REASON;
+    return existsSync(join(ctx.root, "packages", "app", ".env")) ? "packages/app/.env exists" : null;
+  },
+  action(ctx) {
+    const template = join(ctx.root, "packages", "app", ".env.example");
+    if (!existsSync(template)) {
+      throw new StepError("packages/app/.env.example not found", "restore it with git checkout -- packages/app/.env.example");
+    }
+    // COPYFILE_EXCL: never overwrite an existing .env.
+    copyFileSync(template, join(ctx.root, "packages", "app", ".env"), constants.COPYFILE_EXCL);
+  },
+};
+
+// `migration:pending` exits 0 even when the database is unreachable, so only
+// its success text counts as "done"; anything else runs the migrations, whose
+// exit code is reliable.
+export const migrations = {
+  name: "Migrations",
+  check(ctx) {
+    const pending = exec("npm", ["run", "-s", "migration:pending", "-w", "@devmentor/db"], ctx, true);
+    return pending.stdout.includes("No pending migrations") ? "no pending migrations" : null;
+  },
+  action(ctx) {
+    if (!exec("npm", ["run", "db:migrate"], ctx).ok) {
+      throw new StepError(
+        "`npm run db:migrate` failed",
+        "check DATABASE_URL (exported, or in packages/app/.env) and that PostgreSQL is reachable",
+      );
+    }
+  },
+};
+
+export const steps = [prerequisites, dependencies, postgres, env, migrations];

@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { constants, copyFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -11,8 +11,10 @@ import {
   ENV_REASON,
   createContext,
   dependencies,
+  env,
   exec,
   hasEnvDatabaseUrl,
+  migrations,
   newestManifestMtime,
   nodeSatisfies,
   postgres,
@@ -22,7 +24,13 @@ import {
 } from "../scripts/setup/steps.mjs";
 
 vi.mock("node:child_process", () => ({ spawnSync: vi.fn() }));
-vi.mock("node:fs", () => ({ existsSync: vi.fn(), readdirSync: vi.fn(), statSync: vi.fn() }));
+vi.mock("node:fs", () => ({
+  constants: { COPYFILE_EXCL: 1 },
+  copyFileSync: vi.fn(),
+  existsSync: vi.fn(),
+  readdirSync: vi.fn(),
+  statSync: vi.fn(),
+}));
 
 const spawn = vi.mocked(spawnSync);
 const ROOT = "/repo";
@@ -174,7 +182,7 @@ describe("helpers", () => {
 describe("Prerequisites step", () => {
   it("always runs, first", () => {
     expect(prerequisites.check()).toBeNull();
-    expect(steps.map((step: { name: string }) => step.name)).toEqual(["Prerequisites", "Dependencies", "PostgreSQL"]);
+    expect(steps.map((step: { name: string }) => step.name)).toEqual(["Prerequisites", "Dependencies", "PostgreSQL", "Env", "Migrations"]);
   });
 
   it("passes with a supported Node and a working Docker", () => {
@@ -311,6 +319,122 @@ describe("PostgreSQL step", () => {
   it("fails with a port hint when compose up fails", () => {
     respond({ "docker compose up -d --wait": { status: 1 } });
     expect(() => postgres.action(ctx())).toThrow(expect.objectContaining({ fix: expect.stringContaining("port 5432") }));
+  });
+});
+
+describe("Env step", () => {
+  it("skips when packages/app/.env exists", () => {
+    files({ "packages/app/.env": 1 });
+    expect(env.check(ctx())).toBe("packages/app/.env exists");
+  });
+
+  it("creates .env when it is missing", () => {
+    files({});
+    expect(env.check(ctx())).toBeNull();
+  });
+
+  it("skips without touching files when DATABASE_URL is set", () => {
+    files({});
+    expect(env.check(ctx({ env: { DATABASE_URL: SECRET_URL } }))).toBe(ENV_REASON);
+    expect(existsSync).not.toHaveBeenCalled();
+  });
+
+  it("copies the template without ever overwriting", () => {
+    files({ "packages/app/.env.example": 1 });
+    env.action(ctx());
+    expect(copyFileSync).toHaveBeenCalledWith(`${ROOT}/packages/app/.env.example`, `${ROOT}/packages/app/.env`, constants.COPYFILE_EXCL);
+  });
+
+  it("fails when the template is missing", () => {
+    files({});
+    expect(() => env.action(ctx())).toThrow(expect.objectContaining({ message: "packages/app/.env.example not found" }));
+    expect(copyFileSync).not.toHaveBeenCalled();
+  });
+});
+
+describe("Migrations step", () => {
+  const pendingCommand = "npm run -s migration:pending -w @devmentor/db";
+
+  it("skips when nothing is pending", () => {
+    respond({ [pendingCommand]: { stdout: "No pending migrations\n" } });
+    expect(migrations.check(ctx())).toBe("no pending migrations");
+    expect(spawn).toHaveBeenCalledWith("npm", ["run", "-s", "migration:pending", "-w", "@devmentor/db"], expect.objectContaining({ stdio: "pipe" }));
+  });
+
+  it("migrates when migrations are pending", () => {
+    respond({ [pendingCommand]: { stdout: "Migration20261101000000\n" } });
+    expect(migrations.check(ctx())).toBeNull();
+  });
+
+  it("migrates when the database is unreachable, since migration:pending still exits 0", () => {
+    respond({ [pendingCommand]: { status: 0, stdout: "" } });
+    expect(migrations.check(ctx())).toBeNull();
+  });
+
+  it("runs db:migrate with visible output", () => {
+    respond();
+    migrations.action(ctx());
+    expect(spawned()).toEqual(["npm run db:migrate"]);
+  });
+
+  it("fails with a DATABASE_URL hint when migrating fails", () => {
+    respond({ "npm run db:migrate": { status: 1 } });
+    expect(() => migrations.action(ctx())).toThrow(expect.objectContaining({ fix: expect.stringContaining("DATABASE_URL") }));
+  });
+});
+
+describe("full setup", () => {
+  const healthyPs = JSON.stringify({ Service: "postgres", Health: "healthy" });
+  const done = {
+    "package-lock.json": 100,
+    "package.json": 90,
+    "packages/app/package.json": 80,
+    "packages/core/package.json": 80,
+    "node_modules/.package-lock.json": 140,
+    "packages/app/.env": 1,
+    "packages/app/.env.example": 1,
+  };
+
+  it("skips every step on a ready repo and exits 0", () => {
+    files(done);
+    respond({
+      "docker compose ps --format json": { stdout: healthyPs },
+      "npm run -s migration:pending -w @devmentor/db": { stdout: "No pending migrations" },
+    });
+    const { lines, log } = captureLog();
+    expect(runSetup(steps, ctx(), log)).toBe(0);
+    expect(lines).toEqual([
+      "✔ Prerequisites — done",
+      "↷ Dependencies — skipped (node_modules is up to date)",
+      "↷ PostgreSQL — skipped (postgres container is healthy)",
+      "↷ Env — skipped (packages/app/.env exists)",
+      "↷ Migrations — skipped (no pending migrations)",
+      "Next: npm run dev",
+    ]);
+    expect(spawned()).not.toContain("npm install");
+  });
+
+  it("re-runs only the step that is no longer done", () => {
+    const withoutEnv: Record<string, number> = { ...done };
+    delete withoutEnv["packages/app/.env"];
+    files(withoutEnv);
+    respond({
+      "docker compose ps --format json": { stdout: healthyPs },
+      "npm run -s migration:pending -w @devmentor/db": { stdout: "No pending migrations" },
+    });
+    const { lines, log } = captureLog();
+    expect(runSetup(steps, ctx(), log)).toBe(0);
+    expect(lines.filter((line) => line.startsWith("✔"))).toEqual(["✔ Prerequisites — done", "✔ Env — done"]);
+  });
+
+  it("uses the environment's database without Docker or .env and never prints the URL", () => {
+    files(done);
+    respond({ "npm run -s migration:pending -w @devmentor/db": { stdout: "" } });
+    const { lines, log } = captureLog();
+    expect(runSetup(steps, ctx({ env: { DATABASE_URL: SECRET_URL } }), log)).toBe(0);
+    expect(spawned()).toEqual(["npm run -s migration:pending -w @devmentor/db", "npm run db:migrate"]);
+    expect(lines).toContain(`↷ Env — skipped (${ENV_REASON})`);
+    expect(lines.join("\n")).not.toContain("s3cret");
   });
 });
 
