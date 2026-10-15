@@ -27,6 +27,18 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-14 — `migration:pending` exits 0 when the database is unreachable
+
+**Context:** Building the idempotent `npm run setup` (#13): the migrations
+done-check could not rely on `mikro-orm migration:pending`'s exit code.
+**Lesson:** `npm run migration:pending -w @devmentor/db` prints the connection
+error and still exits 0 (`migration:up` exits 1). Parse its stdout for
+`No pending migrations` instead of trusting the exit code. Related: npm
+rewrites `node_modules/.package-lock.json` on every install, just after
+`package-lock.json`, so its mtime is a reliable "dependencies installed" marker.
+**Applies to:** `scripts/setup/steps.mjs`, any tooling or CI step that checks
+for pending migrations.
+
 ### 2026-10-14 — Keep specs aligned with implementation
 
 **Context:** The monorepo foundation spec described DB configuration, ORM
