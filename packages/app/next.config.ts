@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
     "@mikro-orm/postgresql",
     "@mikro-orm/sql",
     "@mikro-orm/migrations",
+    "@mikro-orm/seeder",
   ],
 };
 

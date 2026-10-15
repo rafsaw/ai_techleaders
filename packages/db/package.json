@@ -24,7 +24,8 @@
     "@devmentor/core": "^0.1.0",
     "@mikro-orm/core": "^7.2.5",
     "@mikro-orm/migrations": "^7.2.5",
-    "@mikro-orm/postgresql": "^7.2.5"
+    "@mikro-orm/postgresql": "^7.2.5",
+    "@mikro-orm/seeder": "^7.2.5"
   },
   "devDependencies": {
     "@mikro-orm/cli": "^7.2.5",
