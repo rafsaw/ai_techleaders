@@ -72,6 +72,8 @@ Add one root command, `npm run setup`. It takes a fresh clone to "ready for `npm
 
 ## Progress
 
+PR: #15
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: npm run setup
