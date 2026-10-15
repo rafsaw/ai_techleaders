@@ -66,10 +66,10 @@ dependency rules don't apply to it. It runs the existing root scripts and
 
 ```
 scripts/
-  setup.mjs          entry: `process.exitCode = await runSetup(steps)`, no branches
+  setup.mjs          entry: `process.exitCode = runSetup(steps, createContext(), console.log)`, no branches
   setup/
     steps.mjs        exported step objects { name, check, action } + helpers
-    run.mjs          runSetup(steps): iterate steps, print status lines, stop on failure, return exit code
+    run.mjs          runSetup(steps, ctx, log): iterate steps, print status lines, stop on failure, return exit code
 tests/
   setup-script.test.ts  unit tests (node project), mocks node:child_process + node:fs
                         (not `setup.test.ts`: avoids confusion with the Vitest file `setup-dom.ts`)
@@ -154,8 +154,8 @@ One phase. The command is only useful once all five steps exist.
 ### Phase 1 — `npm run setup`
 
 1. **Runner, entry and Prerequisites.**
-   - Add `scripts/setup/run.mjs` (`runSetup(steps)`: status lines, stop on first
-     failure, return exit code).
+   - Add `scripts/setup/run.mjs` (`runSetup(steps, ctx, log)`: status lines, stop on
+     first failure, return exit code).
    - Add `scripts/setup/steps.mjs` with the Prerequisites step (Node version, plus
      Docker checks gated on `DATABASE_URL`).
    - Add `scripts/setup.mjs` as the entry and `"setup": "node scripts/setup.mjs"` in the
@@ -197,3 +197,17 @@ One phase. The command is only useful once all five steps exist.
    suite unchanged, with no new integration case per #13). Write the run log in
    `.ai/runs/`, and move this spec to `.ai/specs/implemented/` with a Corrections note
    if the code deviated.
+
+## Corrections (2026-10-14, implementation PR #15)
+
+- `runSetup` is synchronous and takes `(steps, ctx, log)`. Every step uses
+  `spawnSync`, so the entry has no top-level `await`. The `ctx`
+  (`env`, `nodeVersion`, `root`) comes from `createContext()` in
+  `scripts/setup/steps.mjs`. The Architecture and Implementation Plan text above
+  now reflects this.
+- Verified during implementation: npm rewrites `node_modules/.package-lock.json`
+  about 40 ms after `package-lock.json` on every install, including a no-op one.
+  So the Dependencies check settles after a single install (A2).
+- Running setup inside a git worktree derives a different Compose project name.
+  Without `COMPOSE_PROJECT_NAME`, it would try to start a second Postgres on port
+  5432 and fail with the port hint. This is accepted and is outside the spec's scope.
