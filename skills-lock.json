@@ -209,7 +209,7 @@
       "source": "open-mercato/skills",
       "sourceType": "github",
       "skillPath": "skills/om-setup-agent-pipeline/SKILL.md",
-      "computedHash": "b854424167aa84e4dd39af996c0a0e22245f2ab4e69a2965b56a7b53b7604103"
+      "computedHash": "ea5e66d24f0fe966309b1033763886f0073e3ae197485c95ea3c93a7254062d3"
     },
     "om-setup-discovery-pipeline": {
       "source": "open-mercato/skills",
