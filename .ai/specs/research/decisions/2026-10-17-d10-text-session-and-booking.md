@@ -1,0 +1,9 @@
+# D10 — Text-session screen and booking input
+
+- Date, owner: 2026-10-17, product owner (founder A); confirmed in the interactive om-discover refresh and approved for saving after the preview.
+- Origin: the PO stated that this choice was adopted from the course reference backlog, `full-backlog.md: E03-S02, E03-S05, E04-S01, E05-S03`. That file was not available in the repository and was not independently inspected. This record documents the PO's choice, not observed user behaviour or validation of demand.
+- Decision: Sessions take place on a text-session screen inside DevMentor, accessible only to the two booking participants. Both participants can exchange text messages during the booked 25- or 50-minute window starting at the slot’s scheduled start. After that window, the session ends and accepts no further messages. No video or audio. Refreshing messages is sufficient; realtime delivery is not required. At booking, the mentee selects a slot and duration, sees the price and pays. No additional input is required; the problem is described during the session. The mentor cannot preview the problem or decline a paid session in the product.
+- Relationship to existing decisions: D01–D09 remain unchanged. D10 makes the problem-submission sequence explicit: the description happens during the session, not before booking. The shorthand in D01's historical source is not a requirement for a pre-booking form. R04 is preserved because the price is shown before the mentee writes the problem. Q10 is closed; the interviews' request for preview and acceptance is not offered.
+- Remaining uncertainty: mentor cancellation is Q11, explicitly non-blocking; the operator handles it manually pending a policy decision (D09). D10 does not establish that policy.
+- Review by: unknown. Required path to change: a superseding row approved by the product owner.
+- Status: active. Supersedes: none.
