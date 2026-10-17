@@ -37,5 +37,11 @@
     "jsdom": "^26.1.0",
     "typescript": "^5.9.3",
     "vitest": "^5.0.4"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "unrs-resolver@1.12.2": true,
+    "agent-browser@0.27.0": true,
+    "protobufjs@7.6.6": true
   }
 }
