@@ -196,3 +196,9 @@ version in both the root and `packages/app` AGENTS.md. Check with
 `require("next/dist/server/lib/generate-agent-files.js").hasCurrentAgentRules(dir)`
 after upgrading Next.
 **Applies to:** `AGENTS.md`, `packages/app/AGENTS.md`, Next upgrades.
+
+### 2026-10-17 — Booking information uses display names
+
+**Context:** The PO corrected D15 during approval of the accounts and booking refresh.
+**Lesson:** Use the other participant’s display name in booking information and related flows; do not reinterpret it as a first or legal name. Keep decision records and the brief consistent.
+**Applies to:** D15, booking notifications and session-list specifications.
