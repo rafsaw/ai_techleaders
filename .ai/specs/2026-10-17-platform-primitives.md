@@ -2,7 +2,7 @@
 
 - Companion spec: [`2026-10-17-accounts-and-roles.md`](./2026-10-17-accounts-and-roles.md) (epic #28), the first consumer. It builds every primitive marked **E01** below, inside its own phases.
 - Design authority: `.ai/specs/product-brief.md` (Now scope), `AGENTS.md` (stack and layer rules), `BACKWARD_COMPATIBILITY.md` (protected surfaces)
-- Status: **draft for review** (PO revisions and accounts design-review amendments 2026-10-18; E02–E05 candidates remain provisional)
+- Status: **draft for review** (PO revisions, accounts design review and platform grilling 2026-10-18; E02–E05 candidates remain provisional)
 
 ## 📝 TLDR
 
@@ -27,12 +27,14 @@
 
 The product owner made the original decisions on 2026-10-17 and revised scope, invitations and session activity on 2026-10-18. These are spec-level ids, not brief ids. The latest PO instruction supersedes the earlier conflicting choices. The accounts design review (2026-10-18) then amended P3, P4, P9 and P11 in the same change as the accounts spec: live roles with no session invalidation or resolution lock, an hourly-throttled DB expiry write, narrower race tests and a Postgres-only rate limiter. When the accounts spec changes a primitive, this catalog is amended in the same PR.
 
+**Platform grilling, 2026-10-18 (PO confirmed).** This review amends both companion specs together. P4 clarifies request-based activity and the dependency-free error screen; P6/P7 share redirect validation and forbid application grants on GET; P10 defines SMTP acceptance; P11 adds inline cleanup, pre-transaction checks and generic throttling feedback, including protection of pending registration state. F5 uses full browser navigation after auth changes. These decisions supersede the conflicting text from the earlier design review.
+
 | Id | Decision | Why | Changes a standing rule? |
 |---|---|---|---|
 | PD1 | Email goes through an `EmailSender` port. The real adapter is SMTP via `nodemailer`. Mailpit catches mail locally and in integration tests. A production provider supporting SMTP is chosen through env vars. **Release requires a chosen provider, a configured sender and a successful delivery test.** (platform.gate.Q4) | Provider selection does not block planning; production delivery must work before release. Mailpit alone does not establish that. | No. It applies the existing port and adapter rule. |
 | PD2 | The UI is split into three areas by audience, not two (platform.gate.Q5):<br>• **Public** (`(frontend)`): listing, mentor profile, sign-in, sign-up, email and invitation links. Uses the Tailwind-only kit.<br>• **Signed-in** (`(app)`): account, mentor profile and slot editors, sessions, session screen. Uses shadcn.<br>• **Admin** (`/backend`): uses shadcn.<br>All three share one presentation-free core: `apiCall` and a form-state hook bound to Zod. | Public pages carry the product's look. Signed-in tools are form- and list-heavy, and shadcn already covers them. | **Yes.** It is a spec-sanctioned exception to "frontend pages don't use shadcn": the signed-in area may use shadcn. `AGENTS.md` is updated in accounts Phase 1. |
 | PD3 | Every route states its access rule explicitly (`access: "public" \| "optional" \| "user" \| { role }`). There is no default. | Fail closed: a forgotten check becomes a type error, not an open endpoint. `/api/users` shipped open with a TODO for exactly this reason. | Extends the protected `apiHandler` and `makeCrudRoute` surface. Every in-repo caller is updated in the same PR. |
-| PD4 | Authorization remains in `apiHandler`, `navigationHandler` and page guards. A narrow `app/src/proxy.ts` renews the existing page-request session cookie only; it never resolves identity, queries the DB or authorizes access. P3/P4 record activity on every authenticated request; the authoritative DB expiry write is throttled to once an hour (accounts.AD2). | The PO requires 30 days from the last visit, including read-only pages. Server Components cannot set cookies. Cookie renewal in Proxy is not an authorization decision. | Supersedes the earlier blanket "no proxy.ts" choice; retains one authorization policy in the data access layer. |
+| PD4 | Authorization remains in `apiHandler`, `navigationHandler` and page guards. A narrow `app/src/proxy.ts` renews the existing page-request session cookie only; it never resolves identity, queries the DB or authorizes access. P3/P4 record activity on authenticated requests reaching the server, including prefetch; the authoritative DB expiry write is throttled to once an hour (accounts.AD2). `/error` is the identity-free exception in P4. | The PO requires 30 days from the last visit, including read-only pages. Server Components cannot set cookies. Cookie renewal in Proxy is not an authorization decision. | Supersedes the earlier blanket "no proxy.ts" choice; retains one authorization policy in the data access layer. |
 | PD5 | Phase 1 is **one PR**, focused on GitHub sign-in, accounts, sessions and protecting admin. F2 and the public-form portion of F3 ship in Phase 2. | No public input form needs that infrastructure in Phase 1. | No. The Phase 1 PR updates all touched contracts and their consumers together. |
 
 ## 📝 Problem Statement
@@ -257,14 +259,15 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   requirePrincipal({ returnTo }): Promise<Principal>  // redirect("/sign-in?returnTo=…")
   requireRole(role, { returnTo }): Promise<Principal>  // signed out → sign-in; wrong role → notFound()
   ```
-- **Activity on pages:** `getPrincipal()` validates and touches the DB session once per render through React `cache()`. Every leaf page calls it (or a guard that calls it), including **public leaves**, so any signed-in page request counts as activity (DB write at most hourly, P3). A public layout/header call alone is insufficient because layouts do not rerun on every navigation. Page activity is request-time work and cannot be served from a shared/static identity cache, so public pages render dynamically; the accounts spec accepts that at this scale. Static assets do not count. Updates are conditional on the row still existing and unexpired; concurrent touches cannot shorten expiry or recreate a deleted session.
+- **Activity on pages:** `getPrincipal()` validates and touches the DB session once per render through React `cache()`. Every leaf page except `/error` calls it (or a guard that calls it), including **public leaves**, so signed-in page requests reaching the server count as activity (DB write at most hourly, P3). This includes speculative prefetch; there is no actual-view tracking or prefetch exclusion. Back/forward navigation served entirely from browser memory does not count, nor does an idle tab without requests. A public layout/header call alone is insufficient because layouts do not rerun on every navigation. Page activity is request-time work and cannot be served from a shared/static identity cache, so public pages render dynamically; the accounts spec accepts that at this scale. Static assets do not count. Updates are conditional on the row still existing and unexpired; concurrent touches cannot shorten expiry or recreate a deleted session.
+- **Dependency-free error screen:** `/error` is the explicit exception to public-leaf identity/activity checks. Neither the page nor its layout/header resolves identity, creates a request scope or accesses the DB. It renders generic messages without personalized navigation, so principal-resolution failures can still be explained. Other routes retain their access checks and fail closed.
 - **Browser cookie renewal:** `app/src/proxy.ts` resends a well-formed existing session cookie with `Max-Age=30 days` on page requests, including RSC navigations. It excludes `/api/*`, Next assets and other static resources, imports only cookie/config helpers, and performs no DB lookup or authorization. Extending an invalid cookie grants nothing: P4 always checks the DB. APIs/navigation routes renew their own response cookies through P3/P7. No cookie write occurs during Server Component render. This narrows the original PD4 prohibition to authorization work, rather than forbidding cookie renewal.
 - **Wrong role → `notFound()`, not 403:** `forbidden()` requires the experimental `authInterrupts` flag. A 404 also conceals the admin area.
 - **Used by:**
   - the `(app)` layout (`requirePrincipal`)
   - `/backend/layout.tsx` (`requireRole("operator")`)
   - the leaf pages that render private data, which repeat the check, per the Next docs' warning that layouts don't re-run on navigation
-  - every public leaf via `getPrincipal()` for optional identity/activity, even if its header already called it; test public-to-public RSC navigation as well as full document visits
+  - every public leaf except `/error` via `getPrincipal()` for optional identity/activity, even if its header already called it; test public-to-public RSC navigation, prefetch and full document visits
 
 ### P5. Access assertions (provisional, first builder E02-S01)
 
@@ -282,9 +285,10 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
 - **Home:** `core/src/validators/auth/return-to.schema.ts` (isomorphic).
 - **Contract:**
   ```ts
-  returnToSchema  // same-origin relative path only: starts with "/" but not "//" or "/\";
-                  // no scheme; ≤ 512 chars. Anything else becomes "/".
+  returnToSchema  // same-origin relative page path only; ≤ 512 chars;
+                  // unsafe or reserved destinations become "/" (rules below)
   ```
+- **Validation:** require a leading `/`, reject protocol-relative paths, schemes, backslashes and control characters, then parse against a trusted base and verify the resulting origin. The isomorphic schema needs no server config: it may use a fixed base for validation; P7 resolves the accepted path against `config.app().url`. Check the normalized, safely decoded pathname too, so dot segments and encoded forms cannot bypass the rules; reject malformed or ambiguous encodings. Reject `/api`, `/_next` and their descendants, including encoded/normalized equivalents. `/apiary` remains valid, and `/api/` inside a query value is not a pathname exclusion. Invalid destinations always fall back to `/`. The same validator applies to every internal success and error redirect.
 - **Carried through:**
   - the sign-in and sign-up pages' query string
   - the OAuth state cookie (E01-S01)
@@ -305,14 +309,11 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
 - **Behavior:**
   - **Internal success:** `303` to `redirectTo`. The target is resolved against `config.app().url` and never against the `Host` header. It must pass `returnToSchema`.
   - **External success:** `303` to `externalUrl`, only when its origin is in `externalOrigins` (e.g. `config.github().oauthUrl`, later the Stripe Connect origin). Any other origin is a bug: it is logged and redirected to `/error`.
-  - **`AppError`:** redirect to `onError(error)`. The default is `/error?code=<code>`.
+  - **`AppError`:** redirect to `onError(error)`. The default is `/error?code=<code>`. Validate this destination through P6 and resolve against `config.app().url`, exactly as for internal success; invalid error destinations fall back to `/`.
   - **Anything else:** logged with a static route template and safe error summary, never raw URL/path/query values, then redirect to `/error?code=internal_error`.
 - **Session activity:** uses P3's presented-cookie resolution and renewal policy even when `access` is public; applies response cookies on both successful and failed navigation outcomes.
-- **No CSRF header:** a browser navigation can't carry one. The handler is therefore GET-only. State changes it makes must be protected by their own proof:
-  - OAuth `state` plus PKCE
-  - an unguessable single-use token
-  - a provider signature
-- **Shared error page:** `(frontend)/error/page.tsx` maps known codes to plain messages.
+- **No CSRF header:** a browser navigation can't carry one. The handler is therefore GET-only. A single-use token in a URL never authorizes an application grant on GET: confirmation and invitation pages only inspect; consuming the token and applying its effect require a POST through `apiHandler`. Narrow protocol callbacks such as OAuth may complete their documented flow using `state` plus PKCE. Signed webhooks use P14, not a generic GET exception.
+- **Shared error page:** `/error` maps known codes to plain messages and uses P4's identity-free page/layout/header exception.
 
 ### P8. Tokens (E01-S01)
 
@@ -355,7 +356,8 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   // templates are pure functions: (data) => { subject, text, html }
   // every link inside is absolute, built from config.app().url
   ```
-- **Failure policy is the caller's:** E01-S02 keeps the account and offers resend. E01-S03 keeps the invitation hash and reports delivery failure; CLI `invite resend` rotates the token before retrying. E04-S03 keeps the booking. Invitation emails go only to their bound address, never to CLI output.
+- **Success means SMTP acceptance**, not delivery to an inbox. User-facing and CLI status may say the message was sent/submitted, never that inbox delivery was confirmed. The real-inbox release test in PD1 remains separate; no delivery tracking or background retries are added.
+- **Failure policy is the caller's:** E01-S02 keeps the account and offers resend. E01-S03 keeps the invitation hash and reports send failure; CLI `invite resend` rotates the token before retrying. E04-S03 keeps the booking. Invitation emails go only to their bound address, never to CLI output.
 - **Local dev and integration:** a `mailpit` service in `docker-compose.yml` (SMTP 1025, UI 8025). Integration tests run Mailpit through Testcontainers and read messages over its HTTP API.
 
 ### P11. Rate limiter (E01-S02)
@@ -374,8 +376,9 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   ```
 - **Unknown IP:** callers **skip** per-IP rules when `clientIp` is `null`. They never pool every visitor into one bucket, which would let one attacker lock everyone out. Per-account rules always apply. `TRUST_PROXY` defaults to `false` and is added in accounts Phase 2.
 - **Trust boundary:** `TRUST_PROXY=true` is supported only when the selected edge replaces inbound `X-Forwarded-For` with a single validated client address and direct origin access is blocked. Reject multi-value/malformed headers as unknown; never trust an attacker-supplied first hop. Deployment must document and test this edge contract; other topologies require an explicit adapter.
-- **Adapter:** Postgres only; there is no memory implementation (callers' unit tests mock the port). `hit` is one atomic `INSERT … ON CONFLICT (key_hash) DO UPDATE … RETURNING` that increments the count or restarts an expired window inline, using `clock.now()` passed as a parameter rather than SQL `now()` (P2). It runs as its own statement outside any caller transaction, so an attempt that ends in an error (e.g. `invalid_credentials`) still counts. Counts are shared across app instances. There is no prune job; stale buckets are an accounts Non-goal, revisited before production.
-- **Rules (E01):** the accounts spec's four rules (sign-in/confirm per IP and per email, sign-up per IP, confirmation-type email per address), all counting attempts.
+- **Adapter:** Postgres only; there is no memory implementation (callers' unit tests mock the port). Every `hit` first runs one indexed `DELETE` of all buckets with `window_ends_at <= now`, then an atomic `INSERT … ON CONFLICT (key_hash) DO UPDATE … RETURNING` that increments the count or restarts an expired window inline. Index `window_ends_at`; use one `clock.now()` value passed to both statements rather than SQL `now()` (P2). Callers complete all limiter checks before opening business transactions, so an attempt that ends in an error (e.g. `invalid_credentials`) still counts. Counts are shared across app instances. Inline cleanup removes expired keys, including keys never hit again, on the next hit; no cleanup job or additional release gate is added. Cleanup of sessions, tokens and invitations remains an accounts Non-goal.
+- **Rules (E01):** the accounts spec's four rules (sign-in/confirm per IP and per email, sign-up per IP, confirmation-type email per address), all counting attempts. Reserve the per-address allowance before creating or replacing pending registration state. When exhausted, sign-up preserves existing credentials and confirmation links, creates no new pending account/link, sends nothing and keeps the same generic `emailSent: false` response for every email state; resend returns 429.
+- **Client feedback:** keep `Retry-After` on the HTTP response, but preserve the API envelope and `apiCall` contract. Forms show "Too many attempts. Try again later" without a countdown or response-header plumbing.
 
 ### P12. Operator CLI (E01-S01 for operator role grant/revoke; E01-S03-T01 adds invitation create/revoke/resend)
 
@@ -392,7 +395,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   interface OperatorCommand<F> { name: string; summary: string; options: ParseArgsOptionsConfig; run(cradle: Cradle, flags: F, out: Output): Promise<void> }
   ```
 - **Output rules:**
-  - Commands print safe status only: invitation id, bound email, expiry and delivery result, or role-change status. Tokens, invitation links, SMTP credentials and mail bodies never appear in stdout/stderr or logs, including on failure. `--note` and variable-expiry flags are not supported.
+  - Commands print safe status only: invitation id, bound email, expiry and send result (SMTP acceptance, not confirmed inbox delivery), or role-change status. Tokens, invitation links, SMTP credentials and mail bodies never appear in stdout/stderr or logs, including on failure. `--note` and variable-expiry flags are not supported.
   - Errors exit 1 with an `AppError` message.
   - Unknown errors exit 1 with "unexpected error", and the details go to `logger`.
 
@@ -483,7 +486,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
 
 | Area | Route group / path | Guard | Styling | E01 pages |
 |---|---|---|---|---|
-| Public | `app/src/app/(frontend)/` | no access gate; each leaf calls `getPrincipal()` for activity, header also reads it for display | plain Tailwind; F3 forms from Phase 2 | `/`, `/sign-in`, `/sign-up`, `/sign-up/check-email`, `/confirm-email`, `/invite/[token]`, `/error` |
+| Public | `app/src/app/(frontend)/` | no access gate; each leaf calls `getPrincipal()` for activity, header also reads it for display; `/error` has an identity-free page/layout/header | plain Tailwind; F3 forms from Phase 2 | `/`, `/sign-in`, `/sign-up`, `/sign-up/check-email`, `/confirm-email`, `/invite/[token]`, `/error` |
 | Signed-in | `app/src/app/(app)/` (new) | `requirePrincipal` in layout **and** in each page | shadcn + `ui/src/backend/*` panel primitives | `/account` |
 | Admin | `app/src/app/backend/` | `requireRole("operator")` | shadcn (unchanged) | `/backend`, `/backend/users` |
 
@@ -493,6 +496,7 @@ A public header that reads the session makes public pages render per request. Th
 
 - **Reads:** pages and layouts call services in Server Components through `createRequestScope().cradle` and render DTOs, as `/backend/page.tsx` already does.
 - **Writes:** client components call `/api/*` with `apiCall`.
+- **After auth changes:** successful password sign-in, email confirmation, sign-out and invitation acceptance use full browser navigation to their validated destination, refreshing headers, layouts and role-dependent UI. OAuth already uses browser navigation. Failed mutations do not navigate; the invitation switch-account flow preserves its validated invitation path.
 - **Result:** one write contract (`apiHandler`), no client data-fetching library, and no duplicated authorization. Page guards (P4) and `apiHandler` (P3) resolve the same principal through the same service.
 
 ### F6. Lists (provisional, first builder E05-S01)
@@ -519,11 +523,12 @@ A public header that reads the session makes public pages render per request. Th
 | Scenario | Behavior |
 |---|---|
 | A required env section is missing (e.g. no `SMTP_URL` in dev) | Only routes that touch that section fail: 500 `internal_error`, with the missing key names in the server log. Build and other pages are unaffected. |
-| A malicious `returnTo` (`//evil.com`, `https://…`, `/\evil`) | Normalized to `/`. Covered by unit tests over a table of payloads. |
+| An unsafe or reserved `returnTo` (external origin, controls, `/api`, `/_next`, or encoded/normalized equivalents) | Falls back to `/` for success and error redirects. Unit tests cover these payloads and allowed boundaries such as `/apiary`. |
 | A route forgets its access rule | Type error at build time (PD3). |
 | The principal resolver throws (DB down) | 500 `internal_error`, logged. Never treated as signed out-and-allowed (fail closed). |
+| Principal resolution fails before a page renders | The minimal `/error` screen remains available without an identity or DB lookup, including in its layout/header. |
 | Two consumers race on one single-use token | Exactly one gets `consumed`. The other gets `used` (P9 conditional update). |
-| A reader visits pages without making mutations | P4 records activity on every authenticated page request (DB expiry written at most hourly); Proxy renews the browser cookie. The session remains valid for 30 days after the last visit. |
+| A reader visits pages without making mutations | P4 records activity on authenticated page requests reaching the server, including prefetch (DB expiry written at most hourly); Proxy renews the browser cookie. Browser-memory-only navigation and an idle tab without requests do not count; `/error` performs no identity/activity lookup. |
 | An invitation URL or nested `returnTo` reaches an error path | Static route templates and sanitized errors are logged. Raw tokens never reach app, CLI, access logs or diagnostic artifacts. |
 | SMTP is down | `EmailSender.send` throws. The caller's documented policy applies: E01-S02 shows "We couldn't send the email — try Resend". |
 | Several app instances behind a load balancer | Rate-limit counts live in Postgres, so every instance sees the same buckets. |
@@ -551,6 +556,7 @@ A public header that reads the session makes public pages render per request. Th
   - D05 (onboarding gate: P13, P14)
 - **PO supersessions, 2026-10-18:** PD4's blanket no-Proxy decision, the optional Phase 1A/1B split, and the create-only bearer invitation interpretation of issue #46 are superseded by the session activity, single-PR and email-bound invitation decisions in the companion spec. D12–D16 and N03 remain active. The product brief is not edited; the PO owns follow-up recording in #49.
 - **Accounts design review, 2026-10-18:** superseded here are P3's user-before-session resolution lock and session deletion on operator grant/revoke, session rotation on privilege change, the per-request (unthrottled) DB expiry write, the in-memory P11 adapter and its prune rule, and blanket real-DB race tests for credential invariants.
+- **Platform grilling, 2026-10-18:** supersedes leaving stale rate-limit buckets indefinitely, mutating pending credentials after the email allowance is exhausted, GET grants based only on a token, and personalized error-page dependencies. Records request-based activity including prefetch, full browser navigation after auth changes, SMTP-acceptance semantics, generic 429 copy, and shared same-origin page-redirect validation excluding `/api` and `/_next`. Inline bucket cleanup runs on every hit before business transactions; session/token/invitation cleanup remains out of scope.
 
 ## 📋 Phasing
 
