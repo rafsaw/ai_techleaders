@@ -38,7 +38,8 @@
  {"id":"entity_2","kind":"new","title":"UserRole (user_roles)","fields":["user_id → users","role: mentee | mentor | operator","invitation_id → mentor_invitations (null)","unique (user_id, role)"],"x":520,"y":60},
  {"id":"entity_3","kind":"new","title":"AuthSession (auth_sessions)","fields":["user_id → users","token_hash (unique)","expires_at"],"x":520,"y":260},
  {"id":"entity_4","kind":"new","title":"EmailConfirmationToken","fields":["user_id → users","email (bound address)","token_hash, expires_at, consumed_at"],"x":520,"y":420},
- {"id":"entity_5","kind":"new","title":"MentorInvitation (mentor_invitations)","fields":["email (bound verified account address)","revoked_at (null); fixed 14-day expiry","one open invitation per email","accepted_by_user_id → users (null)","token_hash rotates on resend; consumed_at"],"x":960,"y":160}
+ {"id":"entity_5","kind":"new","title":"MentorInvitation (mentor_invitations)","fields":["email (bound verified account address)","revoked_at (null); fixed 14-day expiry","one open invitation per email","accepted_by_user_id → users (null)","token_hash rotates on resend; consumed_at"],"x":960,"y":160},
+ {"id":"entity_6","kind":"new","title":"RateLimitBucket (rate_limit_buckets)","fields":["key_hash (unique; rule + email or IP)","count, window_ends_at","standalone; window restarts inline"],"x":960,"y":420}
 ],
 "edges":[
  {"from":"entity_1","to":"entity_2","label":"1-n"},

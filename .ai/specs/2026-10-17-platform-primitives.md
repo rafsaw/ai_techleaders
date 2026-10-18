@@ -2,7 +2,7 @@
 
 - Companion spec: [`2026-10-17-accounts-and-roles.md`](./2026-10-17-accounts-and-roles.md) (epic #28), the first consumer. It builds every primitive marked **E01** below, inside its own phases.
 - Design authority: `.ai/specs/product-brief.md` (Now scope), `AGENTS.md` (stack and layer rules), `BACKWARD_COMPATIBILITY.md` (protected surfaces)
-- Status: **draft for review** (PO revisions 2026-10-18; E02–E05 candidates remain provisional)
+- Status: **draft for review** (PO revisions and accounts design-review amendments 2026-10-18; E02–E05 candidates remain provisional)
 
 ## 📝 TLDR
 
@@ -25,14 +25,14 @@
 
 ## 📝 Decisions
 
-The product owner made the original decisions on 2026-10-17 and revised scope, invitations and session activity on 2026-10-18. These are spec-level ids, not brief ids. The latest PO instruction supersedes the earlier conflicting choices.
+The product owner made the original decisions on 2026-10-17 and revised scope, invitations and session activity on 2026-10-18. These are spec-level ids, not brief ids. The latest PO instruction supersedes the earlier conflicting choices. The accounts design review (2026-10-18) then amended P3, P4, P9 and P11 in the same change as the accounts spec: live roles with no session invalidation or resolution lock, an hourly-throttled DB expiry write, narrower race tests and a Postgres-only rate limiter. When the accounts spec changes a primitive, this catalog is amended in the same PR.
 
 | Id | Decision | Why | Changes a standing rule? |
 |---|---|---|---|
 | PD1 | Email goes through an `EmailSender` port. The real adapter is SMTP via `nodemailer`. Mailpit catches mail locally and in integration tests. A production provider supporting SMTP is chosen through env vars. **Release requires a chosen provider, a configured sender and a successful delivery test.** (platform.gate.Q4) | Provider selection does not block planning; production delivery must work before release. Mailpit alone does not establish that. | No. It applies the existing port and adapter rule. |
 | PD2 | The UI is split into three areas by audience, not two (platform.gate.Q5):<br>• **Public** (`(frontend)`): listing, mentor profile, sign-in, sign-up, email and invitation links. Uses the Tailwind-only kit.<br>• **Signed-in** (`(app)`): account, mentor profile and slot editors, sessions, session screen. Uses shadcn.<br>• **Admin** (`/backend`): uses shadcn.<br>All three share one presentation-free core: `apiCall` and a form-state hook bound to Zod. | Public pages carry the product's look. Signed-in tools are form- and list-heavy, and shadcn already covers them. | **Yes.** It is a spec-sanctioned exception to "frontend pages don't use shadcn": the signed-in area may use shadcn. `AGENTS.md` is updated in accounts Phase 1. |
 | PD3 | Every route states its access rule explicitly (`access: "public" \| "optional" \| "user" \| { role }`). There is no default. | Fail closed: a forgotten check becomes a type error, not an open endpoint. `/api/users` shipped open with a TODO for exactly this reason. | Extends the protected `apiHandler` and `makeCrudRoute` surface. Every in-repo caller is updated in the same PR. |
-| PD4 | Authorization remains in `apiHandler`, `navigationHandler` and page guards. A narrow `app/src/proxy.ts` renews the existing page-request session cookie only; it never resolves identity, queries the DB or authorizes access. P3/P4 update the authoritative DB expiry on every authenticated request. | The PO requires 30 days from the last visit, including read-only pages. Server Components cannot set cookies. Cookie renewal in Proxy is not an authorization decision. | Supersedes the earlier blanket "no proxy.ts" choice; retains one authorization policy in the data access layer. |
+| PD4 | Authorization remains in `apiHandler`, `navigationHandler` and page guards. A narrow `app/src/proxy.ts` renews the existing page-request session cookie only; it never resolves identity, queries the DB or authorizes access. P3/P4 record activity on every authenticated request; the authoritative DB expiry write is throttled to once an hour (accounts.AD2). | The PO requires 30 days from the last visit, including read-only pages. Server Components cannot set cookies. Cookie renewal in Proxy is not an authorization decision. | Supersedes the earlier blanket "no proxy.ts" choice; retains one authorization policy in the data access layer. |
 | PD5 | Phase 1 is **one PR**, focused on GitHub sign-in, accounts, sessions and protecting admin. F2 and the public-form portion of F3 ship in Phase 2. | No public input form needs that infrastructure in Phase 1. | No. The Phase 1 PR updates all touched contracts and their consumers together. |
 
 ## 📝 Problem Statement
@@ -104,10 +104,10 @@ One pass, checked 2026-10-17. Sources: the Next 16 docs in `node_modules/next/di
 
 | Leader / source | What they get right that we adopt | Complexity we skip |
 |---|---|---|
-| **Lucia** (deprecated March 2025; now the reference file `auth_session.ts`) and **The Copenhagen Book** | Store only SHA-256 of a ≥256-bit token. New session token on sign-in and privilege gain. OAuth `state` plus PKCE in an HttpOnly Lax cookie. Provider identity uses its stable user id. Email confirmation tokens are single-use, ≤24 h, bound to user **and** email; sends are rate-limited. `Referrer-Policy` on token pages. | Their under-15-days renewal optimization is **not** adopted: accounts.AD2 requires expiry 30 days after every authenticated visit. `id.secret` split tokens are unnecessary at this scale. |
-| **Better Auth 1.7** | Implicit linking only for verified provider emails. Linking never overwrites the profile (accounts AD3: the display name is not overwritten). | Plugins, adapters, secondary storage, the cookie cache, "fresh session" gating, multi-provider. Its default rate limiter is also in-memory, the same trade-off as P11. |
+| **Lucia** (deprecated March 2025; now the reference file `auth_session.ts`) and **The Copenhagen Book** | Store only SHA-256 of a ≥256-bit token. New session token on sign-in. OAuth `state` plus PKCE in an HttpOnly Lax cookie. Provider identity uses its stable user id. Email confirmation tokens are single-use, ≤24 h, bound to user **and** email; sends are rate-limited. `Referrer-Policy` on token pages. | Their under-15-days renewal threshold is **not** adopted: accounts.AD2 keeps expiry 30 days (± 1 hour) after every authenticated visit by throttling the DB write to once an hour. A new token on privilege gain is not adopted either: roles are read live (accounts.AD2), and server-generated HttpOnly tokens leave nothing to fixate. `id.secret` split tokens are unnecessary at this scale. |
+| **Better Auth 1.7** | Implicit linking only for verified provider emails. Linking never overwrites the profile (accounts AD3: the display name is not overwritten). | Plugins, adapters, secondary storage, the cookie cache, "fresh session" gating, multi-provider. Its default in-memory rate limiter: P11 stores buckets in Postgres from the start. |
 | **[Auth.js account linking](https://authjs.dev/reference/core/providers#allowdangerousemailaccountlinking)** | Its default disables automatic linking even for a matching email. accounts.AD3 deliberately differs: it trusts GitHub's verified primary email and links automatically. | Its opt-in `allowDangerousEmailAccountLinking: true` is the closer comparison to AD3. Credentials support leaves registration, verification and throttling to the application; this is a cost of AD1, not proof that custom auth is simpler. |
-| **OWASP** Authentication, Session Management, Credential Stuffing and Password Storage cheat sheets | Generic sign-in and registration messages with equal timing (dummy hash). Session ids from a CSPRNG, regenerated on privilege change, invalidated on the server. Cookies `HttpOnly; Secure; SameSite=Lax; Path=/` with the `__Host-` prefix. bcrypt input capped at 72 bytes and rejected rather than truncated. Throttle rather than lock out. | MFA, account lockout, breached-password services. |
+| **OWASP** Authentication, Session Management, Credential Stuffing and Password Storage cheat sheets | Generic sign-in and registration messages with equal timing (dummy hash). Session ids from a CSPRNG, invalidated on the server at sign-out. Cookies `HttpOnly; Secure; SameSite=Lax; Path=/` with the `__Host-` prefix. bcrypt input capped at 72 bytes and rejected rather than truncated. Fixed-window throttles rather than permanent lockout. | MFA, permanent account lockout, breached-password services. Regenerating the session id on privilege change: roles are read live (accounts.AD2). The per-email sign-in throttle can block a known address for 15 minutes; accounts accepts that risk. |
 | **[NIST 800-63B rev 4](https://pages.nist.gov/800-63-4/sp800-63b.html#passwordver)** | Single-factor passwords are ≥15 Unicode code points, with no composition rules or truncation, **and** checked against a modest local common-password blocklist (accounts.AD6). Length does not replace the blocklist. | No external breached-password service. bcrypt's 72-byte ceiling can admit fewer than the recommended 64 characters for multibyte passwords; document that limit rather than claiming full NIST conformance. |
 | **GitHub OAuth docs** | `user:email` scope; `GET /user/emails` (`primary`, `verified`, `per_page` ≤100). A cancel returns `?error=access_denied&state=…`. Codes expire after 10 minutes. PKCE (S256) is supported since 2025-07-14. | Storing the GitHub access token: it is discarded after reading the identity. |
 | **arctic 3.7** | `generateState`, `generateCodeVerifier`, and the generic `OAuth2Client` with `createAuthorizationURLWithPKCE` and `validateAuthorizationCode(endpoint, code, verifier)`. The generic client also takes **configurable endpoints**, which lets integration tests point it at a local stub. Errors: `OAuth2RequestError`, `ArcticFetchError`, `UnexpectedResponseError`. ESM-only, which suits our ESM repo. | arctic's `GitHub` class, which has no PKCE and fixed endpoints. |
@@ -239,11 +239,11 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   4. `user` with no principal → `UnauthorizedError`
   5. missing role → `ForbiddenError`
   6. run the handler
-  7. write `cookies` to success **and error** responses (`Set-Cookie`); a new session, rotation or deletion overrides renewal of the old cookie
+  7. write `cookies` to success **and error** responses (`Set-Cookie`); a new session or deletion overrides renewal of the old cookie
 
   A `public` handler still receives `principal: null`; resolving a cookie here only records authenticated activity. All authenticated API requests count, including denied/invalid requests and public auth endpoints. An unexpected error is logged with the caller's literal `logRoute` template (e.g. `/invite/[token]`), never the raw pathname, query string or `returnTo`; omitted templates use a constant `api`/`navigation` label, never a request-derived fallback. `makeCrudRoute` forwards the optional template. Use a safe error summary; provider URLs, headers, message bodies and error causes containing credentials are not logged.
-- **Why the resolver receives `cookies`:** every valid session lookup extends DB expiry to `clock.now() + 30 days` and renews the cookie. An expired or revoked session is never revived. Roles are loaded from the DB on each authorization check, not cached across requests.
-- **Authorization concurrency:** resolution locks the user then its session in one transaction, matching operator role changes' lock order, and reads session validity plus current roles under that lock. Return a principal only if the still-unexpired session's conditional touch succeeds. Never combine a pre-grant session lookup with post-grant roles from a later unlocked lookup; deleting sessions on grant/revoke must also defeat an in-flight resolver that has not yet authorized. Requests authorized before the role change are not retroactively undone.
+- **Why the resolver receives `cookies`:** every valid session lookup renews the cookie and moves DB expiry to `clock.now() + 30 days`, skipping the write when expiry was already moved within the last hour. An expired or signed-out session is never revived. Roles are loaded from the DB on each authorization check, not cached across requests.
+- **Live roles, no lock:** resolution is one statement: find the unexpired session by token hash, conditionally extend its expiry and read the user's current roles. It takes no user-row lock. Role changes (operator grant/revoke, invitation acceptance) touch only `user_roles` and apply on the user's next request; they never delete or rotate sessions (accounts.AD2). Requests authorized before a role change are not retroactively undone.
 - **Framework-agnostic:** it reads `Cookie` from the Web `Request` and writes `Set-Cookie` itself. Nothing depends on Next's `cookies()` merging.
 - `makeCrudRoute` config gains a required `access` passed through to every method. `/api/users` becomes `access: { role: "operator" }` (accounts.AD4).
 - `ResponseCookies` serializes with the `cookie` package (`cookie@2`, added to `core`) rather than hand-rolled code.
@@ -257,7 +257,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   requirePrincipal({ returnTo }): Promise<Principal>  // redirect("/sign-in?returnTo=…")
   requireRole(role, { returnTo }): Promise<Principal>  // signed out → sign-in; wrong role → notFound()
   ```
-- **Activity on pages:** `getPrincipal()` validates and touches the DB session once per render through React `cache()`. Every leaf page calls it (or a guard that calls it), including **public leaves**, so any signed-in page request extends expiry to 30 days from that request. A public layout/header call alone is insufficient because layouts do not rerun on every navigation. Page activity is request-time work and cannot be served from a shared/static identity cache. Static assets do not count. Updates are conditional on the row still existing and unexpired; concurrent touches cannot shorten expiry or recreate a deleted session.
+- **Activity on pages:** `getPrincipal()` validates and touches the DB session once per render through React `cache()`. Every leaf page calls it (or a guard that calls it), including **public leaves**, so any signed-in page request counts as activity (DB write at most hourly, P3). A public layout/header call alone is insufficient because layouts do not rerun on every navigation. Page activity is request-time work and cannot be served from a shared/static identity cache, so public pages render dynamically; the accounts spec accepts that at this scale. Static assets do not count. Updates are conditional on the row still existing and unexpired; concurrent touches cannot shorten expiry or recreate a deleted session.
 - **Browser cookie renewal:** `app/src/proxy.ts` resends a well-formed existing session cookie with `Max-Age=30 days` on page requests, including RSC navigations. It excludes `/api/*`, Next assets and other static resources, imports only cookie/config helpers, and performs no DB lookup or authorization. Extending an invalid cookie grants nothing: P4 always checks the DB. APIs/navigation routes renew their own response cookies through P3/P7. No cookie write occurs during Server Component render. This narrows the original PD4 prohibition to authorization work, rather than forbidding cookie renewal.
 - **Wrong role → `notFound()`, not 403:** `forbidden()` requires the experimental `authInterrupts` flag. A 404 also conceals the admin area.
 - **Used by:**
@@ -338,7 +338,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   type TokenLookup<T> = { status: "valid" | "consumed"; record: T } | { status: "invalid" } | { status: "expired" | "used"; record: T }
   ```
 - **Atomicity:** `consume` performs a conditional `nativeUpdate` (`consumed_at IS NULL AND expires_at > now`). Of two concurrent consumers, exactly one sees `consumed`; the other sees `used`. The caller runs it inside `em.transactional` together with the effect it unlocks (a role grant, an email confirmation). Pages that only display a link's state use `inspect`, so a GET never consumes.
-- **Concept invariants:** the helper alone does not protect credential replacement, invitation revocation or email ownership. Callers lock the affected user and token/invitation rows in a documented order, recheck state, and perform consume plus effect in one transaction. Invitation resend/revoke/accept serialize on the same invitation; the bound verified email must match before any grant. Real PostgreSQL race tests cover these guarantees.
+- **Concept invariants:** the helper alone does not protect credential replacement, invitation revocation or email ownership. Callers lock the affected user and token/invitation rows in a documented order, recheck state, and perform consume plus effect in one transaction. Invitation resend/revoke/accept serialize on the same invitation; the bound verified email must match before any grant. Real PostgreSQL race tests cover the invitation guarantees (accounts Step 3.4: double accept, accept vs revoke, accept vs resend, concurrent create). Credential locking is verified by unit tests of the lock calls and order, backed by the unique constraints and this conditional consume.
 - The stories need a reason ("says why", E01-S02), so the helper distinguishes invalid, expired and used.
 
 ### P10. `EmailSender` port (E01-S02; reused by E04-S03)
@@ -361,9 +361,11 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
 ### P11. Rate limiter (E01-S02)
 
 - **Home:**
-  - `core/src/security/rate-limiter.ts`: the port and a memory implementation
+  - `core/src/security/rate-limiter.ts`: the port
   - `core/src/http/client-ip.ts`
-- **Cradle key:** `rateLimiter` (SINGLETON, depends on `clock`).
+  - `db/src/entities/security/rate-limit-bucket.entity.ts`: the `rate_limit_buckets` table (accounts Data Model)
+  - `db/src/rate-limiter.ts`: the Postgres adapter, exported from `@devmentor/db`
+- **Cradle key:** `rateLimiter` (TRANSIENT, depends on the scoped `em` and `clock`; a SINGLETON cannot depend on scoped `em` in strict mode).
 - **Contract:**
   ```ts
   interface RateLimiter { hit(key: string, rule: { limit: number; windowMs: number }): Promise<{ allowed: boolean; retryAfterMs: number }> }
@@ -371,8 +373,9 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   TooManyRequestsError  // new AppError: code "rate_limited", 429; apiHandler adds Retry-After
   ```
 - **Unknown IP:** callers **skip** per-IP rules when `clientIp` is `null`. They never pool every visitor into one bucket, which would let one attacker lock everyone out. Per-account rules always apply. `TRUST_PROXY` defaults to `false` and is added in accounts Phase 2.
-- **Trust boundary:** `TRUST_PROXY=true` is supported only when the selected edge replaces inbound `X-Forwarded-For` with a single validated client address and direct origin access is blocked. Reject multi-value/malformed headers as unknown; never trust an attacker-supplied first hop. Deployment must document and test this edge contract; other topologies require an explicit adapter. Expired memory buckets are pruned so arbitrary email keys do not grow memory indefinitely.
-- **Adapter:** in-memory, per process. This is the engineering standards' "simple counter, note it needs a stronger backend". A Postgres adapter can replace it behind the port without touching callers, and is required before more than one app instance runs (see Risks).
+- **Trust boundary:** `TRUST_PROXY=true` is supported only when the selected edge replaces inbound `X-Forwarded-For` with a single validated client address and direct origin access is blocked. Reject multi-value/malformed headers as unknown; never trust an attacker-supplied first hop. Deployment must document and test this edge contract; other topologies require an explicit adapter.
+- **Adapter:** Postgres only; there is no memory implementation (callers' unit tests mock the port). `hit` is one atomic `INSERT … ON CONFLICT (key_hash) DO UPDATE … RETURNING` that increments the count or restarts an expired window inline, using `clock.now()` passed as a parameter rather than SQL `now()` (P2). It runs as its own statement outside any caller transaction, so an attempt that ends in an error (e.g. `invalid_credentials`) still counts. Counts are shared across app instances. There is no prune job; stale buckets are an accounts Non-goal, revisited before production.
+- **Rules (E01):** the accounts spec's four rules (sign-in/confirm per IP and per email, sign-up per IP, confirmation-type email per address), all counting attempts.
 
 ### P12. Operator CLI (E01-S01 for operator role grant/revoke; E01-S03-T01 adds invitation create/revoke/resend)
 
@@ -507,6 +510,7 @@ A public header that reads the session makes public pages render per request. Th
 | Error codes | Adds `rate_limited` (429, sets `Retry-After`). The accounts spec adds `invalid_credentials` (401) and `email_not_confirmed` (403) as `AppError` subclasses. | Additive. The envelope shape is unchanged. |
 | `navigationHandler` | New, with internal `redirectTo` or allowlisted `externalUrl`. | Additive. |
 | `@devmentor/ui` exports | Phase 1 adds `./api/*`, removes `./backend/api/*`, and adds optional `CrudForm.resetOnSuccess`. Phase 2 adds `./forms/*` and the public `./frontend/*` kit. | The Phase 1 path move is breaking; all importers, contract docs and 💥 notes change in that PR. Other changes are additive. |
+| `@devmentor/db` exports | Adds the P9 single-use token helpers and the P11 Postgres rate limiter. | Additive. |
 | `@devmentor/core` exports | Adds `config`, `time`, `security` and `auth` modules to `.`. Adds `validators/auth/role.schema`, `validators/auth/return-to.schema`. | Additive. |
 | Cradle | Adds `config`, `clock`, `principalResolver`, `emailSender`, `rateLimiter`. | Additive. |
 
@@ -519,20 +523,21 @@ A public header that reads the session makes public pages render per request. Th
 | A route forgets its access rule | Type error at build time (PD3). |
 | The principal resolver throws (DB down) | 500 `internal_error`, logged. Never treated as signed out-and-allowed (fail closed). |
 | Two consumers race on one single-use token | Exactly one gets `consumed`. The other gets `used` (P9 conditional update). |
-| A reader visits pages without making mutations | P4 extends DB expiry on every authenticated page request; Proxy renews the browser cookie. The session remains valid for 30 days after the last visit. |
+| A reader visits pages without making mutations | P4 records activity on every authenticated page request (DB expiry written at most hourly); Proxy renews the browser cookie. The session remains valid for 30 days after the last visit. |
 | An invitation URL or nested `returnTo` reaches an error path | Static route templates and sanitized errors are logged. Raw tokens never reach app, CLI, access logs or diagnostic artifacts. |
 | SMTP is down | `EmailSender.send` throws. The caller's documented policy applies: E01-S02 shows "We couldn't send the email — try Resend". |
-| Several app instances behind a load balancer | The memory rate limiter undercounts. This is a known limitation, a launch checklist item and in Risks. |
+| Several app instances behind a load balancer | Rate-limit counts live in Postgres, so every instance sees the same buckets. |
+| An operator role is granted or revoked while the user is signed in | The next request reads the new roles; the session continues (P3). |
 | The CLI runs against the wrong database | It prints the database host (not credentials) before executing, and needs `--yes` when `NODE_ENV=production`. |
 
 ## 📝 Risks & Impact Review
 
 - **Protected surfaces touched:** 1 (apiHandler options), 3 (ui and core exports), 5 (new env vars: `APP_URL`, `GITHUB_*`, `SMTP_URL`, `MAIL_FROM`, `TRUST_PROXY`), 6 (new `npm run operator`). Each is changed together with all its consumers, `.env.example`, `README.md` and CI, per `BACKWARD_COMPATIBILITY.md`.
 - **The PD2 rule change is a direction call.** It was made by the product owner, and it reverses part of a standing `AGENTS.md` rule. Rollback is cheap while the signed-in area has one page (`/account`) and grows with each E02 and E05 page.
-- **In-memory rate limiting is a deployment constraint.** No deployment target is recorded anywhere in the repo, so this spec cannot rule multi-instance hosting in or out. If hosting is serverless or multi-instance, the Postgres adapter must ship before launch. ⚠ This needs a hosting decision before release, not before planning.
+- **Rate limiting no longer constrains hosting.** P11 is Postgres-backed from Phase 2, so serverless or multi-instance hosting needs no limiter change. The remaining hosting condition is the trusted client-IP edge contract (P11) before `TRUST_PROXY=true`; until then per-IP rules are skipped and per-email rules still apply.
 - **Release email condition (PD1).** The PO selects an SMTP-capable provider, configures the production sender and verifies delivery to a real inbox before launch. No production invitation/confirmation test writes its token to evidence or logs.
-- **Build budget (brief.A02).** Deferring abstractions does not establish that all Now fits 25 hours. Phase 1 is one focused PR; public forms wait for Phase 2; E02–E05 candidates stay provisional. The task-hour estimate is supplied in the review reply, not stored in these specs. Feasibility remains unproven until scope and schedule are reconciled by the tech lead.
-- **Rollback.** Deploy compatible previous code while keeping additive schema. Destructive migration `down()` procedures are documented separately with data-loss effects and backup/restore requirements; they are not the normal production rollback.
+- **Build budget (brief.A02).** Deferring abstractions does not establish that all Now fits 25 hours. Phase 1 is one focused PR; public forms wait for Phase 2; E02–E05 candidates stay provisional. The budget decision against A02 is made at brief level in #49, not in these specs.
+- **Rollback.** Deploy compatible previous code while keeping additive schema. `down()` migrations are for disposable environments only and are never the production rollback. No E01 phase reaches production with real users before accounts Phase 3 and the release conditions.
 
 ## 📝 Decisions in play
 
@@ -545,6 +550,7 @@ A public header that reads the session makes public pages render per request. Th
   - D16 and D10 (time rules: P2, P15)
   - D05 (onboarding gate: P13, P14)
 - **PO supersessions, 2026-10-18:** PD4's blanket no-Proxy decision, the optional Phase 1A/1B split, and the create-only bearer invitation interpretation of issue #46 are superseded by the session activity, single-PR and email-bound invitation decisions in the companion spec. D12–D16 and N03 remain active. The product brief is not edited; the PO owns follow-up recording in #49.
+- **Accounts design review, 2026-10-18:** superseded here are P3's user-before-session resolution lock and session deletion on operator grant/revoke, session rotation on privilege change, the per-request (unthrottled) DB expiry write, the in-memory P11 adapter and its prune rule, and blanket real-DB race tests for credential invariants.
 
 ## 📋 Phasing
 
@@ -553,7 +559,7 @@ This spec has no phases of its own. By the product owner's instruction, each acc
 | Primitive | Built in |
 |---|---|
 | P1 config, P2 clock, P3 identity context, P4 page guards + cookie-renewal Proxy, P6 `returnTo`, P7 navigation handler, P8 tokens, P12 operator role grant/revoke, F1, F4, F5, minimal `CrudForm.resetOnSuccess` | Accounts **Phase 1** (#34), one PR |
-| P9 single-use token records, P10 `EmailSender` + Mailpit, P11 rate limiter, F2 extraction, F3 public forms | Accounts **Phase 2** (#35) |
+| P9 single-use token records, P10 `EmailSender` + Mailpit, P11 rate limiter (Postgres adapter + `rate_limit_buckets`), F2 extraction, F3 public forms | Accounts **Phase 2** (#35) |
 | P12 invitation create/revoke/resend commands and template (reuse P9/P10) | Accounts **Phase 3** (#36 + #46) |
 | P5 access assertions, P17 money | E02-S01 (#37) |
 | P13 onboarding port, P14 webhook inbox | E02-S02 (#38) |

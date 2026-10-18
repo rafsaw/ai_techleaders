@@ -4,7 +4,7 @@
 - Companion spec: [`2026-10-17-platform-primitives.md`](./2026-10-17-platform-primitives.md), cited below as "platform P*n*/F*n*". Each phase here builds the primitives it first needs.
 - Design authority: `.ai/specs/product-brief.md` (D13, D14, N03; the D12 boundary)
 - Research: one shared pass for both specs. It lives in the platform spec, section "Research".
-- Status: **draft for review** (PO revisions 2026-10-18)
+- Status: **draft for review** (PO revisions and design-review decisions 2026-10-18)
 
 ## 📝 TLDR
 
@@ -22,15 +22,15 @@ The work extends the baseline `auth` concept (`User`, `UserService`, `userCreate
 
 ## 📝 Decisions
 
-The original decisions were settled on 2026-10-17 and revised by the product owner on 2026-10-18 as recorded below. These are spec-level ids. The revision adopts the course authors' invitation model as described by the PO; the course material itself was not independently inspected. It supersedes issue #46's earlier create-only bearer-link decision without editing the product brief or tracker.
+The original decisions were settled on 2026-10-17 and revised by the product owner on 2026-10-18 as recorded below. These are spec-level ids. The revision adopts the course authors' invitation model as described by the PO; the course material itself was not independently inspected. It supersedes issue #46's earlier create-only bearer-link decision without editing the product brief or tracker. A design review the same day (2026-10-18) made roles live, simplified session activity, rate limiting, concurrency tests and rollback, and added the Non-goals section. This is a course project: where two options both suffice, the spec takes the simpler one, and the course model is the reference.
 
 | Id | Decision | Why |
 |---|---|---|
 | AD1 | **Thin in-house auth** on MikroORM. OAuth mechanics come from `arctic`'s generic `OAuth2Client` with PKCE (S256), because its `GitHub` class has no PKCE and fixed endpoints. Passwords use `bcryptjs` (cost 12). No auth library. (accounts.gate.Q1) | Entities, migrations and DI follow house rules (`defineEntity`, MikroORM migrations only, Awilix). Invitations, combined roles and `returnTo` are custom in any library. |
-| AD2 | **Database sessions**, not JWT (accounts.gate.Q2; revised 2026-10-18):<br>• an opaque 256-bit token in an HttpOnly cookie, with only its SHA-256 hash in `auth_sessions`<br>• valid for **30 days from the last visit**: every authenticated page or API request sets DB expiry to request time + 30 days and renews the cookie<br>• page guards record activity; platform.P4's narrow Proxy renews page cookies; API/navigation wrappers renew theirs<br>• operator grant invalidates existing sessions and requires fresh sign-in; revoke removes access on the next authorization check; invitation acceptance adds mentor immediately<br>**This deviates from** the implemented engineering standards' JWT/24h text and the earlier 15-day renewal threshold. Step 1.11 updates the implementation documentation. | Roles come from the DB on every request. Granting operator cannot silently elevate a previously authenticated browser. No cross-request identity/role cache is permitted. |
+| AD2 | **Database sessions**, not JWT (accounts.gate.Q2; revised 2026-10-18):<br>• an opaque 256-bit token in an HttpOnly cookie, with only its SHA-256 hash in `auth_sessions`<br>• valid for **30 days from the last visit**: every authenticated page or API request counts as activity and moves DB expiry to request time + 30 days, but the write is skipped when expiry was already moved within the last hour; the cookie is renewed on every request<br>• page guards record activity; platform.P4's cookie-only Proxy renews page cookies and does no authorization and no DB access (authorization stays where platform.PD4 puts it); API/navigation wrappers renew theirs<br>• roles are read live from the DB on every request: operator grant/revoke and invitation acceptance apply on the user's next request, with no session deletion, rotation or fresh sign-in<br>**This deviates from** the implemented engineering standards' JWT/24h text and the earlier 15-day renewal threshold. Step 1.11 updates the implementation documentation. | Roles come from the DB on every request, so no role change waits for a token to expire. No cross-request identity/role cache is permitted. Accepted risk: a session, including a stolen cookie, holds whatever roles its user has at request time, including roles granted later. |
 | AD3 | **Link GitHub to an existing account only through GitHub's verified primary email.** If that account's password was never confirmed, the GitHub sign-in claims the account and discards the unconfirmed password. (accounts.gate.Q3) | One person, one account, and the email stays unique, which the baseline and D15 rely on. Discarding an unconfirmed password defeats pre-hijacking: an attacker who registered your email first loses access the moment you prove ownership. |
 | AD4 | **`/backend/**` and `/api/users` require the `operator` role.** It is granted only by `npm run operator -- role grant`. The users example stays the reference example. (accounts.gate.Q6) | Once real accounts exist, those routes would expose every email. D12 rules out operator screens for operator *processes*. The admin is not one, and the role cannot be gained in the product. |
-| AD5 | **Email-bound invitations, revised 2026-10-18.** CLI `invite create/revoke/resend --email <address>`; no list UI, `--note`, expiry override or token output. Fixed validity **14 days** from creation/resend; at most one open invitation per normalized email. Resend rotates the token; revoke invalidates the current link. Only an account with the matching **verified** email may accept, by POST after seeing the receiving account. | Supersedes the create-only bearer-link decision recorded in [issue #46](https://github.com/rafsaw/ai_techleaders/issues/46#issuecomment-6250466206). A forwarded link alone cannot grant mentor to an unrelated account. Scanners never consume it. A mismatching GitHub user can sign out and register/confirm the invited address with email/password. |
+| AD5 | **Email-bound invitations, revised 2026-10-18.** CLI `invite create/revoke/resend --email <address>`; no list UI, `--note`, expiry override or token output. Fixed validity **14 days** from creation/resend; at most one open invitation per normalized email. Resend rotates the token; revoke invalidates the current link. Only an account with the matching **verified** email may accept, by POST after seeing the receiving account. | Supersedes the create-only bearer-link decision recorded in [issue #46](https://github.com/rafsaw/ai_techleaders/issues/46#issuecomment-6250466206). A forwarded link alone cannot grant mentor to an unrelated account. Scanners never consume it. A mismatching GitHub user can sign out and register/confirm the invited address with email/password, or ask the operator to re-invite their account email. |
 | AD7 | **Email confirmation takes the link *and* the password.**<br>• The link opens `/confirm-email`, which shows "expired", "already confirmed" or "not valid" immediately.<br>• For a valid link, the person enters the password they chose and presses **Confirm** (a POST).<br>• That confirms the address, signs them in and returns them to `returnTo`.<br>(accounts.gate.Q9, raised by the architectural review.) | Confirm-on-open lets an attacker pre-register your email with their own password. A mail scanner or one stray click would then confirm an account the attacker can sign into, and AD3 would no longer wipe that password because it is "confirmed". Requiring the password the registrant chose means only that registrant can confirm. Because the password proves identity, signing in on confirm is now safe. |
 | AD6 | **Passwords are at least 15 Unicode code points and at most 72 UTF-8 bytes, with no composition rules**, plus a modest local common-password blocklist. Longer input is rejected, never truncated. The form hints "use a short phrase" and supports password-manager autofill/paste. (accounts.gate.Q8) | Length and blocking common passwords address different attacks. The 72-byte bcrypt ceiling remains an explicit limitation for multibyte passwords. No external breached-password service is added. N03 remains in force. |
 
@@ -86,9 +86,9 @@ Each story keeps its own user flow. None of them is reduced to CRUD on `users`.
 | An unconfirmed account | Replace the display name and password hash, **delete** earlier links, and send a new link. The last registration wins; earlier links stop working. |
 | A confirmed account | Hash the submitted password anyway and discard it, so timing matches the other paths. Send an "you already have an account — sign in with GitHub or your password" email. No reset is offered (N03). |
 
-In every case the response is "Check your inbox at *email*". If sending failed, it adds "We couldn't send the email — try again". Sending is not retried in the background.
+In every case the response is "Check your inbox at *email*". If sending failed, it adds "We couldn't send the email — try again". Sending is not retried in the background. Every email in this table counts toward rate-limit rule 4 (3 per address per hour). When that rule is exhausted, sign-up still creates or updates the account as above but sends nothing, and answers with the same `emailSent: false` response for every email state, so nothing leaks.
 
-**Credential concurrency invariant (mandatory).** Registration, email confirmation and GitHub linking serialize on the same user row. Registration may compute a password hash before the transaction, but must lock the user (`FOR UPDATE`) and re-read confirmation state before writing it. A confirmed account's password is never changed by registration, even if registration first observed it as unconfirmed. Confirmation/resend lock the user before its token rows; GitHub linking uses the same order and deletes pending links when claiming an unconfirmed account. For a new email, let the unique email constraint decide the insert, then retry account resolution in a fresh transaction on conflict. Re-registration may invalidate only still-pending credentials/tokens. Token consumption, email confirmation and session creation commit together. No SMTP call or cookie emission happens inside an uncommitted transaction. Tests must race registration against confirmation and GitHub claiming in a real PostgreSQL database, not just mock `em`.
+**Credential concurrency invariant (mandatory).** Registration, email confirmation and GitHub linking serialize on the same user row. Registration may compute a password hash before the transaction, but must lock the user (`FOR UPDATE`) and re-read confirmation state before writing it. A confirmed account's password is never changed by registration, even if registration first observed it as unconfirmed. Confirmation/resend lock the user before its token rows; GitHub linking uses the same order and deletes pending links when claiming an unconfirmed account. For a new email, let the unique email constraint decide the insert, then retry account resolution in a fresh transaction on conflict. Re-registration may invalidate only still-pending credentials/tokens. Token consumption, email confirmation and session creation commit together. No SMTP call or cookie emission happens inside an uncommitted transaction. The guarantees rest on the `FOR UPDATE` user lock plus the database constraints (unique email, unique `github_id`, conditional token consumption). Unit tests assert the lock calls, their order and the re-read; there are no interleaving race tests for registration (see Step 2.7).
 
 **N03 copy on both `/sign-up` and `/sign-in`:** "Password reset is not available yet. Save your password in a password manager, or use GitHub sign-in. If you forget an email-only account's password, you cannot recover access in version 1.0." GitHub is an alternative only when its verified primary email matches the account; it is not a promise to recover an unrelated address. A user without GitHub who forgets the password of an already confirmed account sees the generic credential error plus this notice; resend/re-registration cannot reset that password. Password reset is a follow-up candidate outside 1.0; the PO will record it in #49. This change does not edit the product brief or add a reset route/manual recovery mechanism.
 
@@ -129,6 +129,7 @@ A scanner that prefetches the link changes nothing. A person who did not registe
    npm run operator -- invite resend --email ada@example.com
    ```
    - Normalize email with the same trim/lowercase validation as accounts. `create` commits one invitation with a token hash and expiry exactly 14 days ahead, then emails the raw link only to that address through platform.P10. The CLI prints id, email, expiry and delivery status, **never the token or URL**. `--note` and `--expires-in-days` are rejected.
+   - Before `create`, the operator confirms which address the engineer signs in with (their GitHub primary email if they use GitHub). Inviting that address avoids a second account (runbook rule).
    - `create` conflicts if a still-valid open invitation exists ("Use invite resend or revoke"). An expired open row is closed before a fresh row is created, in the same transaction. The partial unique email index arbitrates concurrent creates.
    - `revoke` invalidates an open invitation immediately; no open invitation is an idempotent no-op. If the latest invitation was already accepted, report that fact: revoking an invitation does not remove an already-granted mentor role.
    - `resend` locks the open row, replaces its token hash and sets a new 14-day expiry, then sends the new link. The old link is invalid even if delivery fails. An expired but unrevoked open row may be resent; accepted/revoked invitations cannot be reopened with resend (use create). There is never more than one open row for the address.
@@ -139,13 +140,13 @@ A scanner that prefetches the link changes nothing. A person who did not registe
    |---|---|
    | Invalid, used, revoked, superseded by resend, or expired | "This invitation is not valid. Ask the DevMentor team for a new email." No role is changed. |
    | Valid, signed out | Sign in or create an account **using the email address that received this invitation**. GitHub and email options preserve `returnTo=/invite/<token>` through confirmation. |
-   | Valid, signed in, account email unverified or different | "This invitation requires the verified email address it was sent to. You are signed in as <current account email>." No Accept button. Offer sign-out and email registration/sign-in with `returnTo` preserved; no address-changing or account-merging feature is added. If GitHub uses another address, register and confirm the invited address with email/password. Do not disclose the full invited address to a mismatching account. |
+   | Valid, signed in, account email unverified or different | "This invitation requires the verified email address it was sent to. You are signed in as <current account email>." No Accept button. Offer sign-out and email registration/sign-in with `returnTo` preserved, and also say "Or ask the DevMentor team to re-invite <current account email>" (that path keeps one account); no address-changing or account-merging feature is added. If GitHub uses another address, register and confirm the invited address with email/password. Do not disclose the full invited address to a mismatching account. |
    | Valid, matching verified account, already a mentor | "You already have the mentor role." The invitation stays unconsumed; the operator can revoke it. |
    | Valid, matching verified account | "Accept as <display name> (<account email>). This account will receive the mentor role." Then **Accept invitation**. |
 
-3. **Accept** sends `POST /api/auth/invitations/accept {token}`. In one transaction, lock the user then the invitation, matching the credential lock order. Re-read the user's normalized email and `emailConfirmedAt`, the invitation's current hash, expiry, revocation and consumption state. A mismatching/unverified account gets 403 and consumes nothing. If the account already has mentor, return 409 and consume nothing. Otherwise consume via platform.P9, add `mentor` with `invitationId` without replacing any existing roles, record `acceptedBy`, and rotate the accepting session. Apply the new cookie only after commit.
+3. **Accept** sends `POST /api/auth/invitations/accept {token}`. In one transaction, lock the user then the invitation, matching the credential lock order. Re-read the user's normalized email and `emailConfirmedAt`, the invitation's current hash, expiry, revocation and consumption state. A mismatching/unverified account gets 403 and consumes nothing. If the account already has mentor, return 409 and consume nothing. Otherwise consume via platform.P9, add `mentor` with `invitationId` without replacing any existing roles, and record `acceptedBy`. The session is not rotated and no cookie changes.
 
-   Resend/revoke lock the same invitation row: if either wins first, the old link cannot grant a role; if acceptance wins first, neither command retroactively undoes the grant. Role uniqueness and the user lock prevent two different invitations concurrently consuming for an already-promoted account. The response and next request show mentor immediately (AD2), without another sign-in. Other sessions read current DB roles; operator grant/revoke has the stricter policy below.
+   Resend/revoke lock the same invitation row: if either wins first, the old link cannot grant a role; if acceptance wins first, neither command retroactively undoes the grant. Role uniqueness and the user lock prevent two different invitations concurrently consuming for an already-promoted account. The response and every session's next request show mentor (AD2), without another sign-in. Operator grant/revoke follow the same live rule.
 
 4. **No open mentor registration.** No route, form field or CLI command grants `mentor` outside verified invitation acceptance. `RoleService.grantMentorFromInvitation` requires the locked, validated invitation path; generic `grant` accepts only `mentee | operator`, with a runtime guard. Sign-up strips unknown role keys. Neither an invitation email field nor a token alone is proof of verified account ownership.
 
@@ -154,16 +155,17 @@ A scanner that prefetches the link changes nothing. A person who did not registe
 - **Account page.** `/account` (signed-in area) shows the display name in an editable form, plus the email, roles and sign-in methods ("GitHub", "Email and password"). It reads through `UserService` in the Server Component (platform F5) and writes with `PATCH /api/account`.
 - **Sign out.** Available in both headers. `POST /api/auth/sign-out` deletes the session row and clears the cookie. Normal sign-out follows its default `/` response. The invitation page's dedicated switch-account button instead waits for successful sign-out and navigates back to the same validated invitation path, preserving `returnTo` without changing the API contract. It does not navigate on failure.
 
-**Session activity and privilege changes (AD2).** Every valid signed-in page or API request counts as activity, including public pages and public API endpoints presented with a valid session. Every public leaf calls `getPrincipal()`; private leaves use their guards. Do not rely on the header/layout alone, which can be reused on client navigation. Extend DB `expires_at` to `now + 30 days` on each request, not only within a 15-day threshold. React `cache()` deduplicates page checks only within that render; it never caches roles across requests. Conditional, monotonic updates do not extend an expired row or recreate a deleted one. API/navigation wrappers renew cookies on success and error responses; a start/rotate/end cookie takes precedence over renewal. Page requests use platform.P4's cookie-only Proxy because Server Components cannot set response cookies. Static assets do not count as activity; merely keeping a tab open without requests does not count.
+**Session activity and privilege changes (AD2).** Every valid signed-in page or API request counts as activity, including public pages and public API endpoints presented with a valid session. Every public leaf calls `getPrincipal()`; private leaves use their guards. Do not rely on the header/layout alone, which can be reused on client navigation. Each request moves DB `expires_at` to `now + 30 days`, but skips the write when `expires_at` is already later than `now + 30 days − 1 hour`, so most requests are read-only. "30 days of inactivity" therefore means 30 days ± 1 hour. React `cache()` deduplicates page checks only within that render; it never caches roles across requests. Conditional, monotonic updates do not extend an expired row or recreate a deleted one. API/navigation wrappers renew cookies on every success and error response; a start/end cookie takes precedence over renewal. Page requests use platform.P4's cookie-only Proxy because Server Components cannot set response cookies. Proxy only renews the session cookie: it does no authorization and no DB access, and authorization stays in `apiHandler`, `navigationHandler` and the page guards (platform.PD4). Static assets do not count as activity; merely keeping a tab open without requests does not count.
 
-`role grant --role operator` adds the role and deletes **all** of that user's sessions in one transaction. The operator must sign in again after the grant; an old session cannot acquire operator access. `role revoke --role operator` removes the role and deletes all sessions in one transaction; it takes effect at the next authorization check with no token-expiry wait, including in other app instances. Repeated grants/revokes are idempotent; only an actual role change invalidates sessions. Mentor invitation acceptance instead rotates the accepting session and applies mentor immediately while preserving every existing role. A request already authorized before a revoke cannot be retroactively undone.
+`role grant --role operator` and `role revoke --role operator` change only the role row. Both are idempotent and apply on the user's next request, including in other app instances: grant opens operator surfaces to the existing session, and revoke makes the next protected request fail while the person stays signed in. Sessions are never deleted or rotated by a role change, and nobody has to sign in again. Mentor invitation acceptance likewise adds mentor live while preserving every existing role. A request already authorized before a revoke cannot be retroactively undone.
 
-Session resolution uses the same user-before-session lock order as role changes and reads session validity/current roles inside that transaction. It returns a principal only after a conditional unexpired-session touch succeeds; a deleted row yields no principal. Do not read an old session and then fetch newly granted operator roles from a later unlocked snapshot. Real-DB tests interleave resolution with operator grant/revoke to prove this boundary.
+Session resolution is one statement with no user-row lock: find the unexpired session by token hash, conditionally extend its expiry (the hourly throttle above) and read the user's current roles. An expired or deleted row yields no principal.
 
 **Alternatives rejected:**
 
 - **Confirming on open (GET).** A scanner or a stray click would confirm an attacker's pre-registration (AD7).
 - **Granting the role on GET.** See AD5.
+- **Deleting or rotating sessions on role changes.** Roles are read live (AD2), so invalidation would only force extra sign-ins and need lock ordering between session resolution and role changes.
 - **A `roles text[]` column.** A row per role records which invitation granted it, and the unique constraint `(user_id, role)` makes grants idempotent.
 - **A generic `auth_identities` table.** One provider (D13) fits a nullable unique `github_id` column. Moving to a table later is a mechanical migration.
 - **Renaming `users.name` to `display_name`.** That is a breaking schema and DTO change (protected surfaces 1 and 4) for a label. Instead, `User.name` **is** the display name, and the UI and DTOs that are new in this spec call it `displayName`.
@@ -175,13 +177,13 @@ Session resolution uses the same user-before-session lock order as role changes 
 | Service | Responsibility | Phase |
 |---|---|---|
 | `UserService` (existing) | Keeps `list`/`count`/`create`. `create` (operator admin) now also grants `mentee`. Adds `getAccount(userId) → AccountDto` and `updateDisplayName(userId, name)`. | 1 |
-| `RoleService` | Idempotent `grant(userId, "mentee" \| "operator")`, operator-only `revokeOperator(userId)`, `rolesOf(userId)`, `grantMentorFromInvitation` (Phase 3). Operator grant/revoke performs role change and session invalidation in the same transaction; no grant path bypasses it. | 1, 3 |
-| `AuthSessionService` | Implements platform.P3 `PrincipalResolver`. `start(userId, cookies)`, `resolve(req, cookies)` (validate/touch/renew), `resolveToken(raw)` (page validation + DB touch; cookie renewal belongs to Proxy), `end(sessionId, cookies)`, `rotate(principal, cookies)`. Also registered as `principalResolver`. Invalidating sessions for operator changes uses the same transactional `em`, without a circular service dependency. | 1 |
+| `RoleService` | Idempotent `grant(userId, "mentee" \| "operator")`, operator-only `revokeOperator(userId)`, `rolesOf(userId)`, `grantMentorFromInvitation` (Phase 3). Role changes touch only `user_roles` and apply on the user's next request. | 1, 3 |
+| `AuthSessionService` | Implements platform.P3 `PrincipalResolver`. `start(userId, cookies)`, `resolve(req, cookies)` (validate/touch/renew), `resolveToken(raw)` (page validation + throttled DB touch; cookie renewal belongs to Proxy), `end(sessionId, cookies)`. Also registered as `principalResolver`. | 1 |
 | `GitHubSignInService` | `begin(returnTo, cookies) → URL`, `complete(query, cookies) → { redirectTo }`. Flow 1 resolution (AD3). | 1 (claim rule completed in 2) |
 | `GitHubOAuth` port (`github-oauth.port.ts`) + `adapters/arctic-github-oauth.ts` | `authorizationUrl(state, verifier)`, `exchangeCode(code, verifier)`, `fetchIdentity(accessToken) → { id, login, name, emails[] }`.<br>• The adapter wraps arctic's `OAuth2Client`, and its endpoints come from `config.github()`, so integration tests point them at a local stub.<br>• It reads `/user` and `/user/emails?per_page=100`. The access token is used once and never stored.<br>• arctic's `OAuth2RequestError`, `ArcticFetchError` and `UnexpectedResponseError` all map to `github_failed`. | 1 |
 | `PasswordAccountService` | `register`, `signIn`, `resendConfirmation`, `inspectConfirmation(token)` (page), `confirmEmail(token, password, cookies)` (Flow 2, AD7). | 2 |
 | `PasswordHasher` (`password-hasher.ts`) | `bcryptjs`, cost 12, plus a `dummyCompare()` that equalizes timing. | 2 |
-| `MentorInvitationService` | `create({ email })`, `revoke({ email })`, `resend({ email })` return safe status DTOs (`id`, `email`, `expiresAt`, delivery/state), never raw tokens/links. `inspect(token, principal?)` returns page-state DTOs without exposing the full bound address to another account; `accept(token, principal, cookies)` enforces Flow 3 under locks. Email is sent through P10 after commit. | 3 |
+| `MentorInvitationService` | `create({ email })`, `revoke({ email })`, `resend({ email })` return safe status DTOs (`id`, `email`, `expiresAt`, delivery/state), never raw tokens/links. `inspect(token, principal?)` returns page-state DTOs without exposing the full bound address to another account; `accept(token, principal)` enforces Flow 3 under locks. Email is sent through P10 after commit. | 3 |
 
 **Routes.** All go through `@/server/http`; no route has its own `try/catch`.
 
@@ -197,7 +199,7 @@ Session resolution uses the same user-before-session lock order as role changes 
 
 **CLI commands** (platform P12) live in `app/src/server/cli/commands/`:
 
-- `role-grant.command.ts` and `role-revoke.command.ts` (Phase 1): `--email <e> --role operator`. Only `operator` is accepted, so `mentor` stays invitation-only. Grant requires a new sign-in; revoke invalidates existing access immediately.
+- `role-grant.command.ts` and `role-revoke.command.ts` (Phase 1): `--email <e> --role operator`. Only `operator` is accepted, so `mentor` stays invitation-only. Both apply on the user's next request; sessions are untouched.
 - `invite-create.command.ts`, `invite-revoke.command.ts`, `invite-resend.command.ts` (Phase 3): `--email <e>` only, in addition to the shared production `--yes` safety flag. All output is secret-free.
 
 ```mermaid
@@ -275,6 +277,16 @@ Index on `user_id`.
 
 There is no `return_to` column: `returnTo` travels in the link's query string, so no raw secret (such as an invitation path) is ever stored.
 
+**`rate_limit_buckets`** (Phase 2): the Postgres storage behind platform.P11's `RateLimiter` port. P11 is Postgres-only (amended in the platform spec with this review), so there is one implementation and no multi-instance release blocker.
+
+| Column | Type | Notes |
+|---|---|---|
+| `key_hash` | `char(64)`, unique | SHA-256 of rule id + normalized key (email or validated IP). |
+| `count` | `integer` | Attempts in the current window. |
+| `window_ends_at` | `timestamptz` | |
+
+One atomic `INSERT … ON CONFLICT (key_hash) DO UPDATE … RETURNING` increments the count, or restarts the window inline when `window_ends_at` has passed. There is no prune command or background job; rows for keys never seen again stay (Non-goals).
+
 **`mentor_invitations`** (Phase 3) adds `singleUseTokenProperties` to these columns:
 
 | Column | Type | Notes |
@@ -303,6 +315,7 @@ flowchart LR
     entity_3["AuthSession (auth_sessions)"]:::newEntity
     entity_4["EmailConfirmationToken (email_confirmation_tokens)"]:::newEntity
     entity_5["MentorInvitation — email bound, revocable, hash rotated on resend"]:::newEntity
+    entity_6["RateLimitBucket (rate_limit_buckets) — standalone"]:::newEntity
 
     entity_1 -->|"1-n"| entity_2
     entity_1 -->|"1-n"| entity_3
@@ -324,11 +337,11 @@ All JSON routes use the existing envelope. Schemas live in `core/src/validators/
 | `POST /api/auth/sign-out` | — | 200 `{ redirectTo: "/" }` | — |
 | `GET /api/account` | — | 200 `AccountDto` | 401 |
 | `PATCH /api/account` | `accountUpdateSchema` `{ displayName: string.trim 1–100 }` | 200 `AccountDto` | 400 field errors, 401 |
-| `POST /api/auth/sign-up` | `signUpSchema` `{ displayName, email, password, returnTo? }` | 201 `{ email, emailSent: boolean }`, identical for new and existing emails | 400, 429 `rate_limited` |
+| `POST /api/auth/sign-up` | `signUpSchema` `{ displayName, email, password, returnTo? }` | 201 `{ email, emailSent: boolean }`, identical for new and existing emails (rule 4 exhausted → `emailSent: false`, nothing sent) | 400, 429 `rate_limited` (rule 3) |
 | `POST /api/auth/sign-in` | `signInSchema` `{ email, password, returnTo? }` | 200 `{ redirectTo }` + `Set-Cookie` | 401 `invalid_credentials`, 403 `email_not_confirmed`, 429 |
 | `POST /api/auth/confirm-email/resend` | `signInSchema` (email + password) | 200 `{ emailSent: boolean, alreadyConfirmed: boolean }` | 401 `invalid_credentials`, 429 |
 | `POST /api/auth/confirm-email` | `emailConfirmSchema` `{ token, password, returnTo? }` | 200 `{ redirectTo }` + `Set-Cookie` | 401 `invalid_credentials`, 404 `not_found` (expired, used or invalid, with a reason-specific message, e.g. when another tab won the race), 429 |
-| `POST /api/auth/invitations/accept` | `invitationAcceptSchema` `{ token: string }` | 200 `AccountDto` preserving existing roles + rotated `Set-Cookie` | 401; 403 `forbidden` for mismatching/unverified email, consuming nothing; 404 `not_found` "This invitation is not valid" for invalid/expired/used/revoked/rotated tokens; 409 `conflict` "You already have the mentor role" |
+| `POST /api/auth/invitations/accept` | `invitationAcceptSchema` `{ token: string }` | 200 `AccountDto` preserving existing roles (no `Set-Cookie`) | 401; 403 `forbidden` for mismatching/unverified email, consuming nothing; 404 `not_found` "This invitation is not valid" for invalid/expired/used/revoked/rotated tokens; 409 `conflict` "You already have the mentor role" |
 | `GET/POST /api/users` (existing) | unchanged | unchanged | **new** 401/403 for non-operators |
 
 ```ts
@@ -342,21 +355,20 @@ type AccountDto = {
 **Rules:**
 
 - **Passwords** (`passwordSchema`, AD6): at least 15 Unicode code points, at most 72 UTF-8 bytes, no composition rules, modest local common-password blocklist. Over-long input is rejected, never truncated. The same behavior applies server/client; no unannounced trimming or normalization of the password. Tests include multibyte input and long common passwords, not just ASCII length.
-- **Rate limits** (platform P11, keys hashed). Every endpoint that sends email is limited per address as well as per IP:
+- **Rate limits** (platform P11 port, Postgres `rate_limit_buckets`, keys hashed). The course model's four rules:
 
-  | Endpoint | Limit | Key |
-  |---|---|---|
-  | sign-in, confirm and resend (shared failed-credential budget) | 10 per 15 min | normalized email + validated IP |
-  | sign-in, confirm and resend (shared failed-credential budget) | 30 per hour | normalized email, across all IPs |
-  | all public password endpoints | 30 per 15 min | validated IP, checked before expensive password hashing/comparison |
-  | sign-up | 5 per hour | IP |
-  | sign-up | 3 per hour | email |
-  | confirmation resend | 3 per hour | email (attempt budget; independent of mail delivery success) |
-  | confirmation resend | 5 per hour | validated IP |
+  | # | Endpoints | Limit | Key |
+  |---|---|---|---|
+  | 1 | sign-in and confirm-email (the confirm page counts as sign-in) | 10 per 15 min | validated IP |
+  | 2 | sign-in and confirm-email | 5 per 15 min | normalized email |
+  | 3 | sign-up | 5 per hour | validated IP |
+  | 4 | every confirmation-type email to an address: sign-up's confirmation or "already registered" email, and confirmation resend | 3 per hour | normalized email |
 
-  When the client IP is unknown (`TRUST_PROXY=false`, the default), the per-IP rules are **skipped**, never pooled into one shared bucket. The per-email rules still apply (platform P11).
+  Every rule counts **attempts**, successful or not. Accepted risk: five bad attempts lock a known address out of password sign-in for 15 minutes; GitHub sign-in is unaffected. Per-IP rules are checked before expensive password hashing/comparison.
 
-  Normalize account emails before hashing rate-limit keys; confirmation derives the account key from the token record, never from an arbitrary supplied email. Known-account failures across credential endpoints share the same counters. Public email-send quotas are reserved before SMTP and count failed sends too. Trusted invitation CLI commands do not pretend to share the web process's memory limiter across separate CLI invocations. `TRUST_PROXY=true` requires an edge that overwrites the header with one validated IP and blocks direct origin access; spoofed/multi-value headers are rejected as unknown. Expired buckets are pruned. The hosting decision must provide this contract or specify another trusted-IP adapter.
+  When the client IP is unknown (`TRUST_PROXY=false`, the default), the per-IP rules are **skipped**, never pooled into one shared bucket. The per-email rules still apply, so rule 4 caps the email any address can receive from sign-up even without a known IP.
+
+  Normalize account emails before hashing rate-limit keys; confirmation derives the account key from the token record, never from an arbitrary supplied email. Rule 4 is reserved before SMTP and counts failed sends too; sign-up answers silently when it is exhausted (Flow 2), resend answers 429. Trusted invitation CLI commands are not rate-limited. `TRUST_PROXY=true` requires an edge that overwrites the header with one validated IP and blocks direct origin access; spoofed/multi-value headers are rejected as unknown. The hosting decision must provide this contract or specify another trusted-IP adapter.
 
 - **Session cookie:**
   - name `__Host-devmentor_session` when `APP_URL` is https, otherwise `devmentor_session`
@@ -393,6 +405,7 @@ The three-area rule comes from platform PD2/F4: public pages use the Tailwind ki
 | The OAuth state cookie expired (more than 10 minutes on GitHub) | `github_failed`; retry works. |
 | The GitHub account has no verified email | `github_no_verified_email`, explaining what to do. No account is created, because D15 needs an email for booking information. |
 | A second GitHub account with an email already linked to another GitHub id | `github_email_taken`: "An account with this email is linked to a different GitHub account." |
+| A password account uses a secondary GitHub address, and the person signs in with GitHub (different primary email) | A separate account is created under the GitHub primary email; the two are not linked (AD3 links by verified primary email only). |
 | The same GitHub user signs in twice at once | The unique `github_id` and `email` constraints mean one insert wins. The loser re-reads and reuses the winner, so no duplicate is created (AC 3 of #34). |
 | The operator renames, or GitHub changes the name | The display name never changes after creation, except from `/account`. |
 | A sign-up for an email that already exists | Same response as a new email, plus an informational email to the address. Nothing leaks. |
@@ -403,13 +416,14 @@ The three-area rule comes from platform PD2/F4: public pages use the Tailwind ki
 | A confirmed email-only user without GitHub forgets the password | Generic credential error plus the N03 notice: reset is not available yet; save passwords in a password manager or choose GitHub with the matching verified email. Re-registering/resending cannot reset the confirmed password. Existing paid-session access is lost unless a still-valid session or matching GitHub sign-in is available. No manual recovery is promised; follow-up candidate belongs to #49, not 1.0. |
 | An invitation opened by a scanner | The GET shows the page only. Nothing is consumed (AD5). |
 | A forwarded link is opened by another account, or GitHub has a different email | The page shows that account and the verified-email requirement, with no Accept button. A forged POST gets 403 and consumes nothing. Sign out and register/confirm the invited address with email/password, preserving `returnTo`. |
-| Two matching sessions accept the same invitation at once | One transaction consumes/grants/rotates; the other gets 404. Wrong-email contenders never become mentors and never consume the invitation. |
+| Two matching sessions accept the same invitation at once | One transaction consumes and grants; the other gets 404. Wrong-email contenders never become mentors and never consume the invitation. |
 | The invitee is already a mentor | 409, preserving all existing roles and leaving the invitation unconsumed. The operator can revoke it. |
 | The invitation expired, was revoked, or was superseded by resend | One invalid-link message. The operator may resend an open expired invitation, or create a new invitation after closure. Every old/rotated token remains invalid. |
 | Accept races with revoke/resend, or two create commands target one email | Row locks define the winner; the unique partial email index prevents two open invitations. Revoke/resend winning means the old token cannot grant a role. Acceptance winning is not reversed by a later invitation command. |
 | SMTP fails on invitation create/resend | The hash change remains committed; the old token stays invalid after resend. CLI reports only safe delivery failure and asks the operator to resend. No raw link is printed or stored for retry. |
-| A read-only user keeps visiting pages | Every valid page request advances DB expiry and renews the browser cookie through Proxy; 30 days with no requests expires the session. Static assets and an idle tab do not count. |
-| Operator role is granted/revoked while sessions exist | Grant invalidates every session and requires a fresh sign-in. Revoke removes the role and invalidates every session; the next protected request fails immediately without waiting for cookie expiry. |
+| A read-only user keeps visiting pages | Every valid page request counts as activity (DB expiry written at most once an hour) and renews the browser cookie through Proxy; 30 days with no requests expires the session. Static assets and an idle tab do not count. |
+| Operator role is granted/revoked while sessions exist | Both apply on the user's next request, without signing in again. Grant opens `/backend` to the existing session; revoke makes the next protected request fail (404 page, 403 API) while the person stays signed in. Sessions are untouched. |
+| Someone uses sign-up to flood another person's inbox | Rule 4 caps confirmation-type email at 3 per address per hour, even when the client IP is unknown. Further sign-ups answer as usual and send nothing. |
 | A session expired in the database but the cookie is still present | Treated as signed out, the row is deleted, and the cookie is cleared on the next API or navigation response. Pages redirect to sign-in with `returnTo`. |
 | The database is down during principal resolution | 500 on APIs, the error page on pages. Never treated as an allowed request (fail closed). |
 | Brute force on sign-in | 429 `rate_limited`: "Too many attempts — try again in N minutes". |
@@ -435,14 +449,15 @@ The three-area rule comes from platform PD2/F4: public pages use the Tailwind ki
   - Both are recorded here so a reviewer does not flag them as defects.
 - **Residual risk, accepted:** an attacker can keep re-registering a victim's unconfirmed email. That replaces the victim's pending password and link, which annoys the victim but gives the attacker no access (AD7). Per-email sign-up limits (3 per hour) bound it. Every confirmation email says "If you didn't create a DevMentor account, ignore this email".
 - **#35 AC 2 is read as "open the link, enter the password, confirm" (AD7)**, a product-owner decision recorded so a reviewer does not flag it as a defect.
-- **Invitation residual risks.** Email binding and revoke/resend supersede the bearer/create-only risk accepted in issue #46. Compromise of both the mailbox and matching account can still defeat the ownership check; no new MFA is added. Misaddressing an invitation invites the owner of that address, so the CLI echoes the normalized address and supports revoke. Revoking an accepted invitation does not revoke mentor; mentor-role removal is not added to this scope. Hosting/access-log redaction must be verified before production links are sent.
-- **Rollback — code only by default.** Each phase is one PR, including Phase 1; deploy compatible previous code and **keep all added columns/tables/indexes/data**. Do not run `db:migrate:down` as part of normal rollback. After Phase 2/3, choose a build/schema combination explicitly: older application code must not expose auth endpoints that bypass later security invariants, and baseline pre-auth code must not publicly serve `/api/users` against real accounts. Disable affected surfaces or use maintenance mode if no safe prior build exists. Reverting Phase 1 alone beneath later features is unsupported.
-- **Destructive reversal, separate procedure.** `README.md` must identify the data lost by each down migration, require a verified backup and tested restore, stop app/CLI traffic in maintenance mode, reverse dependent migrations in order, and deploy a compatible build before reopening traffic. Dropping `password_hash` can strand email-only users (N03); restoring code cannot reconstruct those hashes. This procedure needs an explicit operator decision and is never described as lossless or automatically reversible.
+- **Invitation residual risks.** Email binding and revoke/resend supersede the bearer/create-only risk accepted in issue #46. Compromise of both the mailbox and matching account can still defeat the ownership check; no new MFA is added. Misaddressing an invitation invites the owner of that address, so the CLI echoes the normalized address and supports revoke. Revoking an accepted invitation does not revoke mentor; mentor-role removal stays a manual operator action (Non-goals). Hosting/access-log redaction must be verified before production links are sent.
+- **Live roles, accepted.** A session holds its user's current roles, so a stolen cookie gains any role granted to that user later (AD2). Sign-out still deletes the row.
+- **Dynamic public pages, accepted.** Every public leaf calls `getPrincipal()`, which reads cookies, so public mentor listings and profiles render per request (`cacheComponents` is not enabled). At this scale the cost is negligible; with the hourly throttle a public page view is usually one read and no write. If it ever matters, the fix is `cacheComponents` with the identity read inside a `<Suspense>` boundary.
+- **Rollback — code only.** Each phase is one PR. No E01 phase reaches a production environment with real users before Phase 3 passes and the release conditions below are met, so there is no mixed build/schema matrix to manage. Roll back by deploying previous code and **keeping all added columns/tables/indexes/data**. `down()` migrations are tested for disposable environments only; they drop credentials, roles, sessions or invitation history and are never the rollback path.
 - **Release conditions that are not planning blockers:**
   - brief.Q05 (terms of service and data processing owner)
   - brief.Q13 (the shared operator contact email)
   - platform.PD1: chosen production email provider, configured sender, and a successful delivery test to a real inbox; verify confirmation and invitation template links without storing raw tokens in evidence
-  - the hosting decision for the rate limiter and trusted client-IP header contract; use a shared Postgres limiter before serverless/multiple instances
+  - the hosting decision for the trusted client-IP header contract (the limiter is already Postgres-backed)
   - verified token redaction in application, Proxy, CLI and hosting access/error logs
 
 ## 📝 Decisions in play
@@ -453,14 +468,29 @@ The three-area rule comes from platform PD2/F4: public pages use the Tailwind ki
 - **D12:** no screens for operator processes. Invitations are created through the CLI (#46, confirmed by the product owner 2026-10-17: script or CLI, no admin page).
 - **D15:** the display name is what the other participant sees, so the display name is required and editable here.
 - **Superseded by PO instruction, 2026-10-18:** issue #46's create-only bearer-link/no-revoke interpretation (including token printing and optional note/expiry); AD2's under-15-days renewal threshold; the optional Phase 1A/1B split; and platform.PD4's blanket no-Proxy choice. This records authority for implementation without mutating the tracker or product brief. D12–D16/N03 remain active; the course-model provenance is the PO's instruction, not independently verified research.
+- **Superseded by the design review, 2026-10-18:** session deletion and fresh sign-in on operator grant/revoke, session rotation on invitation acceptance, the user-before-session lock in session resolution, the seven-rule rate-limit table and the in-memory limiter, real-DB credential race tests, and the mixed build/schema rollback matrix with its destructive-reversal procedure.
+- **Budget (brief.A02):** this spec carries no estimate rule. The budget decision against A02 is made at brief level in #49.
+
+## 📝 Non-goals
+
+Not part of E01; reviewers should not flag their absence:
+
+- Changing an account's email address.
+- Adding a second sign-in method to an existing account (a password on a GitHub-only account, or GitHub with a different primary email on a password account).
+- Signing out of all devices.
+- Account deletion and data export. These are manual operator processes (D12) until brief.Q05 is decided; follow-up in #49.
+- Display-name impersonation rules (e.g. someone naming themselves "DevMentor Team").
+- Removing the mentor role. It stays a manual operator action for now; no CLI command or UI is added.
+- Cleaning up expired rows (`auth_sessions`, used/expired confirmation tokens, closed invitations, stale `rate_limit_buckets`). Revisit before production.
+- A local GitHub stub for development. Local development uses a real GitHub OAuth App (README); the stub is test-only.
 
 ## 📋 Phasing
 
 | Phase | Story | Ships | Primitives it builds (platform ids) | Done when |
 |---|---|---|---|---|
 | 1 | #34 E01-S01 | GitHub sign-in, accounts, 30-day activity sessions, sign-out, protected admin and operator role grant/revoke | P1–P4, P6–P8, P12 runner/role commands; F1/F4/F5; minimal `CrudForm.resetOnSuccess` | **One PR, no 1A/1B split.** #34 ACs 1–3, session read-only activity and operator grant/revoke cases pass. Deny leaves the visitor signed out; email option arrives in Phase 2. No shared public-form infrastructure. |
-| 2 | #35 E01-S02 | Email registration/confirmation/sign-in/resend, N03 copy, credential race protection and AD3 claim rule | P9, P10 (+ Mailpit), P11, F2 extraction and F3 public forms | #35 ACs 1–4 and real-DB credential races pass; #34 AC 4's email option is live. **#34 closes here.** |
-| 3 | #46 + #36 E01-S03-T01, E01-S03 | Email-bound invitation create/revoke/resend CLI, email delivery, verified-email acceptance with existing roles preserved | P12 invitation commands, reusing P9/P10 | Revised AD5 criteria, including wrong-email denial and create/revoke/resend/accept races, pass. #46's old printed-link/create-only interpretation is superseded by the PO instruction. |
+| 2 | #35 E01-S02 | Email registration/confirmation/sign-in/resend, N03 copy, credential locking, the four rate limits and AD3 claim rule | P9, P10 (+ Mailpit), P11 (Postgres adapter), F2 extraction and F3 public forms | #35 ACs 1–4 pass; #34 AC 4's email option is live. **#34 closes here.** |
+| 3 | #46 + #36 E01-S03-T01, E01-S03 | Email-bound invitation create/revoke/resend CLI, email delivery, verified-email acceptance with existing roles preserved | P12 invitation commands, reusing P9/P10 | Revised AD5 criteria, including wrong-email denial and the four invitation race tests (Step 3.4), pass. #46's old printed-link/create-only interpretation is superseded by the PO instruction. |
 
 Every phase ends with the full gate:
 
@@ -501,7 +531,7 @@ Each step leaves the app working and is verified by the tests it names. A step t
      - `principal` and `cookies` args
      - `Set-Cookie` application
      - the `PrincipalResolver` cradle key
-     - authenticated activity on public and protected routes; renewal on error responses, with start/rotate/end taking precedence
+     - authenticated activity on public and protected routes; renewal on error responses, with start/end taking precedence
      - unexpected-error logs use static route templates and sanitized errors, never raw paths, queries or nested `returnTo`
    - `/api/users` gets `access: "public"` explicitly. This keeps today's behavior until the gate in Step 1.10, so the baseline integration scenarios stay green.
    - Tests: access matrix; public handlers still receive null while a presented valid session records activity; cookie writes on success/error; resolver failure → 500; token-bearing paths/query/returnTo/error causes absent from logs.
@@ -517,8 +547,7 @@ Each step leaves the app working and is verified by the tests it names. A step t
    - Update the seeder to grant `mentee`.
    - Tests: a migration test, plus a seeder idempotency test that also covers the role.
 6. **`RoleService`, `AuthSessionService` (registered as `principalResolver`), `UserService.getAccount`/`updateDisplayName`, `UserService.create` granting `mentee`.**
-   - Tests: every valid lookup renews to 30 days from request time (including at day 1 and day 29); exact expiry denies; concurrent touches never shorten expiry/resurrect deleted rows; end/rotate; idempotent roles; operator grant/revoke atomically invalidate sessions; `AccountDto` mapping.
-   - Integration: controlled resolver-vs-operator-grant/revoke races prove that a deleted old session never returns a principal with newly granted operator roles. Authorization completed before the role change is the explicit boundary.
+   - Tests (fixed clock): a lookup moves expiry to 30 days from request time, and skips the write when expiry was moved less than an hour ago (just under and just over one hour, and at day 29); exact expiry denies; the conditional update never shortens expiry or resurrects a deleted row; start/end; idempotent roles; operator grant/revoke are seen by the next resolution and leave sessions untouched; `AccountDto` mapping.
 7. **Page guards and cookie-only Proxy** (P4), the operator CLI runner (P12), and operator role grant/revoke.
    - The root script `npm run operator` runs `tsx --conditions=react-server`.
    - The entry `operator.ts` is a one-line call to an exported `main(argv, env, deps)`, so it is fully covered by a unit test.
@@ -527,7 +556,7 @@ Each step leaves the app working and is verified by the tests it names. A step t
      - wrong role → `notFound`
      - public/signed-in/admin page reads touch the DB; per-render cache does not cache roles between requests
      - public-to-public client navigation invokes the public leaf activity check even when the layout/header is reused
-     - Proxy renews page cookies on document/RSC requests, excludes APIs/static resources, preserves security attributes and cannot authorize by itself
+     - Proxy renews page cookies on document/RSC requests, excludes APIs/static resources, preserves security attributes, imports no DB/container module and cannot authorize by itself
      - invalid/expired/revoked cookies still fail DB validation even if Proxy resent them
      - CLI parsing, an unknown command
      - a refused `--role mentor`
@@ -545,6 +574,7 @@ Each step leaves the app working and is verified by the tests it names. A step t
      - no verified email; denied; state mismatch; exchange failure (each arctic error class)
      - a concurrent-insert retry
      - safe `returnTo` survives cancellation/provider errors and all terminal callbacks clear the OAuth cookie
+   - Real-DB race test (integration): two concurrent callbacks for one GitHub identity create exactly one user (#34 AC 3).
 9. **UI: shared API client, areas, GitHub sign-in and account** (F1/F4/F5; no F2/F3 public forms).
    - Build:
      - move `apiCall` to `ui/src/api`
@@ -562,19 +592,19 @@ Each step leaves the app working and is verified by the tests it names. A step t
      - a second sign-in creates no duplicate
      - deny shows the cancelled banner, and the header still shows **Sign in**
      - sign-out
-     - repeated public-to-public and private page-only navigation advances DB expiry and renews the cookie; fixed-clock service tests cover the full 30-day boundary
+     - public-to-public and private page-only navigation renews the cookie; once the throttle window has passed (set `expires_at` back through the test database), the next page request advances DB expiry; fixed-clock service tests cover the full 30-day boundary
 10. **Operator gate (AD4).**
     - `/api/users` becomes `access: { role: "operator" }`, and `/backend/layout.tsx` plus its pages call `requireRole("operator")`.
     - The home page's "Open backend" link is replaced by the header's sign-in state.
-    - Existing home/dashboard/users integration scenarios sign in to create the account, run `role grant`, **sign in again** with the stub, then access admin. The pre-grant session must fail after grant.
-    - New cases: `/backend` returns 404 for a mentee; `/api/users` returns 401 signed out and 403 for a mentee; operator revoke blocks previously valid sessions on the next page/API request. No access is granted by Proxy alone.
+    - Existing home/dashboard/users integration scenarios sign in with the stub to create the account, run `role grant`, then the same session accesses admin on its next request.
+    - New cases: `/backend` returns 404 for a mentee; `/api/users` returns 401 signed out and 403 for a mentee; after operator revoke, the same session gets 404 on `/backend` and 403 on `/api/users` on its next request while staying signed in. No access is granted by Proxy alone.
 11. **Documentation.**
     - `AGENTS.md`:
       - the PD2 three-area rule
       - PD3 (required access)
       - the isomorphism rule
       - Phase 1 catalog homes; F2/F3 implementations and exports are documented when Phase 2 builds them
-      - cookie-only Proxy and DB activity on every authenticated request
+      - cookie-only Proxy (no authorization, no DB access) and DB activity on every authenticated request, written at most hourly
       - `npm run operator`
       - remove "auth.ts is added together with the auth concept"
       - replace references to `ui/src/backend/api`
@@ -588,9 +618,9 @@ Each step leaves the app working and is verified by the tests it names. A step t
       - the "JWT secret env" note is superseded
       - `requireSession(req)` in every route is replaced by PD3's required `access` option
       - minimum password length 15 (AD6)
-      - exact 30-day inactivity expiry, fresh sign-in on operator grant and immediate revoke
+      - 30-day inactivity expiry (DB write at most hourly) and live role changes with no fresh sign-in
       - local common-password blocklist and code-only rollback with retained additive schema
-    - `README.md`: GitHub OAuth App setup, operator grant/revoke and fresh sign-in, code rollback, and the separate destructive reversal procedure.
+    - `README.md`: GitHub OAuth App setup, operator grant/revoke (live on the next request), and code-only rollback.
     - The run log.
 
 ### Phase 2 — #35 email and password with confirmation
@@ -599,18 +629,18 @@ Each step leaves the app working and is verified by the tests it names. A step t
    - Unit tests (mocked `em`, per the `AGENTS.md` rule to mock external resources):
      - every status
      - a conditional update that affects 0 rows → `used`
-   - Phase 2 integration tests prove confirmation-vs-registration and GitHub-claim-vs-registration invariants in real PostgreSQL; Phase 3 separately proves invitation races.
+   - Phase 3 proves the invitation races in real PostgreSQL (Step 3.4).
 2. **`EmailSender`** (P10): the port, the SMTP and memory adapters, templates, `config.email()`.
    - Add the `mailpit` service to `docker-compose.yml` and the Mailpit container to integration global setup, with an inbox helper that reads messages over the HTTP API.
    - Tests: template output with absolute links, and an SMTP adapter error that propagates.
-3. **Rate limiter** (P11): `TooManyRequestsError` (429, `Retry-After`), `clientIp`, and `config.app().trustProxy` (`TRUST_PROXY`, default `false`).
+3. **Rate limiter** (P11 port with the Postgres adapter only): the `RateLimitBucket` entity (its table ships in Step 4's migration), `TooManyRequestsError` (429, `Retry-After`), `clientIp`, and `config.app().trustProxy` (`TRUST_PROXY`, default `false`).
    - Tests:
-     - window rollover with `fixedClock`, and `Retry-After`
+     - the atomic upsert increments within a window and restarts it inline after `window_ends_at` (`fixedClock`), and `Retry-After`
      - `clientIp` with and without `TRUST_PROXY`
      - per-IP rules skipped when the IP is unknown
      - overwritten single-address edge headers accepted; spoofed/multi-value headers treated as unknown
-     - shared credential budgets across sign-in/confirm/resend; resend per-IP budget; failed sends count toward send limits; expired bucket pruning
-4. **Schema:** `users.password_hash` and `email_confirmation_tokens`, with a migration and `down()`, plus migration tests.
+     - the four rules count attempts; an attempt whose handler then fails (e.g. `invalid_credentials`) still counts, because `hit` runs outside the caller's transaction; confirm shares the sign-in buckets; rule 4 counts sign-up and resend sends together, including failed sends
+4. **Schema:** `users.password_hash`, `email_confirmation_tokens` and `rate_limit_buckets`, with a migration and `down()`, plus migration tests. The limiter's upsert is exercised against the migrated table in integration.
 5. **`PasswordHasher` and `PasswordAccountService`** (register, sign-in, resend, inspect, confirm), the schemas, and the four POST routes.
    - Complete the AD3 claim rule in `GitHubSignInService` (clear the unconfirmed password, delete its links).
    - Unit tests cover every Flow 2 row:
@@ -621,9 +651,9 @@ Each step leaves the app working and is verified by the tests it names. A step t
      - send failure → `emailSent: false`
      - inspect: valid, expired, used-and-confirmed, invalid, and an email mismatch → invalid
      - confirm: a wrong password → 401 with nothing consumed; correct → consumed, confirmed, session started, `redirectTo`
-     - rate limits, including per-email across IPs
+     - the four rate-limit rules; sign-up past rule 4 answers identically for every email state and sends nothing
      - the claim rule
-     - user-before-token row-lock order; confirmed credentials cannot be replaced by a stale registration
+     - register, confirm and GitHub claim lock the user `FOR UPDATE` before token rows and re-read confirmation state; confirmed credentials cannot be replaced by a stale registration; the unique-email conflict retries in a fresh transaction
      - common-password rejection, Unicode code-point minimum and UTF-8 byte maximum
 6. **Shared public-form infrastructure and UI** (F2/F3, first public input forms):
    - Extract `useSchemaForm` and field-error mapping, preserving `CrudForm` props/tests and Phase 1's `resetOnSuccess` behavior; add first-invalid focus and the shared cancellation/submit behavior.
@@ -645,7 +675,7 @@ Each step leaves the app working and is verified by the tests it names. A step t
      - an expired link (set `expires_at` in the past through the test database) → "expired"
      - a tampered token → "not valid"
      - the GitHub-cancelled banner links to the email form
-7. **Real-DB credential races:** run concurrent registration against password confirmation and GitHub claiming, with controlled interleavings before/after the user lock. Verify confirmed passwords cannot be replaced, an attacker-chosen pending password cannot authenticate afterward, old confirmation tokens stay invalid, and SMTP runs only after commit. Exercise concurrent first registrations through the unique-email retry path too.
+7. **No credential race tests.** Registration/confirmation/GitHub-claim concurrency is covered by the user lock and constraints, verified by Step 5's unit tests. The only Phase 1–2 real-DB race test is the double GitHub sign-in (Step 1.8).
 8. **Documentation:** env vars, Mailpit, N03 copy and release email test in `README.md`; Phase 2 F2/F3 homes/exports in `AGENTS.md`/`BACKWARD_COMPATIBILITY.md`; trusted-edge configuration; the run log. The PO owns #49 and the product brief is untouched.
 
 ### Phase 3 — #46 email-bound invitation management, then #36 acceptance
@@ -655,13 +685,13 @@ Each step leaves the app working and is verified by the tests it names. A step t
    - Tests: normalized address validation, fixed 14 days, one open invitation, active-create conflict, expired-create closure, expired resend, accepted/revoked resend refusal, idempotent revoke, and resend rotation invalidating the old hash. No configurable expiry or note flags.
    - Test SMTP only after commit, create/resend send failures, safe nonzero CLI output, and that raw tokens/URLs/mail bodies never appear in stdout/stderr/logs. Delivered links use `APP_URL` and only the bound recipient. Invitation management adds no HTTP endpoint or admin page.
 3. **Inspect/accept and the invitation page**, with `RoleService.grantMentorFromInvitation` and the API route.
-   - Unit tests cover every Flow 3 state, current account display, mismatching/unverified denial without consumption, all existing roles preserved, session rotation after commit, already-mentor 409, and generic grant's compile-time/runtime rejection of mentor.
+   - Unit tests cover every Flow 3 state, current account display, mismatching/unverified denial without consumption (including the re-invite hint), all existing roles preserved, no cookie change on accept, already-mentor 409, and generic grant's compile-time/runtime rejection of mentor.
    - Test revoked/rotated/expired/tampered tokens; GET does not consume. Verify referrer/cache/robots protections and sanitized error paths, including nested token-bearing `returnTo`.
 4. **Integration on PostgreSQL + Mailpit:**
    - CLI create sends the link to the bound address without printing it; the inbox helper follows it. A matching GitHub account sees which account receives mentor, accepts once and immediately has its existing roles plus mentor. Reopening cannot grant again.
    - A different GitHub email sees no Accept button and a forced POST gets 403. Sign out, register with the invited address, confirm by email, return to the invitation, then accept successfully. Wrong-email attempts must leave it usable for the real invitee.
    - Cancel GitHub from an invitation, switch to email and finish confirmation/acceptance; the original invitation path survives. The mismatching-account sign-out action also returns to that invitation after clearing the session.
    - Revoke makes an unused link invalid; resend emails a replacement and makes the old token invalid; failed resend still leaves the old token invalid. An already-mentor consumes nothing.
-   - Race two matching sessions on one invitation; race accept against revoke and resend; race concurrent create commands on one email. Assert at most one open invitation and one role grant, no acceptance with a revoked/rotated token when that operation wins, and no role removal when acceptance wins first. The one-open-email constraint prevents multiple valid open invitations for the same verified account address.
+   - Exactly four real-DB race tests: two matching sessions accepting one invitation; accept vs revoke; accept vs resend; two concurrent `invite create` commands for one email. Assert at most one open invitation and one role grant, no acceptance with a revoked/rotated token when that operation wins, and no role removal when acceptance wins first. The one-open-email constraint prevents multiple valid open invitations for the same verified account address.
    - Capture delivery/status evidence without raw tokens or URLs. No page/route/CLI offers open mentor registration.
-5. **Documentation:** the operator runbook documents create/revoke/resend, fixed expiry, verified-email matching, delivery failure, accepted-invitation limits, code rollback and secret-free output; record the PO supersession of issue #46. Include the run log. Move **only this accounts spec** to `.ai/specs/implemented/` after Phase 3's full gate. Keep the platform catalog active until its provisional E02–E05 entries are implemented, explicitly deferred or transferred to their consuming specs; E01 completion is not completion of those features.
+5. **Documentation:** the operator runbook documents create/revoke/resend, confirming the engineer's sign-in address before create, fixed expiry, verified-email matching, delivery failure, accepted-invitation limits, code rollback and secret-free output; record the PO supersession of issue #46. Include the run log. Move **only this accounts spec** to `.ai/specs/implemented/` after Phase 3's full gate. Keep the platform catalog active until its provisional E02–E05 entries are implemented, explicitly deferred or transferred to their consuming specs; E01 completion is not completion of those features.
