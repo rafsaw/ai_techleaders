@@ -27,6 +27,20 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-17 — Split platform primitives from feature specs
+
+**Context:** E01 started as one spec covering the accounts features and the
+reusable primitives under them. The product owner split it into two companion
+specs: platform primitives and accounts and roles.
+**Lesson:** When a request asks for a feature *and* the framework beneath it,
+write two companion specs. (1) A platform spec designs every primitive the
+backlog needs, each with a home, a contract and its first-builder story.
+(2) A feature spec whose phases follow the stories, each phase building only
+the primitives it first uses. The platform spec's plan is a build schedule
+that points into feature phases, not a separate delivery track.
+**Applies to:** `.ai/specs/`, om-spec-writing runs, any epic that introduces
+cross-cutting primitives.
+
 ### 2026-10-14 — `migration:pending` exits 0 when the database is unreachable
 
 **Context:** Building the idempotent `npm run setup` (#13): the migrations
