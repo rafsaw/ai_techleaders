@@ -73,8 +73,7 @@
     "  pending | provisioned",
     "  reconciliation_required | failed",
     "status (payout readiness):",
-    "  incomplete | pending | action_required",
-    "  ready | blocked | rejected",
+    "  incomplete | pending | ready | blocked",
     "last_reconciled_at (diagnosis only)",
     "Stripe metadata: payout_account_id",
     "  + mentor_profile_id (existing local IDs)"
@@ -94,18 +93,6 @@
    ],
    "x": 1000,
    "y": 365
-  },
-  {
-   "id": "entity_5",
-   "kind": "new",
-   "title": "ProcessedWebhookEvent",
-   "fields": [
-    "provider + event_id (unique)",
-    "event_type",
-    "standalone (P14 inbox)"
-   ],
-   "x": 520,
-   "y": 440
   }
  ],
  "edges": [
