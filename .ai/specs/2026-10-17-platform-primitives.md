@@ -2,7 +2,7 @@
 
 - Companion spec: [`2026-10-17-accounts-and-roles.md`](./2026-10-17-accounts-and-roles.md) (epic #28), the first consumer. It builds every primitive marked **E01** below, inside its own phases.
 - Design authority: `.ai/specs/product-brief.md` (Now scope), `AGENTS.md` (stack and layer rules), `BACKWARD_COMPATIBILITY.md` (protected surfaces)
-- Status: **draft for review** (PO revisions, accounts design review and platform grilling 2026-10-18; E02–E05 candidates remain provisional)
+- Status: **draft for review** (PO revisions, accounts design review and platform grilling 2026-10-18). P5 (`assertOwner`), P13 (onboarding half), P14 and P17 are finalized in the E02 spec [`2026-10-18-mentor-setup.md`](./2026-10-18-mentor-setup.md), section "Final primitive contracts"; the other E02–E05 candidates remain provisional
 
 ## 📝 TLDR
 
@@ -269,7 +269,9 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   - the leaf pages that render private data, which repeat the check, per the Next docs' warning that layouts don't re-run on navigation
   - every public leaf except `/error` via `getPrincipal()` for optional identity/activity, even if its header already called it; test public-to-public RSC navigation, prefetch and full document visits
 
-### P5. Access assertions (provisional, first builder E02-S01)
+### P5. Access assertions (`assertOwner` final in E02, built in E02-S03; `assertParticipant` provisional, E05)
+
+- **Status:** `assertOwner` is final in [`2026-10-18-mentor-setup.md`](./2026-10-18-mentor-setup.md), section "Final primitive contracts"; `assertSelf` is dropped there. `assertParticipant` below stays provisional for E05. The original draft follows unchanged.
 
 - **Home:** `core/src/http/auth.ts`.
 - **Contract:**
@@ -399,7 +401,9 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   - Errors exit 1 with an `AppError` message.
   - Unknown errors exit 1 with "unexpected error", and the details go to `logger`.
 
-### P13. Payment and onboarding ports (provisional, first builders E02-S02 and E04-S02)
+### P13. Payment and onboarding ports (onboarding half final in E02, built in E02-S02; checkout half provisional, E04-S02)
+
+- **Status:** the `PayoutOnboarding` port is final in [`2026-10-18-mentor-setup.md`](./2026-10-18-mentor-setup.md), section "Final primitive contracts". `PaymentGateway` below stays provisional for E04. The original draft follows unchanged.
 
 - **Home:** `app/src/server/services/payments/`.
 - **Ports:**
@@ -408,7 +412,9 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
 - **Adapters:** mock adapters under `adapters/`, then a Stripe adapter. The return URLs land on P7 navigation routes. The authoritative status comes from P14, never from the return URL's query string.
 - E02-S02-T01 (#47, Stripe requirements) feeds the port's shape. This spec does not fix it.
 
-### P14. Webhook inbox (provisional, first builder E02-S02)
+### P14. Webhook inbox (final in E02, built in E02-S02)
+
+- **Status:** final in [`2026-10-18-mentor-setup.md`](./2026-10-18-mentor-setup.md), section "Final primitive contracts", which keeps this draft's single transaction for the event row and its effect, and adds a `prepare` step outside it for external calls. The original draft follows unchanged.
 
 - **Home:**
   - entity `db/src/entities/integrations/processed-webhook-event.entity.ts` (`provider`, `eventId` unique, `processedAt`)
@@ -436,7 +442,9 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
 - **Behavior:** the bus in `core` is a plain typed emitter with no ORM hooks. A service emits only **after** its `em.transactional(...)` call has resolved, which is an explicit ordering rule checked in review and tests. A listener's error is logged and never propagates. That is the E04-S03 rule "email failure leaves the booking confirmed". Ids follow `concept.entity.action` (e.g. `bookings.booking.confirmed`).
 - **Why not in E01:** E01 has no cross-concept side effect. Confirmation and invitation emails are part of their own auth workflows, so direct port calls after commit are smaller.
 
-### P17. Money (provisional, first builder E02-S01)
+### P17. Money (final in E02, built in E02-S01)
+
+- **Status:** final in [`2026-10-18-mentor-setup.md`](./2026-10-18-mentor-setup.md), section "Final primitive contracts" (USD only). The original draft follows unchanged.
 
 - **Home:** `core/src/validators/money/money.schema.ts`.
 - **Contract:** integer minor units plus an ISO currency code. The price is always recomputed on the server from the mentor's per-format price (engineering standards, "money correctness").
@@ -567,8 +575,10 @@ This spec has no phases of its own. By the product owner's instruction, each acc
 | P1 config, P2 clock, P3 identity context, P4 page guards + cookie-renewal Proxy, P6 `returnTo`, P7 navigation handler, P8 tokens, P12 operator role grant/revoke, F1, F4, F5, minimal `CrudForm.resetOnSuccess` | Accounts **Phase 1** (#34), one PR |
 | P9 single-use token records, P10 `EmailSender` + Mailpit, P11 rate limiter (Postgres adapter + `rate_limit_buckets`), F2 extraction, F3 public forms | Accounts **Phase 2** (#35) |
 | P12 invitation create/revoke/resend commands and template (reuse P9/P10) | Accounts **Phase 3** (#36 + #46) |
-| P5 access assertions, P17 money | E02-S01 (#37) |
-| P13 onboarding port, P14 webhook inbox | E02-S02 (#38) |
+| P17 money (final: E02 spec) | E02-S01 (#37) |
+| P13 onboarding port, P14 webhook inbox (final: E02 spec) | E02-S02 (#38) |
+| P5 `assertOwner` (final: E02 spec) | E02-S03 (#39) |
+| P5 `assertParticipant` | E05 |
 | P15 time windows | E04-S01 (#41) |
 | P13 payment port (checkout) | E04-S02 (#42) |
 | P16 domain events | E04-S03 (#43) |

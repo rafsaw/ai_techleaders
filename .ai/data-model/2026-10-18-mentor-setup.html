@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mentor setup data model</title>
+<style>
+  :root { --bg: #fafafa; --fg: #111; --muted: #6b7280; --new: #2f6feb; --new-stroke: #1b4fb0; --old: #e5e7eb; --old-stroke: #9ca3af; --edge: #9ca3af; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111318; --fg: #e5e7eb; --muted: #9ca3af; --old: #374151; --old-stroke: #6b7280; --edge: #6b7280; }
+  }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14px/1.4 system-ui, sans-serif; }
+  header { padding: 12px 16px; }
+  header p { margin: 4px 0 0; color: var(--muted); }
+  svg { width: 100%; height: calc(100% - 64px); cursor: grab; display: block; }
+  svg.dragging { cursor: grabbing; }
+  .node rect { stroke-width: 1.5; rx: 8; }
+  .node.new rect { fill: var(--new); stroke: var(--new-stroke); }
+  .node.existing rect { fill: var(--old); stroke: var(--old-stroke); }
+  .node.new text { fill: #fff; }
+  .node.existing text { fill: var(--fg); }
+  .node text.title { font-weight: 600; }
+  .edge line { stroke: var(--edge); stroke-width: 1.5; }
+  .edge text { fill: var(--muted); font-size: 12px; }
+  .dim { opacity: 0.15; }
+  .node { cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <strong>Mentor setup (E02): data model</strong>
+  <p>Drag to pan, scroll to zoom, click an entity to focus on its neighbors (click the background to reset). Blue means new, grey means existing. Source: <code>.ai/specs/2026-10-18-mentor-setup.md</code>. The Mermaid diagram there is authoritative.</p>
+</header>
+<svg id="graph" role="img" aria-label="Entity relationship graph"><g id="viewport"></g></svg>
+<script id="graph-data" type="application/json">
+{
+ "nodes": [
+  {
+   "id": "entity_1",
+   "kind": "existing",
+   "title": "User (users)",
+   "fields": [
+    "E01: email, name = display name",
+    "E01: user_roles (mentor required)"
+   ],
+   "x": 60,
+   "y": 200
+  },
+  {
+   "id": "entity_2",
+   "kind": "new",
+   "title": "MentorProfile (mentor_profiles)",
+   "fields": [
+    "user_id → users (unique)",
+    "area: typescript | react | python",
+    "description (text)",
+    "public_work_links (text[], 1–5 https)",
+    "price_25_cents, price_50_cents (USD)"
+   ],
+   "x": 480,
+   "y": 180
+  },
+  {
+   "id": "entity_3",
+   "kind": "new",
+   "title": "PayoutAccount (payout_accounts)",
+   "fields": [
+    "mentor_profile_id → mentor_profiles (unique)",
+    "stripe_account_id (unique)",
+    "country (immutable)",
+    "status: incomplete | pending | action_required | ready | rejected",
+    "status_synced_at"
+   ],
+   "x": 900,
+   "y": 40
+  },
+  {
+   "id": "entity_4",
+   "kind": "new",
+   "title": "AvailabilitySlot (availability_slots)",
+   "fields": [
+    "mentor_profile_id → mentor_profiles",
+    "starts_at (UTC; unique per profile)",
+    "booked_at (null; set only by E04)",
+    "reserves 50 minutes (constant)"
+   ],
+   "x": 900,
+   "y": 320
+  },
+  {
+   "id": "entity_5",
+   "kind": "new",
+   "title": "ProcessedWebhookEvent",
+   "fields": [
+    "provider + event_id (unique)",
+    "event_type",
+    "standalone (P14 inbox)"
+   ],
+   "x": 480,
+   "y": 440
+  }
+ ],
+ "edges": [
+  {
+   "from": "entity_1",
+   "to": "entity_2",
+   "label": "1-0..1"
+  },
+  {
+   "from": "entity_2",
+   "to": "entity_3",
+   "label": "1-0..1"
+  },
+  {
+   "from": "entity_2",
+   "to": "entity_4",
+   "label": "1-n"
+  }
+ ]
+}
+</script>
+<script>
+(function () {
+  "use strict";
+  var SVG_NS = "http://www.w3.org/2000/svg";
+  var data = JSON.parse(document.getElementById("graph-data").textContent);
+  var svg = document.getElementById("graph");
+  var viewport = document.getElementById("viewport");
+  var WIDTH = 300, LINE = 18, PAD = 12;
+  var boxes = {};
+
+  function el(name, attrs) {
+    var node = document.createElementNS(SVG_NS, name);
+    Object.keys(attrs || {}).forEach(function (key) { node.setAttribute(key, String(attrs[key])); });
+    return node;
+  }
+
+  data.nodes.forEach(function (n) {
+    boxes[n.id] = { x: n.x, y: n.y, w: WIDTH, h: PAD * 2 + LINE * (n.fields.length + 1) };
+  });
+
+  function center(id) { var b = boxes[id]; return { x: b.x + b.w / 2, y: b.y + b.h / 2 }; }
+
+  var edgeEls = data.edges.map(function (e) {
+    var g = el("g", { "class": "edge" });
+    var a = center(e.from), b = center(e.to);
+    g.appendChild(el("line", { x1: a.x, y1: a.y, x2: b.x, y2: b.y }));
+    var label = el("text", { x: (a.x + b.x) / 2 + 6, y: (a.y + b.y) / 2 - 6 });
+    label.textContent = e.label;
+    g.appendChild(label);
+    viewport.appendChild(g);
+    return { el: g, from: e.from, to: e.to };
+  });
+
+  var nodeEls = data.nodes.map(function (n) {
+    var b = boxes[n.id];
+    var g = el("g", { "class": "node " + (n.kind === "new" ? "new" : "existing"), tabindex: 0 });
+    g.appendChild(el("rect", { x: b.x, y: b.y, width: b.w, height: b.h }));
+    var title = el("text", { x: b.x + PAD, y: b.y + PAD + 13, "class": "title" });
+    title.textContent = n.title;
+    g.appendChild(title);
+    n.fields.forEach(function (f, i) {
+      var t = el("text", { x: b.x + PAD, y: b.y + PAD + 13 + LINE * (i + 1) });
+      t.textContent = f;
+      g.appendChild(t);
+    });
+    g.addEventListener("click", function (ev) { ev.stopPropagation(); focus(n.id); });
+    g.addEventListener("keydown", function (ev) { if (ev.key === "Enter") focus(n.id); });
+    viewport.appendChild(g);
+    return { el: g, id: n.id };
+  });
+
+  function focus(id) {
+    var keep = {}; keep[id] = true;
+    edgeEls.forEach(function (e) {
+      var linked = e.from === id || e.to === id;
+      if (linked) { keep[e.from] = true; keep[e.to] = true; }
+      e.el.classList.toggle("dim", !linked);
+    });
+    nodeEls.forEach(function (n) { n.el.classList.toggle("dim", !keep[n.id]); });
+  }
+
+  function reset() {
+    edgeEls.concat(nodeEls).forEach(function (x) { x.el.classList.remove("dim"); });
+  }
+
+  var view = { x: 0, y: 0, k: 1 }, drag = null;
+  function apply() { viewport.setAttribute("transform", "translate(" + view.x + "," + view.y + ") scale(" + view.k + ")"); }
+  svg.addEventListener("click", reset);
+  svg.addEventListener("pointerdown", function (ev) {
+    if (ev.target !== svg) return;
+    drag = { x: ev.clientX - view.x, y: ev.clientY - view.y };
+    svg.classList.add("dragging");
+  });
+  window.addEventListener("pointermove", function (ev) {
+    if (!drag) return;
+    view.x = ev.clientX - drag.x; view.y = ev.clientY - drag.y; apply();
+  });
+  window.addEventListener("pointerup", function () { drag = null; svg.classList.remove("dragging"); });
+  svg.addEventListener("wheel", function (ev) {
+    ev.preventDefault();
+    var rect = svg.getBoundingClientRect();
+    var mx = ev.clientX - rect.left, my = ev.clientY - rect.top;
+    var factor = ev.deltaY < 0 ? 1.1 : 1 / 1.1;
+    var k = Math.min(3, Math.max(0.3, view.k * factor));
+    view.x = mx - (mx - view.x) * (k / view.k);
+    view.y = my - (my - view.y) * (k / view.k);
+    view.k = k; apply();
+  }, { passive: false });
+  apply();
+})();
+</script>
+</body>
+</html>
