@@ -29,7 +29,7 @@
 <body>
 <header>
   <strong>Mentor setup (E02): data model</strong>
-  <p>Drag to pan, scroll to zoom, click an entity to focus on its neighbors (click the background to reset). Blue means new, grey means existing. Source: <code>.ai/specs/2026-10-18-mentor-setup.md</code>. The Mermaid diagram there is authoritative.</p>
+  <p>Drag to pan, scroll to zoom, click an entity to focus on its neighbors (click the background to reset). Blue means new, grey means existing. Source: <code>.ai/specs/2026-10-18-mentor-setup.md</code>. The Mermaid diagram there is authoritative. Every table inherits id, created_at and updated_at. Payout provisioning is separate from readiness; last_reconciled_at is diagnostic only. The Stripe metadata lines describe external metadata, not extra local columns.</p>
 </header>
 <svg id="graph" role="img" aria-label="Entity relationship graph"><g id="viewport"></g></svg>
 <script id="graph-data" type="application/json">
@@ -43,8 +43,8 @@
     "E01: email, name = display name",
     "E01: user_roles (mentor required)"
    ],
-   "x": 60,
-   "y": 200
+   "x": 40,
+   "y": 190
   },
   {
    "id": "entity_2",
@@ -53,12 +53,13 @@
    "fields": [
     "user_id → users (unique)",
     "area: typescript | react | python",
-    "description (text)",
+    "description (text; 1–2,000 after trim)",
     "public_work_links (text[], 1–5 https)",
-    "price_25_cents, price_50_cents (USD)"
+    "price_25_cents, price_50_cents (USD)",
+    "input: whole USD 5–1,000 per format"
    ],
-   "x": 480,
-   "y": 180
+   "x": 520,
+   "y": 170
   },
   {
    "id": "entity_3",
@@ -66,13 +67,20 @@
    "title": "PayoutAccount (payout_accounts)",
    "fields": [
     "mentor_profile_id → mentor_profiles (unique)",
-    "stripe_account_id (unique)",
+    "stripe_account_id (nullable, unique)",
     "country (immutable)",
-    "status: incomplete | pending | action_required | ready | rejected",
-    "status_synced_at"
+    "provisioning_state:",
+    "  pending | provisioned",
+    "  reconciliation_required | failed",
+    "status (payout readiness):",
+    "  incomplete | pending | action_required",
+    "  ready | blocked | rejected",
+    "last_reconciled_at (diagnosis only)",
+    "Stripe metadata: payout_account_id",
+    "  + mentor_profile_id (existing local IDs)"
    ],
-   "x": 900,
-   "y": 40
+   "x": 1000,
+   "y": 25
   },
   {
    "id": "entity_4",
@@ -84,8 +92,8 @@
     "booked_at (null; set only by E04)",
     "reserves 50 minutes (constant)"
    ],
-   "x": 900,
-   "y": 320
+   "x": 1000,
+   "y": 365
   },
   {
    "id": "entity_5",
@@ -96,7 +104,7 @@
     "event_type",
     "standalone (P14 inbox)"
    ],
-   "x": 480,
+   "x": 520,
    "y": 440
   }
  ],
@@ -126,7 +134,7 @@
   var data = JSON.parse(document.getElementById("graph-data").textContent);
   var svg = document.getElementById("graph");
   var viewport = document.getElementById("viewport");
-  var WIDTH = 300, LINE = 18, PAD = 12;
+  var WIDTH = 400, LINE = 18, PAD = 12;
   var boxes = {};
 
   function el(name, attrs) {
