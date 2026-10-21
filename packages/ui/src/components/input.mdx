@@ -1,0 +1,157 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { Field, FieldError, FieldLabel } from "@devmentor/ui/components/field";
+import { Input } from "@devmentor/ui/components/input";
+import { DoDont } from "../../.storybook/blocks/stories";
+import * as InputStories from "./input.stories";
+
+<Meta of={InputStories} />
+
+# Input
+
+`import { Input } from "@devmentor/ui/components/input"`
+
+Built on Base UI `Input` (shadcn `base-nova`), restyled with DevMentor tokens. Always inside a
+[`Field`](?path=/docs/primitives-signed-in-field--docs) with a `FieldLabel`.
+
+## 1. What it is for
+
+An input lets the user type one short value (a name, a price, a start time) and see it before
+saving.
+
+## 2. When to use
+
+- Display name on `/account` (E01, account page).
+- Price for 25 and for 50 minutes on `/mentor/profile` (`type="number"`, E02 Flow 2, MD2).
+- Start time of a slot on `/mentor/slots` (`type="datetime-local"`, E02 Flow 4).
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| More than one line, or a list one per line (description, links to public work) | `Textarea` | E02 Flow 2 |
+| A choice from a short fixed list (area, Stripe country) | `NativeSelect` | E02 Flow 2, Flow 3 |
+| A field on a public page (`/sign-in`, `/sign-up`) | public `TextField` / `PasswordField` (batch 4) | Q1 |
+| A value the user cannot change (email on `/account`) | plain text, not a disabled input | E01 account page; WCAG 1.4.3 |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| Label (`FieldLabel`) | yes | always visible above the input; never replaced by the placeholder |
+| Input | yes | `rounded-control`, 36 px, border `input` |
+| Description (`FieldDescription`) | optional | format or limits ("Whole dollars, from 5 to 1,000.") |
+| Error (`FieldError`) | when invalid | below the input, replaces nothing |
+
+## 5. Variants
+
+Input has no visual variants. The `type` attribute chooses the native control: `text`,
+`number` (prices, with `inputMode="numeric"`), `datetime-local` (slot start), `email`, `url`.
+Prices and times add `tabular-nums` (Q4).
+
+<Canvas of={InputStories.Types} />
+
+## 6. States
+
+<Canvas of={InputStories.States} />
+
+| State | Look | Source |
+|---|---|---|
+| Default / filled | border `input` (≥ 3 : 1), text `foreground` | T5, WCAG 1.4.11 |
+| Placeholder | `muted-foreground`; an example value, not the name | prompt (Form pattern), WCAG 3.3.2 |
+| Hover | no change: the border already meets 3 : 1 | B2 (hover only on actions) |
+| Focus | 2 px outline in `ring`, 2 px offset | B3, T5, WCAG 2.4.7 |
+| Disabled | background `disabled`, text `disabled-foreground`, border `border` | B2 |
+| Error | border `destructive`, no glow, message in `FieldError` below | B3, WCAG 3.3.1 |
+| Loading, selected, pressed | not applicable to a text field | — |
+
+**Why is it disabled?** Disable an input only while the form is saving, and say so in the
+description (*Saving your profile…*). A value the user can never edit is shown as text (P-C6, proposal approved by Rafał).
+
+## 7. Behaviour and accessibility
+
+- **Keyboard:** native. <kbd>Tab</kbd> moves between fields in DOM order; number inputs react to arrow keys.
+- **Label:** `FieldLabel htmlFor` matches the input `id`, so clicking the label focuses the input (WCAG 1.3.1, 4.1.2).
+- **Error:** set `aria-invalid` and add the error's `id` to `aria-describedby`; the reader announces the message with the field (story *Invalid* tests it, WCAG 3.3.1).
+- **Description:** add its `id` to `aria-describedby` too.
+- **Required:** add the native `required` attribute to every required input; the reader announces “required” (P-F1; WCAG 3.3.2, 4.1.2).
+- **Autocomplete:** use `autoComplete` (`name`, `email`) where the value is personal (WCAG 1.3.5).
+- **Target size:** 36 px high, full width (WCAG 2.5.8).
+
+## 8. Content
+
+- Label: a noun phrase in sentence case, with the unit in brackets: *Price for 25 minutes (USD)*. No colon (P-C7, proposal approved by Rafał; the unit format comes from E02 Flow 2).
+- Placeholder: only an example value (*70*), and only when the format is not obvious.
+- Error: what is wrong and how to fix it, one sentence (*Enter whole dollars from 5 to 1,000.*).
+- Long values scroll inside the field; long labels wrap. Allow 30 % more for translations (P-C5, proposal approved by Rafał).
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | full width; typed text is 16 px so iOS does not zoom (`text-control`, B1) |
+| 768 px | one column (P-L2), text 14 px |
+| 1440 px | the field keeps the form width (`max-w-text`), never the full content width |
+
+<Canvas of={InputStories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `type` | native input type | `"text"` | `number`, `datetime-local`, `email`, `url` |
+| `id` | `string` | — | required; `FieldLabel htmlFor` points to it |
+| `aria-invalid` | `boolean` | `false` | marks the error state |
+| `aria-describedby` | `string` | — | ids of the description and the error |
+| `disabled` | `boolean` | `false` | only while saving |
+| `className` | `string` | — | layout only (`tabular-nums` for numbers) |
+| …rest | native `<input>` props | — | `value`, `onChange`, `min`, `max`, `autoComplete`, `required` |
+
+<Controls of={InputStories.Playground} />
+
+## 11. Code
+
+Minimal:
+
+```tsx
+<Field>
+  <FieldLabel htmlFor="display-name">Display name</FieldLabel>
+  <Input id="display-name" autoComplete="name" />
+</Field>
+```
+
+From the product (`/mentor/profile`, price with an error from `PUT /api/mentors/profile`):
+
+```tsx
+<Field data-invalid={!!error}>
+  <FieldLabel htmlFor="price-25">Price for 25 minutes (USD)</FieldLabel>
+  <Input id="price-25" type="number" inputMode="numeric" min={5} max={1000}
+    aria-invalid={!!error} aria-describedby={error ? "price-25-error" : undefined}
+    className="tabular-nums" />
+  <FieldError id="price-25-error">{error}</FieldError>
+</Field>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <div className="flex flex-col gap-between-groups">
+    <DoDont
+      doExample={<Field><FieldLabel htmlFor="dd-1">Price for 50 minutes (USD)</FieldLabel><Input id="dd-1" type="number" placeholder="70" /></Field>}
+      doText="A visible label names the field; the placeholder only shows an example."
+      dontExample={<Input aria-label="Price for 50 minutes (USD)" placeholder="Price for 50 minutes (USD)" />}
+      dontText="A placeholder as the label disappears as soon as the user types."
+    />
+    <DoDont
+      doExample={<Field data-invalid="true"><FieldLabel htmlFor="dd-2">Price for 25 minutes (USD)</FieldLabel><Input id="dd-2" defaultValue="2" aria-invalid aria-describedby="dd-2-e" /><FieldError id="dd-2-e">Enter whole dollars from 5 to 1,000.</FieldError></Field>}
+      doText="A red border plus a message that says how to fix the value."
+      dontExample={<Field><FieldLabel htmlFor="dd-3">Price for 25 minutes (USD)</FieldLabel><Input id="dd-3" defaultValue="2" aria-invalid /></Field>}
+      dontText="A red border alone is colour as the only signal (WCAG 1.4.1)."
+    />
+  </div>
+</Unstyled>
+
+## 13. Related
+
+- Confused with: **Textarea** (several lines), **NativeSelect** (fixed choices), public **TextField** (`(frontend)` pages).
+- Used in patterns: Form (profile, slot, account), Delete confirmation (no input: the confirmation names the slot).

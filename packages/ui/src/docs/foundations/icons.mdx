@@ -5,29 +5,31 @@ import { AlertCircle, Check, ChevronRight, Copy, ExternalLink, Info, Loader2, Tr
 
 # Icons
 
-The library is **lucide-react**, the icon library configured for shadcn in this repository
-(`components.json`).
+The library is **lucide-react** (`lucide-react` in `@devmentor/ui`), the icon set already configured
+for shadcn in this repository (`components.json`). It is the only icon set used. The final
+choice of icon set is still open for Rafał's decision (What is missing); until then nothing
+else is added.
 
 <Unstyled>
   <div className="flex flex-wrap gap-between-groups text-foreground">
-    <span className="flex items-center gap-in-group text-sm"><Check aria-hidden className="size-4" /> Check</span>
-    <span className="flex items-center gap-in-group text-sm"><Info aria-hidden className="size-4" /> Info</span>
-    <span className="flex items-center gap-in-group text-sm"><TriangleAlert aria-hidden className="size-4" /> TriangleAlert</span>
-    <span className="flex items-center gap-in-group text-sm"><AlertCircle aria-hidden className="size-4" /> AlertCircle</span>
-    <span className="flex items-center gap-in-group text-sm"><Copy aria-hidden className="size-4" /> Copy</span>
-    <span className="flex items-center gap-in-group text-sm"><ExternalLink aria-hidden className="size-4" /> ExternalLink</span>
-    <span className="flex items-center gap-in-group text-sm"><ChevronRight aria-hidden className="size-4" /> ChevronRight</span>
-    <span className="flex items-center gap-in-group text-sm"><Loader2 aria-hidden className="size-4" /> Loader2</span>
+    <span className="flex items-center gap-in-group text-body"><Check aria-hidden className="size-4" /> Check</span>
+    <span className="flex items-center gap-in-group text-body"><Info aria-hidden className="size-4" /> Info</span>
+    <span className="flex items-center gap-in-group text-body"><TriangleAlert aria-hidden className="size-4" /> TriangleAlert</span>
+    <span className="flex items-center gap-in-group text-body"><AlertCircle aria-hidden className="size-4" /> AlertCircle</span>
+    <span className="flex items-center gap-in-group text-body"><Copy aria-hidden className="size-4" /> Copy</span>
+    <span className="flex items-center gap-in-group text-body"><ExternalLink aria-hidden className="size-4" /> ExternalLink</span>
+    <span className="flex items-center gap-in-group text-body"><ChevronRight aria-hidden className="size-4" /> ChevronRight</span>
+    <span className="flex items-center gap-in-group text-body"><Loader2 aria-hidden className="size-4" /> Loader2</span>
   </div>
 </Unstyled>
 
 ## Sizes
 
-| Size | Class | Where | Status |
+| Size | Class | Where | Source |
 |---|---|---|---|
-| 16 px | `size-4` | default in buttons, alerts, inline with `text-sm` | existing shadcn convention; confirm in stage 2 |
-| 14 px | `size-3.5` | small buttons, with `text-meta` | existing shadcn convention; confirm in stage 2 |
-| 12 px | `size-3` | extra small buttons | existing shadcn convention; confirm in stage 2 |
+| 16 px | `size-4` | default: buttons, alerts, inline with `text-body` and `text-label` | start value, proposal approved by Rafał 2026-10-21 |
+| 14 px | `size-3.5` | small buttons, inline with `text-meta` | start value, proposal approved by Rafał 2026-10-21 |
+| 12 px | `size-3` | extra small buttons, badges | start value, proposal approved by Rafał 2026-10-21 |
 
 ## When an icon needs a label
 

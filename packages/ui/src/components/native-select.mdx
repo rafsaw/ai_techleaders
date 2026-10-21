@@ -1,0 +1,148 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { Field, FieldLabel } from "@devmentor/ui/components/field";
+import { NativeSelect, NativeSelectOption } from "@devmentor/ui/components/native-select";
+import { DoDont } from "../../.storybook/blocks/stories";
+import * as NativeSelectStories from "./native-select.stories";
+
+<Meta of={NativeSelectStories} />
+
+# Native select
+
+```tsx
+import { NativeSelect, NativeSelectOption, NativeSelectOptGroup } from "@devmentor/ui/components/native-select"
+```
+
+Added with `npm run ui:add -- native-select` (shadcn `base-nova`, native `<select>`), restyled
+with DevMentor tokens. The browser draws the option list, so keyboard, touch and screen reader
+behaviour are the platform's own.
+
+## 1. What it is for
+
+A native select lets the user pick one value from a short fixed list without typing it.
+
+## 2. When to use
+
+- **Area** on `/mentor/profile`: TypeScript, React or Python (E02 Flow 2, MD3).
+- **Country** for Stripe on `/mentor`: the accepted list from MD8 (E02 Flow 3), grouped with `NativeSelectOptGroup`.
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| Two or three options that should all be visible | radio group (What is missing: not in the plan) | prompt, How to choose |
+| A long list the user needs to search | a combobox (What is missing) | prompt, How to choose |
+| On/off | switch or checkbox (What is missing) | plan, stage 0 |
+| A public page | not needed in E01/E02 public screens | Q1 |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| Label | yes | visible above |
+| Select | yes | `rounded-control`, 36 px (32 px `sm`), border `input` |
+| Chevron | yes | decorative, `aria-hidden`, `muted-foreground` |
+| Empty first option | when nothing is chosen yet | *Choose an area* (`value=""`) |
+| Description, error | optional | as Input |
+
+## 5. Variants
+
+`size="default"` (36 px) for forms; `size="sm"` (32 px) only inside dense rows (P-C1, proposal approved by Rafał; heights from B1).
+
+<Canvas of={NativeSelectStories.Sizes} />
+<Canvas of={NativeSelectStories.ProductSelects} />
+
+## 6. States
+
+<Canvas of={NativeSelectStories.States} />
+
+| State | Look | Source |
+|---|---|---|
+| Nothing chosen / chosen | border `input`, text `foreground` | T5 |
+| Hover | no change | B2 |
+| Focus | 2 px outline in `ring`, 2 px offset | B3, WCAG 2.4.7 |
+| Disabled | background `disabled`, text and chevron `disabled-foreground`; reason in the description | B2 |
+| Error | border `destructive`, message below | B3, WCAG 3.3.1 |
+| Open list | drawn by the browser and OS | native |
+
+**Why is it disabled?** After Stripe setup starts, the stored country is read-only. The
+description says so: *You can't change this Stripe account's country later.* (E02 Flow 3).
+
+## 7. Behaviour and accessibility
+
+- **Keyboard:** <kbd>Tab</kbd> focuses; arrow keys change the value; <kbd>Alt</kbd>+<kbd>↓</kbd> or <kbd>Space</kbd> opens the list (native). Story *Keyboard* checks focus and outline.
+- **Role:** `combobox` (native `<select>`), named by the label.
+- **Screen reader:** announces the label, the chosen option and the description or error from `aria-describedby`.
+- **Options:** follow the theme through `bg-popover text-popover-foreground` where the browser allows.
+- **Target size:** 36 px, at least the label width.
+
+## 8. Content
+
+- Option text is the value's plain name (*United Kingdom*, *TypeScript*), sorted as the user expects (country names alphabetically inside a group) (P-C8, proposal approved by Rafał).
+- The empty first option is an instruction: *Choose a country* (P-C8, proposal approved by Rafał). It never replaces the label: a select always has a visible label above it (P-C8; prompt, Form pattern: “placeholder is an example, not the field's name”).
+- A select is as wide as its longest option; long translations widen it, so in forms give it `w-full` at 320 px.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | `w-full`; text 16 px (`text-control`, B1); description wraps |
+| 768 px | one column, content width |
+| 1440 px | form width |
+
+<Canvas of={NativeSelectStories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `size` | `"default" \| "sm"` | `"default"` | 36 or 32 px |
+| `id` | `string` | — | required for the label |
+| `aria-invalid` | `boolean` | `false` | error state |
+| `aria-describedby` | `string` | — | description and error ids |
+| `disabled` | `boolean` | `false` | read-only value; show the reason |
+| `className` | `string` | — | on the wrapper: width only (`w-full`) |
+| …rest | native `<select>` props | — | `value`, `defaultValue`, `onChange`, `name`, `required` |
+
+`NativeSelectOption` and `NativeSelectOptGroup` take the native `<option>` and `<optgroup>` props.
+
+<Controls of={NativeSelectStories.Playground} />
+
+## 11. Code
+
+Minimal:
+
+```tsx
+<Field>
+  <FieldLabel htmlFor="area">Area</FieldLabel>
+  <NativeSelect id="area" defaultValue="">
+    <NativeSelectOption value="">Choose an area</NativeSelectOption>
+    <NativeSelectOption value="typescript">TypeScript</NativeSelectOption>
+    <NativeSelectOption value="react">React</NativeSelectOption>
+    <NativeSelectOption value="python">Python</NativeSelectOption>
+  </NativeSelect>
+</Field>
+```
+
+From the product (`/mentor`, country after the payout row exists):
+
+```tsx
+<NativeSelect id="country" value={stored.country} disabled aria-describedby="country-hint">…</NativeSelect>
+<FieldDescription id="country-hint">You can't change this Stripe account's country later.</FieldDescription>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<Field><FieldLabel htmlFor="dd-1">Area</FieldLabel><NativeSelect id="dd-1" defaultValue=""><NativeSelectOption value="">Choose an area</NativeSelectOption><NativeSelectOption value="react">React</NativeSelectOption></NativeSelect></Field>}
+    doText="Start with an empty option, so the user makes a real choice (P-C8, proposal approved by Rafał)."
+    dontExample={<Field><FieldLabel htmlFor="dd-2">Area</FieldLabel><NativeSelect id="dd-2" defaultValue="typescript"><NativeSelectOption value="typescript">TypeScript</NativeSelectOption><NativeSelectOption value="react">React</NativeSelectOption></NativeSelect></Field>}
+    dontText="A preselected first option gets saved without the user noticing."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: **radio group** and **combobox** (both in What is missing), **Input** (free text).
+- Used in patterns: Form (`/mentor/profile`), Provider status (country before Stripe onboarding).

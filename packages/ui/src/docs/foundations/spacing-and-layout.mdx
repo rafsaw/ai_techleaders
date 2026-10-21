@@ -18,6 +18,7 @@ and take the token for that relation (T4). Every step of the 4 px scale has one 
       { token: "--spacing-in-group", utility: "gap-in-group", use: "within a group: label and field, icon and text", source: "R01.1, T4", sample: <SpacingBar token="--spacing-in-group" /> },
       { token: "--spacing-list-row-y", utility: "py-list-row-y", use: "vertical padding of a list row", source: "R01.1, K2", sample: <SpacingBar token="--spacing-list-row-y" /> },
       { token: "--spacing-between-groups", utility: "gap-between-groups", use: "between groups of fields", source: "R01.1, R02.1, T4", sample: <SpacingBar token="--spacing-between-groups" /> },
+      { token: "--spacing-panel-compact", utility: "p-panel-compact", use: "inside a small card or an alert", source: "B4, proposal approved by Rafał", sample: <SpacingBar token="--spacing-panel-compact" /> },
       { token: "--spacing-panel", utility: "p-panel", use: "inside a panel", source: "T4", sample: <SpacingBar token="--spacing-panel" /> },
       { token: "--spacing-component", utility: "gap-component", use: "between neighbouring components on a page", source: "T4", sample: <SpacingBar token="--spacing-component" /> },
       { token: "--spacing-section", utility: "gap-section", use: "between page sections", source: "R01.6, T4", sample: <SpacingBar token="--spacing-section" /> },
@@ -31,16 +32,37 @@ and take the token for that relation (T4). Every step of the 4 px scale has one 
 | Don't use a relation token for another relation (e.g. `gap-section` inside a panel). | T4 |
 | Numeric utilities (`p-4`, `gap-2`) come from the same `--spacing` base, but prefer the named relation. | T4 |
 
+## Layout tokens
+
+<Unstyled>
+  <TokenTable
+    rows={[
+      { token: "--spacing-page-gutter", utility: "px-page-gutter", use: "side margin of every page, from 320 px up", source: "P-L1, proposal approved by Rafał" },
+      { token: "--container-content", utility: "max-w-content", use: "maximum width of page content (64 rem), centred with mx-auto", source: "P-L3, P-L4, proposal approved by Rafał" },
+      { token: "--container-text", utility: "max-w-text", use: "running text, about 65 characters per line", source: "P-L4, proposal approved by Rafał, WCAG 1.4.8" },
+    ]}
+  />
+</Unstyled>
+
 ## Widths
 
 Every screen is checked at **320, 768 and 1440 px** (prompt, stage 5).
 
-| Width | What changes | Status |
+| Width | What changes | Source |
 |---|---|---|
-| 320 px | one column; page gutter 16 px (`px-4`) | Proposal P-L1 |
-| 768 px (`md`) | forms stay one column; side-by-side only for label/value pairs | Proposal P-L2 |
-| 1440 px | content stays at the maximum width, centred | Proposal P-L3 |
-| Maximum content width | `max-w-5xl` (64 rem) for signed-in pages; running text `max-w-prose` | Proposal P-L4 |
+| 320 px | one column; page side margin `px-page-gutter` (16 px) | P-L1, proposal approved by Rafał |
+| 768 px (`md`) | forms stay one column; side by side only for label and value pairs | P-L2, proposal approved by Rafał |
+| 1440 px | content stays at `max-w-content`, centred (`mx-auto`) | P-L3, proposal approved by Rafał |
 
-No source decides the page gutter or the maximum content width yet; they are listed for your
-decision in the stage report.
+A page frame therefore is `mx-auto w-full max-w-content px-page-gutter`.
+
+<Unstyled>
+  <div className="rounded-control border border-border bg-muted py-in-group">
+    <div className="mx-auto w-full max-w-content px-page-gutter">
+      <div className="rounded-control border border-input bg-card p-panel text-body text-foreground">
+        Content area: <code className="font-mono">max-w-content</code>, centred, with
+        <code className="font-mono"> px-page-gutter</code> on both sides.
+      </div>
+    </div>
+  </div>
+</Unstyled>

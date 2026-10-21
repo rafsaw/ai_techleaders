@@ -1,0 +1,36 @@
+/*
+ * Frozen state previews (documentation only, never shipped to the app).
+ * Storybook redefines Tailwind's interaction variants so that every hover:, active: and
+ * focus-visible: utility of a component also applies to an element with
+ * data-preview-state="hover" | "active" | "focus-visible". The state matrix stories set
+ * this attribute, so the frozen preview uses exactly the same declarations as the
+ * real pseudo-class. The app compiles globals.css without this file.
+ */
+@custom-variant hover {
+  @media (hover: hover) {
+    &:hover {
+      @slot;
+    }
+  }
+  &[data-preview-state~="hover"] {
+    @slot;
+  }
+}
+
+@custom-variant active {
+  &:active {
+    @slot;
+  }
+  &[data-preview-state~="active"] {
+    @slot;
+  }
+}
+
+@custom-variant focus-visible {
+  &:focus-visible {
+    @slot;
+  }
+  &[data-preview-state~="focus-visible"] {
+    @slot;
+  }
+}

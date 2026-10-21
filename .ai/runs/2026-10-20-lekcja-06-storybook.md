@@ -24,3 +24,32 @@
   test:coverage, next build and test:integration pass. `check:tokens` fails on 18 values in the
   existing components (stage 2). `test:storybook` has no stories yet.
 - Outcome: stage complete, waiting for the PO's decisions on proposals P-*.
+
+## 2026-10-21: decyzje o propozycjach etapu 1, start etapu 2
+
+- PO zatwierdził P-T1–T3 (jako role), P-L1–L4 (jako tokeny układu), P-S1, P-TH1 i rozmiary ikon;
+  zestaw ikon został luką.
+- Dodane tokeny: `--text-page-title`, `--text-section-title`, `--text-body`, `--text-label`,
+  `--container-content`, `--container-text`, `--spacing-page-gutter`, `--shadow-overlay`.
+  Strony Typography, Spacing and layout, Shape and depth, Icons i Themes zaktualizowane.
+- Sprawdzone: build-storybook, lint, typecheck, 7 stron × 2 motywy w Chromium.
+- Etap 2: lista różnic względem bazy shadcn w POSTEP.md; pięć pytań B1–B5 (gęstość kontrolek,
+  stany przycisku, fokus i błąd, wnętrze paneli, warianty statusu). Partia 1 czeka na odpowiedzi.
+- Wynik: częściowy (etap 2 zatrzymany na pytaniach, zgodnie z promptem).
+
+## 2026-10-21: etap 2, partia 1
+
+- Decyzje B1–B5 zapisane w POSTEP.md, tokenach i Foundations („proposal approved by Rafał”).
+- Nowe tokeny: `--disabled`, `--disabled-foreground` (kontrast 4,73 / 5,85 : 1 policzony przed
+  zapisem), `--spacing-control-md/sm/x`, `--spacing-button-x-*`, `--spacing-panel-compact`,
+  `text-control`, `color-scheme` na motywach.
+- `cn` z `createCn` (znajomość tokenów); komponenty importują `@devmentor/ui/lib/utils`.
+- Przepisane: Button, Input, Label, Field; dodane `ui:add`: Textarea, NativeSelect (CLI nie
+  dodało zależności ani nie zmieniło globals.css, sprawdzone diffem).
+- 6 stron MDX po 13 sekcji, 34 stories, zamrożone stany przez `preview-states.css`.
+- Błędy znalezione w przeglądarce i poprawione: niewidoczny fokus (`outline-solid`), ikona
+  kalendarza w ciemnym motywie (`color-scheme`), przewijanie docs przy 320 px, Textarea
+  poszerzana przez długi URL (`wrap-anywhere`).
+- Sprawdzone: test:storybook w obu motywach (34/34 × 2), lint, typecheck, test:coverage
+  (100%), build, test:integration (4/4), check:tokens (0 w partii 1; 12 w partii 2).
+- Wynik: partia 1 zakończona, czeka na „dalej” i decyzje P-C1–P-C8, P-F1, link jako przycisk.

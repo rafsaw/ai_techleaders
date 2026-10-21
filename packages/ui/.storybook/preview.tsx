@@ -33,6 +33,14 @@ const preview: Preview = {
   initialGlobals: { theme: initialTheme },
   parameters: {
     layout: "padded",
+    // Every component and screen is checked at these widths (Foundations/Spacing and layout).
+    viewport: {
+      options: {
+        w320: { name: "320 px", styles: { width: "320px", height: "720px" }, type: "mobile" },
+        w768: { name: "768 px", styles: { width: "768px", height: "1024px" }, type: "tablet" },
+        w1440: { name: "1440 px", styles: { width: "1440px", height: "900px" }, type: "desktop" },
+      },
+    },
     controls: { matchers: { color: /(background|color)$/i, date: /Date$/i } },
     // Accessibility violations fail the test run (prompt, stage 1).
     a11y: { test: "error" },

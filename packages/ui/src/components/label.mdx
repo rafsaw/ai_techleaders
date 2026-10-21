@@ -1,0 +1,117 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { Input } from "@devmentor/ui/components/input";
+import { Label } from "@devmentor/ui/components/label";
+import { DoDont } from "../../.storybook/blocks/stories";
+import * as LabelStories from "./label.stories";
+
+<Meta of={LabelStories} />
+
+# Label
+
+`import { Label } from "@devmentor/ui/components/label"`
+
+shadcn `base-nova` label (native `<label>`), restyled with the `text-label` role. In forms use
+[`FieldLabel`](?path=/docs/primitives-signed-in-field--docs), which is this label inside a `Field`.
+
+## 1. What it is for
+
+A label names a control, so the user knows what to type and screen readers announce the same
+name.
+
+## 2. When to use
+
+- Every input, textarea and select on `/account`, `/mentor/profile`, `/mentor/slots` and the
+  country choice on `/mentor` (E01, E02). Inside a `Field`, use `FieldLabel`.
+- On its own only when a control sits outside a `Field` (rare; e.g. a single filter in a table header).
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| A heading for a group of fields | `FieldLegend` inside `FieldSet` | WCAG 1.3.1, WAI-ARIA (`fieldset`/`legend`) |
+| Instructions or format | `FieldDescription` | WCAG 3.3.2 |
+| A label read only by screen readers | avoid; if unavoidable (icon-only button) use `aria-label` | WCAG 2.5.3 |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| Text | yes | `text-label` (14/500) |
+| *(optional)* marker | for optional fields only | `muted-foreground`, inside the label, P-F1 (proposal approved by Rafał) |
+
+## 5. Variants
+
+None. Hierarchy comes from the role (`text-label`), not from colour (R01.5, Z2).
+
+## 6. States
+
+<Canvas of={LabelStories.States} />
+
+| State | Look | Source |
+|---|---|---|
+| Default | `foreground`, `text-label` | role approved by Rafał 2026-10-21 |
+| Control disabled | `disabled-foreground`, cursor `not-allowed`; no opacity | B2 |
+| Field invalid | unchanged; the error text below carries the message | B3 |
+| Hover, focus, pressed, loading, selected | not applicable: a label is not interactive itself | — |
+
+## 7. Behaviour and accessibility
+
+- `htmlFor` equals the control's `id`. Clicking the label focuses the control (story *Playground* tests it, WCAG 1.3.1, 4.1.2).
+- The visible text is the accessible name, so voice control users can say it (WCAG 2.5.3).
+- The label is above the control, so it stays visible while typing (prompt, Form pattern).
+
+## 8. Content
+
+- A noun phrase in sentence case, no colon, the unit in brackets: *Price for 25 minutes (USD)* (P-C7, proposal approved by Rafał).
+- Optional fields end with *(optional)*; required fields are not marked in the text (P-F1, proposal approved by Rafał; all E02 profile fields are required). The control itself has the `required` attribute, so the reader announces “required” (P-F1; WCAG 3.3.2, 4.1.2).
+- Long labels wrap; keep them under one line at 768 px where possible.
+
+## 9. Responsiveness
+
+The label always sits above its control at every width (P-L2). It wraps at 320 px.
+
+<Canvas of={LabelStories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `htmlFor` | `string` | — | the control's `id`; required |
+| `children` | `ReactNode` | — | the label text |
+| `className` | `string` | — | layout only |
+| …rest | native `<label>` props | — | |
+
+<Controls of={LabelStories.Playground} />
+
+## 11. Code
+
+```tsx
+<Label htmlFor="display-name">Display name</Label>
+<Input id="display-name" />
+```
+
+From the product, inside a field (`/account`):
+
+```tsx
+<Field>
+  <FieldLabel htmlFor="display-name">Display name</FieldLabel>
+  <Input id="display-name" autoComplete="name" />
+</Field>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<div className="flex flex-col gap-in-group"><Label htmlFor="dd-1">Price for 25 minutes (USD)</Label><Input id="dd-1" type="number" /></div>}
+    doText="Name and unit in the label, above the field."
+    dontExample={<div className="flex flex-col gap-in-group"><Label htmlFor="dd-2">Price:</Label><Input id="dd-2" type="number" /></div>}
+    dontText="A vague label with a colon leaves out the session length and the currency."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: **FieldLabel** (the same label inside a `Field`; use that in forms), **FieldLegend** (names a group).
+- Used in patterns: Form.

@@ -41,7 +41,7 @@ export function resolveToken(name: string, theme: Theme): string {
   return resolve(own.get(name) ?? light.get(name) ?? "");
 }
 
-/** Parses "oklch(L C H [/ A])" into linear sRGB plus alpha. */
+/** Parses an oklch colour string (L C H, optional alpha) into linear sRGB plus alpha. */
 export function parseOklch(value: string): { rgb: Rgb; alpha: number } | null {
   const match = /oklch\(\s*([\d.]+%?)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+%?))?\s*\)/.exec(value);
   if (!match) return null;

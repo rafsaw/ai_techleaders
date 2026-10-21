@@ -8,15 +8,15 @@ czekamy na „dalej” od PO. W nowej sesji najpierw przeczytaj ten plik.
 | Etap | Status | Data |
 |---|---|---|
 | 0. Inwentaryzacja i plan | **zakończony**, wszystkie pytania rozstrzygnięte | 2026-10-20 – 2026-10-21 |
-| 1. Fundamenty | **zrobiony**, czeka na „dalej” i decyzje o propozycjach P-* | 2026-10-21 |
-| 2. Komponenty bazowe | nie zaczęty | — |
+| 1. Fundamenty | **zakończony**, propozycje P-* rozstrzygnięte i wpisane | 2026-10-21 |
+| 2. Komponenty bazowe | **w toku**: partia 1 z 4 zrobiona, decyzje P-C1–P-C8 i P-F1 wpisane; czeka na „dalej” do partii 2 | 2026-10-21 |
 | 3. Komponenty produktu, wzorce, ekrany | nie zaczęty | — |
 | 4. Strony, które uczą | nie zaczęty | — |
 | 5. Sprawdzenie i raport | nie zaczęty | — |
 
-**Następny krok:** PO decyduje o propozycjach z etapu 1 (P-T1–P-T3, P-L1–P-L4, P-S1,
-P-TH1, sekcja „Etap 1: propozycje do decyzji”), potem „dalej” do etapu 2. Etap 2 zaczyna się
-od listy różnic kształtu, gęstości i stanów względem bazy shadcn (Z-3).
+**Następny krok:** „dalej” od PO, potem partia 2: Card, Badge, Alert, AlertDialog (dodać),
+Separator, Table. Przed testem agentem (etap 5) zostają rzeczy z sekcji „Do zrobienia poza
+design systemem”.
 
 ## Przeczytane materiały
 
@@ -97,6 +97,91 @@ od listy różnic kształtu, gęstości i stanów względem bazy shadcn (Z-3).
 - **Q4. Ruch:** 120 ms kontrolki, 180 ms menu, 240 ms okna; przy
   `prefers-reduced-motion` 0 ms. Nie animujemy sukcesu przed potwierdzeniem serwera.
 - **Akcent:** zostaje luką. A01 wyklucza fiolet i indygo jako kolor akcji.
+
+## Decyzje PO z 2026-10-21 (propozycje etapu 1)
+
+W tokenach i dokumentacji oznaczone jako „proposal approved by Rafał”.
+
+- **Typografia (P-T1–P-T3):** wartości przyjęte jako nazwane role, nie surowe klasy:
+  `text-page-title` 24/600, `text-section-title` 18/600, `text-body` 14/400,
+  `text-label` 14/500, do tego `text-row-title` 16/600 i `text-meta` 14/400. Liczby
+  z `tabular-nums`, kod w `font-mono` (Geist Mono). Komponenty używają ról, nie klas
+  rozmiaru. Wysokości linii (32/28/20/20 px) to wartości domyślne Tailwinda dla tych rozmiarów.
+- **Układ (P-L1–P-L4):** margines strony 16 px przy 320 px (`--spacing-page-gutter`,
+  `px-page-gutter`); formularze w jednej kolumnie przy 768 px; przy 1440 px treść
+  wyśrodkowana. Szerokości jako tokeny układu: `--container-content` 64 rem (`max-w-content`),
+  `--container-text` 65ch (`max-w-text`).
+- **Cień (P-S1):** tylko menu, popover i dialog (`--shadow-overlay`, `shadow-overlay`);
+  karty i wiersze bez cienia. Wartość cienia to wartość startowa.
+- **Ciemny motyw (P-TH1):** `dark:` tylko tam, gdzie nie da się tokenem; każdy wyjątek
+  w raporcie z powodem i w tabeli na Foundations/Themes.
+- **Ikony:** rozmiary 16/14/12 px jako startowe. Zestaw ikon to luka do decyzji PO;
+  w etapie 2 używamy jednego obecnego zestawu (`lucide-react`), wpis w „What is missing”.
+
+## Decyzje PO z 2026-10-21 (B1–B5, etap 2)
+
+W tokenach i dokumentacji oznaczone jako „proposal approved by Rafał”.
+
+- **B1. Gęstość kontrolek:** pole 36 px (`--spacing-control-md`, `h-control-md`; mały select
+  32 px `--spacing-control-sm`), odstęp poziomy pola 12 px (`--spacing-control-x`), przyciski
+  lg 16 / md 12 / sm 10 / xs 8 px (`--spacing-button-x-*`). Nowa rola `text-control`: 16 px
+  poniżej 768 px, od 768 px jak `text-body`.
+- **B2. Stany przycisku:** hover primary `primary/90`; secondary pokazuje obramowanie `input`;
+  outline i ghost tło `accent`; destructive obramowanie `destructive/50` (C7). Wciśnięcie jak
+  hover, bez przesunięcia. Zablokowany: **bez `opacity-50`**, tokeny `--disabled` (jasny
+  warm-100, ciemny warm-800) i `--disabled-foreground` (jasny warm-500, ciemny warm-400),
+  kontrast policzony przed zapisem: 4,73 : 1 jasny, 5,85 : 1 ciemny. Kursor `not-allowed`
+  i zawsze tekst z powodem. Źródło: lekcja 06 („zablokowany przycisk ma osobne kolory tła
+  i tekstu, bo półprzezroczysty tekst łatwo traci kontrast”).
+- **B3. Fokus i błąd:** pełny obrys 2 px w `ring` z odstępem 2 px; błąd pola to obramowanie
+  `destructive` bez poświaty i komunikat tekstem pod polem.
+- **B4. Wnętrze paneli:** `p-panel` 24 px; `--spacing-panel-compact` 16 px dla małej karty
+  i alertu; tytuł karty `text-section-title`; stopka oddzielona linią, bez tła.
+- **B5. Warianty statusu:** Badge `success`/`warning` i Alert `success`/`warning` tak, ale tekst
+  plakietki to `text-label`; przy każdym nowym wariancie ekran i plik specyfikacji, a wariant
+  bez źródła jako propozycja w raporcie (partia 2).
+
+## Decyzje PO z 2026-10-21 (po partii 1)
+
+Reguły bez źródła w materiałach: w dokumentacji „proposal approved by Rafał”.
+
+- **P-C1** (proposal approved by Rafał): `sm` tylko w gęstych wierszach, `lg` tylko dla jedynej
+  akcji na rzadkiej stronie.
+- **P-C2** (źródło: lekcja 06, „Przycisk i formularz w DevMentorze”): w stopce formularza
+  najpierw Anuluj, potem akcja główna, oba wyrównane do prawej, w tej samej kolejności
+  w kodzie i na ekranie.
+- **P-C3** (proposal approved by Rafał): etykieta przycisku do ok. 3 słów / 25 znaków. Dopisek:
+  etykieta to czasownik i obiekt („Delete profile”, nie „OK”); źródło: prompt, etap 4, Content.
+- **P-C4** (źródło: heurystyka „widoczność stanu”, lekcja 06, „Zasady UX”): ładowanie w formie
+  „-ing” z wielokropkiem.
+- **P-C5** (proposal approved by Rafał): 30 % zapasu na tłumaczenie; przy 320 px `w-full`
+  zamiast skracania.
+- **P-C6** (proposal approved by Rafał): pole blokowane tylko na czas zapisu; wartość
+  niezmienna jako tekst.
+- **P-C7** (proposal approved by Rafał): etykieta pola bez dwukropka, jednostka w nawiasie.
+- **P-C8** (proposal approved by Rafał): select zaczyna się pustą opcją-instrukcją; kraje
+  alfabetycznie. Dopisek (źródło: wzorzec formularza z promptu, „placeholder to przykład, nie
+  nazwa pola”): select zawsze ma widoczną etykietę, pusta opcja jej nie zastępuje.
+- **P-F1** (proposal approved by Rafał): wymagane bez oznaczenia w tekście, opcjonalne
+  z „(optional)”. Dopisek (źródło: WCAG 3.3.2, 4.1.2, WAI-ARIA): wymagane pole ma atrybut
+  `required`, żeby czytnik ogłosił „wymagane”. Story Field/Profile form to testuje.
+- **Link jako Button:** AGENTS.md i kodu aplikacji nie zmieniamy (zasada 11). Dokumentacja
+  Button zostaje przy `buttonVariants()` na `<Link>`. PO zrobi poprawkę osobnym commitem.
+
+## Do zrobienia poza design systemem (przed testem agentem, etap 5)
+
+- **Link jako przycisk (PO, osobny commit):**
+  - `AGENTS.md` l. 240: reguła `<Button nativeButton={false} render={<Link href="…" />}>`
+    → `buttonVariants()` na `<Link>`;
+  - `packages/app/src/app/backend/layout.tsx` l. 26: przycisk „View site” renderowany przez
+    `render={<Link href="/" />}` (dziś `role="button"`);
+  - `packages/ui/src/components/primitives.test.tsx` l. 86: test, który oczekuje `role="button"`
+    dla linku.
+- **CrudForm a P-C2:** sprawdzone 2026-10-21 w `packages/ui/src/backend/forms/CrudForm.tsx`
+  l. 145–153: kolejność już jest zgodna z P-C2 (Cancel, potem submit, `justify-end`, ta sama
+  kolejność w kodzie i na ekranie). Do zmiany zostaje tylko odstęp `gap-2` → `gap-in-group`
+  (ta sama wartość 8 px, nazwa tokenu); zrobię to w partii 3 przy komponentach `backend/`,
+  chyba że PO zdecyduje inaczej.
 
 ## Otwarte pytania
 
@@ -227,6 +312,8 @@ zostają w specyfikacji E01 Phase 2; design system ich nie dodaje.
   Tooltip, Tabs (żaden ekran E01/E02 ich nie potrzebuje).
 - Toast: brak w 1.0 (decyzja PO).
 - Wzorzec „lista z filtrami”: razem z E03, bo żaden ekran E01/E02 nie ma filtrów (Q6 = a).
+- Zestaw ikon: luka do decyzji PO; do tego czasu tylko `lucide-react` (2026-10-21).
+- Przełącznik motywu w aplikacji: nie ma go w backlogu (Foundations/Themes).
 
 ## Drzewo menu Storybooka (plan)
 
@@ -339,6 +426,154 @@ Razem ok. 290 stories.
 - **P-TH1** warianty `dark:` tylko tam, gdzie tokenu nie da się użyć.
 - Rozmiary ikon 16/14/12 px i etykieta 14 px medium: stan zastany shadcn, do potwierdzenia
   w etapie 2.
+
+## Etap 1: poprawki po decyzjach z 2026-10-21
+
+- `globals.css`: role `--text-page-title`, `--text-section-title`, `--text-body`, `--text-label`;
+  `--container-content`, `--container-text`, `--spacing-page-gutter`; `--shadow-overlay`.
+- Strony: Typography (tabela ról z klasą, rozmiarem i źródłem), Spacing and layout (tokeny
+  układu, ramka strony `mx-auto w-full max-w-content px-page-gutter`), Shape and depth (cień),
+  Icons (zestaw jako luka, rozmiary startowe), Themes (tabela wyjątków `dark:`, dziś pusta).
+- Sprawdzone: `build-storybook`, `lint`, `typecheck`; 7 stron Foundations w obu motywach
+  w Chromium (0 surowych tabel, klasy ról obecne w zbudowanym CSS).
+
+## Etap 2: różnice względem bazy shadcn (base-nova)
+
+Kolumna „Decyzja” podaje źródło. „Pytanie” oznacza, że materiały milczą i czekam na PO.
+
+| Cecha | Baza shadcn | DevMentor | Decyzja |
+|---|---|---|---|
+| Wysokość przycisku lg/md/sm/xs | 36/32/28/24 px | 40/36/32/28 px, domyślny = 36 | Q3 |
+| Promień przycisku | `rounded-lg` (z `--radius`) | `rounded-button` 10 px | Q3 |
+| Promień pola, selecta, textarea | `rounded-lg` | `rounded-control` 8 px | Q3 |
+| Promień karty, panelu, alertu | `rounded-xl` (14 px) / `rounded-lg` | `rounded-panel` 12 px | Q3, Z5 |
+| Promień plakietki | `rounded-4xl` | `rounded-pill` | Q3 |
+| Krawędź karty | `ring-1 ring-foreground/10` | `border border-border` | R01.3, T7 |
+| Obrys pola | `border-input` (1,26 : 1 przed T5) | `border-input` (≥ 3 : 1) | T5, WCAG 1.4.11 |
+| Cień | brak / różne | brak; `shadow-overlay` tylko w nakładkach | P-S1 |
+| Tekst przycisku, etykiety | `text-sm`, `text-[0.8rem]`, `text-xs` | `text-label` | decyzja z 2026-10-21 (role) |
+| Tekst opisu i błędu pola | `text-sm` | `text-meta` | T3, role |
+| Przejścia | `transition-all`, czas domyślny 150 ms | `transition-colors duration-control` (120 ms, 0 przy reduced motion) | Q4 |
+| Hover przycisku destructive | zmiana tła `/20` (4,12 : 1) | zmiana obramowania `border-destructive/50`, tło bez zmian | C7, T6 |
+| Hover secondary | `color-mix(…)` (wartość arbitralna) | do decyzji | **B2** |
+| Wysokość pola | 32 px | do decyzji | **B1** |
+| Odstęp wewnętrzny przycisku i pola | `px-2.5` (10 px) we wszystkich rozmiarach | do decyzji | **B1** |
+| Rozmiar tekstu w polu | 16 px poniżej `md`, 14 px od `md` | do decyzji | **B1** |
+| Wciśnięcie | `translate-y-px` | do decyzji | **B2** |
+| Zablokowany | `opacity-50`, `pointer-events-none` | do decyzji | **B2** |
+| Fokus | `ring-3 ring-ring/50` (pierścień w połowie przezroczysty) | do decyzji | **B3** |
+| Błąd pola | `border-destructive` + `ring-3 ring-destructive/20` | do decyzji | **B3** |
+| Odstęp w karcie i alercie | 16 px / 12 px karta sm / 8–10 px alert | do decyzji | **B4** |
+| Warianty statusu | `default`, `secondary`, `destructive`, `outline` | do decyzji | **B5** |
+
+### Pytania B1–B5 (czekają na PO)
+
+- **B1. Gęstość kontrolek.** Propozycja: pole tekstowe, select i textarea mają 36 px, jak
+  przycisk domyślny, żeby stały w jednej linii. Odstęp poziomy: pola 12 px; przyciski
+  lg 16, md 12, sm 10, xs 8 px. Tekst w polu: 16 px poniżej `md` (iOS Safari powiększa
+  stronę przy polu z tekstem poniżej 16 px), od `md` `text-body`. To wymaga nowej roli
+  `text-control` (16/400 → 14/400) albo zgody na `text-body` wszędzie.
+- **B2. Stany przycisku.** Propozycja: hover primary = tło `primary/90`; hover secondary =
+  widoczne obramowanie `border-input` (jak C7: hover zmienia krawędź, nie wypełnienie);
+  hover outline i ghost = tło `accent`. Wciśnięcie: bez przesunięcia (`translate-y-px`
+  usunięte), wygląd jak hover. Zablokowany: `opacity-50`, kursor `not-allowed`, a obok
+  zawsze tekst z powodem (prompt, etap 2, punkt 6).
+- **B3. Fokus i błąd.** Propozycja: fokus to pełny obrys 2 px w `ring` z odstępem 2 px na
+  wszystkich elementach interaktywnych (T5 liczył kontrast `ring` dla pełnego koloru;
+  połowa przezroczystości go obniża; WCAG 2.4.7, 2.4.13). Błąd pola: `border-destructive`
+  bez poświaty + komunikat tekstem pod polem (WCAG 3.3.1, 1.4.1).
+- **B4. Wnętrze paneli.** Propozycja: karta `p-panel` (24 px); karta `sm` i alert mają nowy
+  token komponentowy `--spacing-panel-compact` 16 px. Tytuł karty `text-section-title`.
+  Stopka karty: linia `border-t`, bez szarego tła.
+- **B5. Warianty statusu.** Q2 dodało role `success` i `warning`, ale nie warianty. Propozycja:
+  Badge dostaje `success` i `warning` (Open/Booked w /mentor/slots, stany Stripe w /mentor),
+  Alert dostaje `success` (`?stripe=returned`, `welcome=1`) i `warning` (onboarding
+  incomplete). Bez tego statusy E02 pokazujemy tylko wariantami `secondary` i `destructive`.
+  Tekst plakietki: `text-meta` z grubością 500, wysokość 24 px.
+
+### Partie etapu 2 (plan)
+
+1. Button (warianty `link` = akcja tekstowa i link), Input, Textarea (dodać), NativeSelect
+   (dodać), Label, Field.
+2. Card, Badge, Alert, AlertDialog (dodać), Separator, Table.
+3. Skeleton (dodać), Spinner, Empty, ErrorState (`backend/feedback`), LoadingMessage.
+4. Zestaw publiczny F3: SchemaForm, TextField, PasswordField, SubmitButton, Notice, LinkButton.
+
+## Etap 2, partia 1: co zrobione (2026-10-21)
+
+Komponenty: Button (z akcją tekstową `link` i linkiem przez `buttonVariants`), Input,
+Textarea (dodany `ui:add`), NativeSelect (dodany `ui:add`), Label, Field.
+
+- **Tokeny (globals.css):** `--disabled`, `--disabled-foreground` (oba motywy),
+  `--spacing-control-md/sm/x`, `--spacing-button-x-lg/md/sm/xs`, `--spacing-panel-compact`,
+  utility `text-control`; `color-scheme: light/dark` na `:root`/`.dark` (natywne kontrolki
+  w ciemnym motywie, np. ikona kalendarza w `datetime-local`); bazowy `outline-ring` bez `/50`.
+- **`cn` (lib/utils.ts):** `createCn` z `cn/config` zna tokeny (role tekstu, odstępy, promienie,
+  cień, szerokości, czasy). Bez tego `cn("text-label text-primary-foreground")` gubiło rolę.
+  Komponenty partii 1 importują `cn` z `@devmentor/ui/lib/utils` (AGENTS.md), nie z `cn`.
+- **Komponenty:** klasy przepisane na tokeny; zero `dark:`, zero `opacity` dla stanu
+  zablokowanego, zero wartości arbitralnych. API bez zmian (Z-1). Usunięte z Field style kart
+  wyboru dla checkboxów i radio (prymitywów nie ma w planie). Textarea dostała `wrap-anywhere`
+  (długi URL nie poszerza układu przy 320 px). Destructive ma tło `/10` w obu motywach
+  (6,18 / 5,45 : 1 w ciemnym), więc nie potrzebuje `dark:`.
+- **Storybook:** `.storybook/preview-states.css` przedefiniowuje warianty `hover`, `active`,
+  `focus-visible` tak, że te same klasy działają też na `data-preview-state` (tylko w Storybooku);
+  widoki 320/768/1440 px w `preview.tsx`; bloki `StateTable`, `DoDont`, `Sample`
+  (`.storybook/blocks/stories.tsx`); tabele Markdown w docs przewijają się w swoim polu przy
+  320 px; `optimizeDeps.include` w `vitest.storybook.config.ts` (bez przeładowania Vite w teście).
+- **Stories (34):** Button 8, Input 5, Textarea 5, Native select 6, Label 3, Field 7. Każdy
+  komponent: Playground z kontrolkami, warianty/rozmiary lub typy, macierz stanów z zamrożonym
+  hover/focus/pressed, długa treść przy 320 px, testy interakcji (kliknięcie, klawiatura,
+  disabled z powodem, link, wpisywanie, wybór opcji, komunikat błędu, fokus z widocznym obrysem).
+- **Strony dokumentacji:** `button.mdx`, `input.mdx`, `textarea.mdx`, `native-select.mdx`,
+  `label.mdx`, `field.mdx`, każda z 13 sekcjami.
+- **Foundations:** Color (role `disabled`, pary kontrastu `disabled-foreground/disabled`,
+  destructive `/10` w obu motywach, hover `primary/90`), Typography (`text-control`),
+  Spacing (`panel-compact`), Shape and depth (wysokości i odstępy kontrolek, fokus, błąd).
+- **Testy jednostkowe:** `components/form-controls.test.tsx`, `lib/utils.test.ts`.
+- **Wyjątki `dark:`:** brak w partii 1.
+
+## Etap 2, partia 1: co sprawdzone
+
+- `npm run test:storybook` w obu motywach: 34/34 i 34/34 (play functions i a11y `error`).
+- Zbudowany Storybook w Chromium: 6 stron komponentów w obu motywach przy 1440 px i przy 320 px
+  (bez poziomego przewijania, 0 surowych tabel, brak błędów konsoli), macierze stanów przy
+  768 px w ciemnym motywie, 5 stories „długa treść” przy 320 px, 7 stron Foundations przy 320 px.
+- Znalezione i poprawione w przeglądarce: niewidoczny fokus (Tailwind 4: `outline-none` +
+  `outline-2` nie rysuje obrysu, potrzebny `outline-solid`; dopisany test), ciemna ikona
+  kalendarza w ciemnym motywie (`color-scheme`), poziome przewijanie stron docs przy 320 px.
+- `check:tokens`: zero pozycji w plikach partii 1; zostaje 12 w alert, badge, card (partia 2).
+- Kontrast nowych par policzony przed zapisem (skrypt w scratchpadzie) i mierzony na
+  Foundations/Color.
+- lint, typecheck, test:coverage (100%), build Next.js, test:integration (4/4).
+
+## Etap 2, partia 1: czego nie sprawdzono
+
+- Wygląd `/backend` (Button, Input, Label w `CrudForm` i `DataTable`) w przeglądarce; przeszły
+  tylko testy integracyjne. Partia 2 zmienia Card i Table, więc obejrzę `/backend` po niej.
+- Czytnik ekranu na żywo (NVDA/VoiceOver): sprawdzone tylko nazwy i opisy dostępne w testach.
+- `viewport` w testach Vitest: stories „narrow” renderują się przy 320 px w Storybooku; nie
+  sprawdzałem, czy Vitest zmienia rozmiar ramki.
+- Strony MDX nie przechodzą przez test a11y (etap 5).
+
+## Etap 2, partia 1: do decyzji (reguły bez źródła, oznaczone w docs jako proposal)
+
+Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 1)”.
+
+- **P-C1** `size="sm"` tylko w gęstych wierszach (tabele), `lg` tylko dla jedynej akcji na rzadkiej stronie.
+- **P-C2** akcja główna ostatnia w stopce formularza, po „Cancel”.
+- **P-C3** etykieta przycisku do ok. 3 słów / 25 znaków.
+- **P-C4** stan ładowania: forma „-ing” z wielokropkiem („Publishing slot…”).
+- **P-C5** zapas 30 % na tłumaczenie; przy 320 px `w-full` zamiast skracania etykiety.
+- **P-C6** pole zablokowane tylko na czas zapisu; wartość, której nie da się zmienić, jako tekst.
+- **P-C7** etykieta pola: fraza rzeczownikowa, bez dwukropka, jednostka w nawiasie.
+- **P-C8** select zaczyna się pustą opcją-instrukcją („Choose an area”); kraje alfabetycznie w grupie.
+- **P-F1** pola wymagane bez oznaczenia, opcjonalne z „(optional)” w etykiecie.
+- **Link jako przycisk (konflikt z AGENTS.md):** AGENTS.md każe renderować link jako
+  `<Button nativeButton={false} render={<Link />}>`, ale to daje `role="button"` (lekcja
+  z 2026-10-14), więc czytnik ogłasza przycisk zamiast linku (WCAG 4.1.2). Dokumentacja Button
+  zaleca `className={buttonVariants(...)}` na `<Link>`. Do decyzji: zmienić regułę w AGENTS.md
+  (to zmiana poza design systemem, więc jej nie robię) czy zostawić obie drogi.
 
 ## Opis ekranu do testu agentem (etap 5)
 

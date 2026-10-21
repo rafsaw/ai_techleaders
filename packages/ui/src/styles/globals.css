@@ -27,14 +27,41 @@
   --spacing-section: 48px; /* between page sections (R01.6, T4, PO change) */
   --spacing-list-row-y: 12px; /* component: vertical padding of a list row (R01.1, K2) */
   --spacing-list-row-gap: 4px; /* component: title to metadata in a row (R01.1, R01.5) */
+  --spacing-panel-compact: 16px; /* inner padding of a small card and an alert (B4, proposal approved by Rafał 2026-10-21) */
 
-  /* Type roles (T3). Utilities: text-row-title, text-meta */
+  /* Type roles. Utilities: text-page-title, text-section-title, text-body, text-label,
+     text-row-title, text-meta. Components use roles, never size classes (text-sm, text-2xl).
+     Numbers add tabular-nums (Q4); code uses font-mono (R01.2, Z3). */
+  --text-page-title: 1.5rem; /* page heading, 24/600 (P-T1, proposal approved by Rafał 2026-10-21) */
+  --text-page-title--line-height: 2rem;
+  --text-page-title--font-weight: 600;
+  --text-section-title: 1.125rem; /* section heading, 18/600 (P-T2, proposal approved by Rafał 2026-10-21) */
+  --text-section-title--line-height: 1.75rem;
+  --text-section-title--font-weight: 600;
+  --text-body: 0.875rem; /* body text, 14/400 (P-T3, proposal approved by Rafał 2026-10-21) */
+  --text-body--line-height: 1.25rem;
+  --text-body--font-weight: 400;
+  --text-label: 0.875rem; /* form label, button text, 14/500 (proposal approved by Rafał 2026-10-21) */
+  --text-label--line-height: 1.25rem;
+  --text-label--font-weight: 500;
   --text-row-title: 1rem; /* list row title (R01.5, T3) */
   --text-row-title--line-height: 1.5rem;
   --text-row-title--font-weight: 600;
+  /* text-control (16 px below md, text-body from md) is a utility below, because it changes with the width. */
   --text-meta: 0.875rem; /* row metadata, timestamps (R01.5, T3) */
   --text-meta--line-height: 1.25rem;
   --text-meta--font-weight: 400;
+
+  /* Layout (P-L1, P-L4, proposals approved by Rafał 2026-10-21).
+     Utilities: max-w-content, max-w-text, px-page-gutter */
+  --container-content: 64rem; /* maximum width of page content, centred at 1440 px (P-L3, P-L4) */
+  --container-text: 65ch; /* running text, about 65 characters per line (P-L4, WCAG 1.4.8) */
+  --spacing-page-gutter: 16px; /* page side margin from 320 px up (P-L1) */
+
+  /* Depth (P-S1, proposal approved by Rafał 2026-10-21). Utility: shadow-overlay.
+     Only for layers above the page: menu, popover, dialog. Cards and rows have no shadow (R01.3, Z4).
+     The value itself is a start value. */
+  --shadow-overlay: 0 8px 24px -6px oklch(0.145 0.005 70 / 0.18), 0 2px 6px -2px oklch(0.145 0.005 70 / 0.12);
 
   /* Radius by role (Q3, 2026-10-21). Utilities: rounded-control, rounded-button, … */
   --radius-control: 8px; /* small controls: input, select, textarea, checkbox-like (Q3) */
@@ -47,6 +74,29 @@
   --spacing-button-md: 36px;
   --spacing-button-sm: 32px;
   --spacing-button-xs: 28px;
+
+  /* Component tokens: horizontal padding of controls (B1, proposal approved by Rafał 2026-10-21).
+     Utilities: px-control-x, px-button-x-lg, … */
+  --spacing-control-md: 36px; /* height of input and native select, same as the default button (B1) */
+  --spacing-control-sm: 32px; /* height of the small native select (B1, matches button sm) */
+  --spacing-control-x: 12px; /* input, textarea, native select */
+  --spacing-button-x-lg: 16px;
+  --spacing-button-x-md: 12px;
+  --spacing-button-x-sm: 10px;
+  --spacing-button-x-xs: 8px;
+}
+
+/* Type role for text typed into a control (B1, proposal approved by Rafał 2026-10-21):
+   16 px below 768 px, because iOS Safari zooms the page into a field with smaller text;
+   from 768 px the same as text-body. */
+@utility text-control {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 400;
+  @media (width >= 48rem) {
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
 }
 
 /* Motion durations (Q4). Used through the duration-* utilities below. */
@@ -101,6 +151,8 @@
   --color-warning: var(--warning);
   --color-success: var(--success);
   --color-destructive: var(--destructive);
+  --color-disabled: var(--disabled);
+  --color-disabled-foreground: var(--disabled-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -156,6 +208,7 @@
 
 /* ---------- Layer 2: semantic tokens, light theme ---------- */
 :root {
+  color-scheme: light; /* native controls (date picker, select list, scrollbars) follow the theme (rule 9) */
   --background: var(--warm-50); /* page background (R01.4) */
   --foreground: var(--warm-950); /* titles, body, messages (R01.4) */
   --card: var(--warm-0); /* panel surface (R01.4) */
@@ -176,6 +229,8 @@
   --border: var(--warm-200); /* row separators, panel edges; decorative, below 3:1 by design (R01.3, T7) */
   --input: var(--warm-450); /* field outline, 3:1 against surfaces (T5, WCAG 1.4.11) */
   --ring: var(--warm-500); /* focus outline (T5, WCAG 2.4.7) */
+  --disabled: var(--warm-100); /* surface of a disabled action or field; no opacity (B2, proposal approved by Rafał 2026-10-21) */
+  --disabled-foreground: var(--warm-500); /* text of a disabled action or field: 4.73:1 on --disabled (B2) */
   --chart-1: oklch(0.87 0 0); /* unchanged; chart colours are a gap */
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -194,6 +249,7 @@
 
 /* ---------- Layer 2: semantic tokens, dark theme ---------- */
 .dark {
+  color-scheme: dark; /* rule 9 */
   --background: var(--warm-950); /* R01.4 */
   --foreground: var(--warm-50); /* R01.4 */
   --card: var(--warm-900); /* R01.4 */
@@ -214,6 +270,8 @@
   --border: var(--warm-700); /* R01.3, T7 exception */
   --input: var(--warm-500); /* T5 */
   --ring: var(--warm-450); /* T5 */
+  --disabled: var(--warm-800); /* B2 */
+  --disabled-foreground: var(--warm-400); /* B2: 5.85:1 on --disabled */
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -236,7 +294,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring; /* B3: focus outline in full ring colour */
   }
   body {
     @apply bg-background text-foreground;

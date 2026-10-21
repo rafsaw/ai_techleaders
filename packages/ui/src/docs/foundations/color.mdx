@@ -47,6 +47,8 @@ Swatches are painted with the token itself; the values are read from the loaded 
       { token: "--border", purpose: "row separators, panel edges", avoid: "field outlines", source: "R01.3, T7" },
       { token: "--input", purpose: "field outlines", avoid: "separators", source: "T5" },
       { token: "--ring", purpose: "focus outline", avoid: "decoration", source: "T5, WCAG 2.4.7" },
+      { token: "--disabled", purpose: "surface of a disabled action or field", avoid: "opacity on the component", source: "B2, proposal approved by Rafał" },
+      { token: "--disabled-foreground", purpose: "text of a disabled action or field", avoid: "placeholders, metadata", source: "B2, proposal approved by Rafał" },
     ]}
   />
 </Unstyled>
@@ -77,8 +79,9 @@ elements such as outlines and focus rings (WCAG 1.4.11).
       { fg: "--success", bg: "--card", kind: "text" },
       { fg: "--warning", bg: "--background", kind: "text" },
       { fg: "--warning", bg: "--card", kind: "text" },
-      { fg: "--destructive", bg: "--background", kind: "text", tint: { light: 0.1, dark: 0.2 } },
-      { fg: "--destructive", bg: "--card", kind: "text", tint: { light: 0.1, dark: 0.2 } },
+      { fg: "--destructive", bg: "--background", kind: "text", tint: { light: 0.1, dark: 0.1 }, note: "destructive button fill (10 % in both themes)" },
+      { fg: "--destructive", bg: "--card", kind: "text", tint: { light: 0.1, dark: 0.1 } },
+      { fg: "--disabled-foreground", bg: "--disabled", kind: "text", note: "disabled action or field (B2); WCAG exempts inactive controls, we keep 4.5 anyway" },
       { fg: "--success", bg: "--card", kind: "text", tint: { light: 0.1, dark: 0.2 } },
       { fg: "--warning", bg: "--card", kind: "text", tint: { light: 0.1, dark: 0.2 } },
       { fg: "--primary", bg: "--background", kind: "ui", note: "button shape against the page" },
@@ -98,6 +101,7 @@ Below-threshold pairs and what to do:
 |---|---|---|
 | `border` on `background` / `card` | accepted exception T7 | Never use `border` for anything that must be seen to operate the UI: field outlines use `input`, focus uses `ring`. |
 | `destructive` on a 20 % (light) / 30 % (dark) hover tint | was below 4.5 in tokeny.md | Not used: the destructive button changes its border on hover, not its fill (C7). |
+| `primary-foreground` on the hover fill `primary/90` | computed 12.88–12.96 : 1 light, 11.61–11.77 : 1 dark | passes; hover keeps the label readable (B2). |
 
 ## Changing a colour
 

@@ -1,0 +1,186 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { Button, buttonVariants } from "@devmentor/ui/components/button";
+import { DoDont } from "../../.storybook/blocks/stories";
+import * as ButtonStories from "./button.stories";
+
+<Meta of={ButtonStories} />
+
+# Button
+
+`import { Button, buttonVariants } from "@devmentor/ui/components/button"`
+
+Built on Base UI `Button` (shadcn `base-nova`), restyled with DevMentor tokens.
+
+## 1. What it is for
+
+A button starts an action on the current page, so the user can move the task forward without
+leaving it (save a profile, publish a slot, start Stripe onboarding).
+
+## 2. When to use
+
+- The one main action of a screen: **Save** on `/mentor/profile`, **Publish slot** on
+  `/mentor/slots`, **Continue to Stripe** on `/mentor` (E02 Flow 2–4). Variant `default`.
+- Other actions next to it: **Check status**, **Retry setup**, **Manage slots** (`secondary`
+  or `outline`).
+- An irreversible action: **Remove slot** (`destructive`, then a confirmation dialog).
+- A small action inside text or a status line: **Try checking again** (`link`).
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| The action navigates to another page (**View public page**, **Manage slots** when it only opens `/mentor/slots`) | an `<a>` or `next/link` with `buttonVariants(...)`, see story *As link* | WCAG 4.1.2, WAI-ARIA APG Link |
+| A second main action on the same screen | `secondary` or `outline` | R01.6, Z1 |
+| Submitting a public form (`/sign-in`, `/sign-up`) | `SubmitButton` from the public kit (Q1) | Q1, AGENTS.md (public pages are Tailwind-only) |
+| A status that is not clickable (*Open*, *Booked*) | `Badge` | Q2 |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| Container | yes | `rounded-button`, height from the size, border (transparent unless `outline` or hover on `secondary`) |
+| Label | yes, except icon-only | `text-label`; a verb and an object |
+| Icon | optional | lucide, 16 px (14 px in `sm`, 12 px in `xs`), `aria-hidden` when there is a label |
+| Spinner | only while loading | replaces the leading icon; the label changes to the `-ing` form |
+
+## 5. Variants
+
+| Variant | When to choose it | Source |
+|---|---|---|
+| `default` | the single main action of the screen | R01.6, Z1, T1 (`primary` = warm-900, no accent) |
+| `secondary` | a supporting action that should stay visible (Check status, Retry setup) | R01.4 |
+| `outline` | a supporting action next to the main one, or a link styled as a button | R01.4, T5 (`border-input`) |
+| `ghost` | a low-emphasis action in a dense area (Cancel in a form footer) | R01.5 (hierarchy without colour) |
+| `destructive` | errors and irreversible actions only (Remove slot) | Q2, T5, C7 |
+| `link` | a text action inside a sentence or status line; always underlined | WCAG 1.4.1 (not colour alone) |
+
+Sizes: `lg` 40 px, `default` 36 px, `sm` 32 px, `xs` 28 px and the square `icon-*` sizes (Q3).
+Use `default` unless the area is dense (`sm` in tables) or the action is a page's single call to
+action on a sparse page (`lg`) (P-C1, proposal approved by Rafał).
+
+<Canvas of={ButtonStories.Variants} />
+<Canvas of={ButtonStories.Sizes} />
+
+## 6. States
+
+<Canvas of={ButtonStories.States} />
+
+| State | Look | Source |
+|---|---|---|
+| Hover | `default`: background `primary/90`; `secondary`: border `input` appears; `outline`, `ghost`: background `accent`; `destructive`: border `destructive/50`, fill unchanged; `link`: thicker underline | B2, C7 |
+| Focus | 2 px outline in `ring`, 2 px offset, keyboard only (`:focus-visible`) | B3, T5, WCAG 2.4.7 |
+| Pressed | same as hover, no movement | B2 |
+| Disabled | background `disabled`, text `disabled-foreground` (4.73 : 1 light, 5.85 : 1 dark), cursor `not-allowed`, no opacity | B2 |
+| Loading | disabled + `Spinner` + label in the `-ing` form (Publishing slot…) | B2, Q4 (no success before the server confirms) |
+| Selected | not applicable: toggle buttons are not in the plan (What is missing) | plan, stage 0 |
+| Error | not applicable: errors belong to the field (`FieldError`) or an `Alert` | B3 |
+
+**How the user learns why an action is disabled.** Every disabled button has visible text next
+to it that names the reason and the next step (*Save your profile first.*, E02 Flow 1). The
+button keeps focus with `focusableWhenDisabled` and points to the text with `aria-describedby`,
+so screen reader users hear the reason (prompt, stage 2; WCAG 1.3.1).
+
+<Canvas of={ButtonStories.DisabledWithReason} />
+
+## 7. Behaviour and accessibility
+
+- **Keyboard:** <kbd>Tab</kbd> focuses, <kbd>Enter</kbd> and <kbd>Space</kbd> activate (WAI-ARIA APG Button). Story *Keyboard* tests this.
+- **Focus order:** follows the DOM. In a form footer, **Cancel comes first, then the main action**, both aligned right, in the same order in the code and on screen, so Tab order matches what the user sees (P-C2; lekcja 06, „Przycisk i formularz w DevMentorze”; WCAG 2.4.3).
+- **Role:** native `<button>`; `type="button"` is the Base UI default, use `type="submit"` in forms.
+- **Disabled:** `disabled` removes it from the tab order; add `focusableWhenDisabled` when a reason is shown, which renders `aria-disabled="true"` instead.
+- **Screen reader:** reads the label, or `aria-label` for icon-only buttons (*Copy public link*, WCAG 4.1.2). Icons next to text are `aria-hidden`.
+- **Target size:** the smallest button is 28 × 28 px, above 24 × 24 px (WCAG 2.5.8).
+- **Links:** an anchor with `buttonVariants()` keeps the `link` role. `render={<Link />}` with `nativeButton={false}` turns it into `role="button"` (`.ai/lessons.md`, 2026-10-14), so don't use it for navigation.
+
+## 8. Content
+
+- A verb and an object: **Publish slot**, **Remove slot**, **Delete profile**, not *OK*, *Submit*, *Click here* (P-C3; prompt, stage 4, Content page).
+- Sentence case, no full stop, at most about 3 words (25 characters); the longest product label, *Contact the DevMentor team*, has 26 (P-C3, proposal approved by Rafał).
+- Loading uses the `-ing` form with an ellipsis: *Saving…*, *Publishing slot…*, so the user sees that the request is running (P-C4; visibility of system status, lekcja 06, „Zasady UX”).
+- Numbers in labels use tabular figures only when they change in place (Q4).
+- Translation: allow about 30 % more width (proposal approved by Rafał). Labels never wrap (`whitespace-nowrap`); if a translated label does not fit at 320 px, give the button `w-full` instead of shortening the text (P-C5, proposal approved by Rafał).
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | buttons keep their height; a form's main action may take `w-full`; button rows wrap with `gap-in-group` |
+| 768 px | form footer aligned right: Cancel, then the main action (P-C2) |
+| 1440 px | same as 768 px; buttons never stretch to the content width |
+
+<Canvas of={ButtonStories.LongLabelNarrow} />
+
+## 10. API
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `variant` | `"default" \| "outline" \| "secondary" \| "ghost" \| "destructive" \| "link"` | `"default"` | kind of action, see Variants |
+| `size` | `"default" \| "xs" \| "sm" \| "lg" \| "icon" \| "icon-xs" \| "icon-sm" \| "icon-lg"` | `"default"` | height and padding |
+| `disabled` | `boolean` | `false` | blocks the action; always show the reason |
+| `focusableWhenDisabled` | `boolean` | `false` | keeps a disabled button in the tab order (`aria-disabled`) |
+| `type` | `"button" \| "submit" \| "reset"` | `"button"` | native button type |
+| `render` | `ReactElement \| function` | — | Base UI: render as another element; not for links (see above) |
+| `className` | `string` | — | layout only (`w-full`, margins); never colours or sizes |
+| …rest | native `<button>` props | — | `onClick`, `aria-*`, `form` |
+
+`buttonVariants({ variant, size })` returns the class string for a link that looks like a button.
+
+<Controls of={ButtonStories.Playground} />
+
+## 11. Code
+
+Minimal:
+
+```tsx
+<Button onClick={publish}>Publish slot</Button>
+```
+
+From the product (`/mentor`, payouts item before the profile exists):
+
+```tsx
+<Button disabled focusableWhenDisabled aria-describedby="payout-locked-reason">
+  Continue to Stripe
+</Button>
+<p id="payout-locked-reason" className="text-meta text-muted-foreground">
+  Save your profile first.
+</p>
+```
+
+Navigation that looks like a button:
+
+```tsx
+<Link href={`/mentors/${id}`} className={buttonVariants({ variant: "outline" })}>
+  View public page
+</Link>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <div className="flex flex-col gap-between-groups">
+    <DoDont
+      doExample={<><Button variant="ghost">Cancel</Button><Button>Publish slot</Button></>}
+      doText="One primary button per screen; the rest are secondary, outline or ghost (R01.6)."
+      dontExample={<><Button>Publish slot</Button><Button>Manage slots</Button></>}
+      dontText="Two primary buttons make the user guess which one matters."
+    />
+    <DoDont
+      doExample={<Button variant="destructive">Remove slot</Button>}
+      doText="Name the action with a verb and the object it affects."
+      dontExample={<Button variant="destructive">OK</Button>}
+      dontText="OK does not say what will be removed."
+    />
+    <DoDont
+      doExample={<div className="flex flex-col gap-in-group"><Button disabled>Continue to Stripe</Button><span className="text-meta text-muted-foreground">Save your profile first.</span></div>}
+      doText="Next to a disabled button, say why and what to do."
+      dontExample={<Button disabled>Continue to Stripe</Button>}
+      dontText="A disabled button without a reason leaves the user stuck."
+    />
+  </div>
+</Unstyled>
+
+## 13. Related
+
+- Confused with: **link** (navigation; use `buttonVariants` on an anchor), **Badge** (status, not clickable), public **SubmitButton** and **LinkButton** (Tailwind-only kit for `(frontend)` pages, batch 4).
+- Used in patterns: Form (submit, cancel), Delete confirmation (Remove slot), Setup checklist (one next action per item), Provider status (Check status, Try checking again).

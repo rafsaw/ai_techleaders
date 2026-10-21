@@ -241,3 +241,21 @@ after upgrading Next.
 **Context:** The PO corrected D15 during approval of the accounts and booking refresh.
 **Lesson:** Use the other participant’s display name in booking information and related flows; do not reinterpret it as a first or legal name. Keep decision records and the brief consistent.
 **Applies to:** D15, booking notifications and session-list specifications.
+
+### 2026-10-21 — Tailwind 4 `outline-none` hides a later `outline-2`
+
+**Context:** Stage 2 of the design system: buttons had `outline-none … focus-visible:outline-2 focus-visible:outline-ring`, and the frozen focus preview showed no outline. Real keyboard focus was invisible too.
+**Lesson:** In Tailwind 4 `outline-none` sets `outline-style: none`, and `outline-2` only sets the width. Add `focus-visible:outline-solid` (or use `outline-hidden` as the base). Story tests assert `getComputedStyle(el).outlineStyle === "solid"` after `userEvent.tab()`.
+**Applies to:** every focusable component in `packages/ui/src/components/`.
+
+### 2026-10-21 — `cn` drops custom type roles unless it knows the tokens
+
+**Context:** `cn("text-label text-primary-foreground")` returned only the colour, because the merge tables treat an unknown `text-*` class as a text colour.
+**Lesson:** `packages/ui/src/lib/utils.ts` builds `cn` with `createCn` from `cn/config` and lists every token utility (type roles, relation spacing, role radii, shadow, container widths, durations). When you add a token utility to `globals.css`, add it there too, plus a case in `lib/utils.test.ts`. Components import `cn` from `@devmentor/ui/lib/utils`; `shadcn add` writes `from "cn"`, so fix the import after each add.
+**Applies to:** `packages/ui/src/lib/utils.ts`, new shadcn components.
+
+### 2026-10-21 — Frozen hover/focus previews by redefining Tailwind variants in Storybook only
+
+**Context:** The prompt asks for state matrices that show hover and focus without a pointer, using the component's own declarations.
+**Lesson:** `.storybook/preview-states.css` redefines `@custom-variant hover|active|focus-visible` to also match `[data-preview-state~=…]`. The Storybook build compiles it; the app's CSS does not import it, so production keeps the plain pseudo-classes. Set `data-preview-state` on the component in a story.
+**Applies to:** state-matrix stories in `packages/ui/src/components/*.stories.tsx`.

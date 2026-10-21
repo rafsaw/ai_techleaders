@@ -1,6 +1,7 @@
 @import "../src/styles/globals.css";
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
+@import "./preview-states.css";
 
 /* Tailwind scans the package sources and the Storybook docs blocks. */
 @source "../src";
@@ -25,4 +26,16 @@ html.dark .sbdocs-content code {
 }
 html.dark .sbdocs-content :is(tr, thead) {
   background-color: var(--background);
+}
+
+/* Docs pages at 320 px: inline code wraps and wide tables scroll inside their own box,
+   so the page itself never scrolls sideways. */
+.sbdocs-content :not(pre) > code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.sbdocs-content table:not(.docs-story table) {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
 }

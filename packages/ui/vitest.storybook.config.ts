@@ -11,6 +11,20 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 // Separate from the root unit-test config and its coverage gate.
 export default defineConfig({
   plugins: [storybookTest({ configDir: path.join(dirname, ".storybook") })],
+  // Pre-bundle the dependencies stories import, so Vite does not reload mid-run.
+  optimizeDeps: {
+    include: [
+      "cn/config",
+      "class-variance-authority",
+      "lucide-react",
+      "@base-ui/react/button",
+      "@base-ui/react/input",
+      "@base-ui/react/merge-props",
+      "@base-ui/react/use-render",
+      "@storybook/addon-docs",
+      "@storybook/react-dom-shim",
+    ],
+  },
   test: {
     name: "storybook",
     browser: {

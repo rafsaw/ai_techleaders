@@ -14,7 +14,7 @@ function useMounted() {
 export function Table({ head, children }: { head: string[]; children: ReactNode }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-left text-sm text-foreground">
+      <table className="w-full border-collapse text-left text-body text-foreground">
         <thead>
           <tr className="border-b border-border">
             {head.map((cell) => (
@@ -131,7 +131,7 @@ export const RadiusBox = ({ token }: { token: string }) => (
 export const DurationDemo = ({ token, label }: { token: string; label: string }) => (
   <button
     type="button"
-    className="h-button-sm rounded-button border border-input bg-card px-3 text-sm text-foreground transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
+    className="h-button-sm rounded-button border border-input bg-card px-3 text-body text-foreground transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
     style={{ transitionDuration: `var(${token})` }}
   >
     {label}
