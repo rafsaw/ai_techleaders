@@ -23,6 +23,7 @@ export default defineConfig({
       "@base-ui/react/use-render",
       "@base-ui/react/alert-dialog",
       "@base-ui/react/separator",
+      "zod",
       "@storybook/addon-docs",
       "@storybook/react-dom-shim",
     ],

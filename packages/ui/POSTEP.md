@@ -9,13 +9,13 @@ czekamy na „dalej” od PO. W nowej sesji najpierw przeczytaj ten plik.
 |---|---|---|
 | 0. Inwentaryzacja i plan | **zakończony**, wszystkie pytania rozstrzygnięte | 2026-10-20 – 2026-10-21 |
 | 1. Fundamenty | **zakończony**, propozycje P-* rozstrzygnięte i wpisane | 2026-10-21 |
-| 2. Komponenty bazowe | **w toku**: partie 1–3 z 4 zrobione (partie 1–2 w 766a227, d2073e8); decyzje po partii 3 wpisane; czeka na „dalej” do partii 4 | 2026-10-21 |
+| 2. Komponenty bazowe | **zakończony**: partie 1–4 (1–3 w 766a227, d2073e8, 9739dab); decyzje po partii 4 wpisane | 2026-10-21 |
 | 3. Komponenty produktu, wzorce, ekrany | nie zaczęty | — |
 | 4. Strony, które uczą | nie zaczęty | — |
 | 5. Sprawdzenie i raport | nie zaczęty | — |
 
-**Następny krok:** „dalej” od PO do partii 4 (zestaw publiczny F3). Przed testem agentem
-zostają rzeczy z sekcji „Do zrobienia poza design systemem”.
+**Następny krok:** „dalej” od PO do etapu 3 (komponenty produktu, wzorce, ekrany). Przed testem
+agentem zostają rzeczy z sekcji „Do zrobienia poza design systemem”.
 
 ## Przeczytane materiały
 
@@ -183,6 +183,11 @@ Wszystkie jako „proposal approved by Rafał” (w dokumentacji i tokenach).
 
 ## Do zrobienia poza design systemem (przed testem agentem, etap 5)
 
+- **„Pokaż hasło” w specyfikacji E01 (przy Phase 2):** `PasswordField` ma przycisk pokazania
+  hasła (P-PF1, zatwierdzone 2026-10-21), a `2026-10-17-accounts-and-roles.md` dziś go nie
+  wymienia (AD6 i UI/UX mówią tylko o podpowiedzi i menedżerach haseł). Dopisać go do UI/UX
+  `/sign-up`, `/sign-in`, `/confirm-email` przy E01 Phase 2. To zmiana poza design systemem,
+  więc specyfikacji nie ruszam.
 - **Link jako przycisk (PO, osobny commit):**
   - `AGENTS.md` l. 240: reguła `<Button nativeButton={false} render={<Link href="…" />}>`
     → `buttonVariants()` na `<Link>`;
@@ -325,7 +330,8 @@ zostają w specyfikacji E01 Phase 2; design system ich nie dodaje.
   Tooltip, Tabs (żaden ekran E01/E02 ich nie potrzebuje).
 - Toast: brak w 1.0 (decyzja PO).
 - Wzorzec „lista z filtrami”: razem z E03, bo żaden ekran E01/E02 nie ma filtrów (Q6 = a).
-- Zestaw ikon: luka do decyzji PO; do tego czasu tylko `lucide-react` (2026-10-21).
+- Zestaw ikon: luka do decyzji PO; do tego czasu tylko `lucide-react` (2026-10-21). lucide nie
+  ma ikon marek, więc przycisk GitHub nie ma logo (partia 4).
 - Przełącznik motywu w aplikacji: nie ma go w backlogu (Foundations/Themes).
 
 ## Drzewo menu Storybooka (plan)
@@ -758,6 +764,72 @@ Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 3)”.
   „Could not save”.
 - **Możliwe później (opcja a):** prop `errorTitle` w `DataTable`, żeby lista mówiła, czego nie
   wczytała („Could not load users”). Zmiana API, więc tylko za zgodą PO.
+
+## Etap 2, partia 4: co zrobione (2026-10-21)
+
+Zestaw publiczny (Q1 = a, platform F3) i rdzeń formularzy (F2), zgodnie z planem z etapu 0.
+
+- **F2, `ui/src/forms/`:** `field-errors.ts` (`toFieldErrors`, przeniesione z `CrudForm`) i
+  `useSchemaForm.ts` (kontrakt z F2: `values, setValue, fieldErrors, formError, isSubmitting,
+  handleSubmit, handleKeyDown`, `onSuccess(data)`, `resetOnSuccess`), plus `handleBlur` i fokus na
+  pierwszym błędnym polu po nieudanym wysłaniu (F2, prompt: wzorzec formularza).
+- **`CrudForm` korzysta z `useSchemaForm`:** API i wszystkie dotychczasowe testy bez zmian (Z-1).
+  Nowe zachowanie: po nieudanym wysłaniu fokus idzie na pierwsze błędne pole (F2 tego wymaga).
+  Walidacji przy opuszczeniu pola `CrudForm` nie dostał (bez zmiany zachowania strefy zalogowanej).
+- **F3, `ui/src/frontend/`:** `forms/TextField`, `forms/PasswordField`, `forms/SubmitButton`,
+  `forms/SchemaForm`, `feedback/Notice`, `actions/LinkButton`. Tylko Tailwind na tych samych
+  tokenach co zestaw shadcn; bez importów z `components/*`, `backend/*` (poza typami API) ani
+  Base UI. Spinner to ikona lucide (komponent `Spinner` jest z zestawu shadcn).
+- **`package.json` (ui):** eksporty `./forms/*` i `./frontend/*` (F2, F3). Bez nowych zależności.
+- **`vitest.storybook.config.ts`:** `zod` w `optimizeDeps.include`.
+- **Stories (28 nowych, razem 113):** Text field 4, Password field 4, Submit button 4, Notice 4,
+  Link button 4, Schema form 8 (klient: błędy i fokus, walidacja przy opuszczeniu pola,
+  oczekiwanie, błąd serwera, błąd pola z serwera, brak sieci przy 320 px). Schematy w stories to
+  zastępniki `signInSchema`/`signUpSchema` z E01 Phase 2 (reguły z AD6 i tabeli pól).
+- **Strony dokumentacji:** 6 stron po 13 sekcji w `src/frontend/**`.
+- **Testy jednostkowe:** `forms/useSchemaForm.test.tsx`, `frontend/frontend.test.tsx`.
+- **Luka:** lucide nie ma ikon marek, więc **Sign in with GitHub** jest bez logo (wpis do luki
+  „zestaw ikon”).
+- **Wyjątki `dark:`:** brak.
+
+## Etap 2, partia 4: co sprawdzone
+
+- test:storybook w obu motywach: 113/113 i 113/113 (play functions, a11y `error`).
+- lint, typecheck, check:tokens (0 w ui), test:coverage (235 testów, 100%), build Next.js,
+  test:integration (4/4).
+- Zbudowany Storybook w Chromium: 6 stron × 2 motywy × 320/1440 px: bez poziomego przewijania,
+  0 surowych tabel, 0 błędów konsoli.
+
+## Etap 2, partia 4: czego nie sprawdzono
+
+- Zestawu publicznego na prawdziwej stronie aplikacji: strony E01 Phase 2 jeszcze nie istnieją.
+- `/backend/users` w przeglądarce po przejściu `CrudForm` na hook (przeszły jednostkowe
+  i integracyjne).
+- Reguły ESLint z F3 (zakaz shadcn/Base UI w `frontend/`): zgodnie z planem zostają w E01 Phase 2.
+- Na stronach docs przykłady Schema form pokazują stan początkowy (play functions działają tylko
+  w stories); czytnik ekranu na żywo.
+
+## Etap 2, partia 4: do decyzji (oznaczone w docs jako proposal)
+
+Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 4)”.
+
+- **P-F2** Walidacja przy opuszczeniu pola tylko, gdy pole ma wartość albo już pokazuje błąd.
+- **P-F3** `SchemaForm` domyślnie zostawia wartości po sukcesie (`resetOnSuccess={false}`), bo
+  formularz publiczny przechodzi na inną stronę; hook i `CrudForm` domyślnie czyszczą (F2).
+- **P-F4** Przycisk wysyłania w `SchemaForm` zawsze na całą szerokość formularza (`max-w-text`).
+- **P-PF1** `PasswordField` ma przycisk pokazania hasła (ikona oka, stała nazwa „Show password”,
+  `aria-pressed`). Specyfikacja mówi tylko o podpowiedzi i obsłudze menedżerów haseł.
+- **P-LB1** `LinkButton` i `SubmitButton` używają nazw wariantów z `Button` (`default`, `outline`,
+  `link`) zamiast własnych.
+- **P-N1** Wariant `Notice` dla komunikatów E01: anulowanie przez użytkownika (`github_cancelled`)
+  to `info`, awaria to `error`.
+
+## Decyzje PO z 2026-10-21 (po partii 4)
+
+- **P-F2, P-F3, P-F4, P-PF1, P-LB1, P-N1:** przyjęte tak, jak zaproponowane; w docs i komentarzu
+  `PasswordField.tsx` oznaczone „proposal approved by PO(Rafał)”.
+- **Do zrobienia przy P-PF1:** dopisać „pokaż hasło” do specyfikacji E01 przy Phase 2 (zob. „Do
+  zrobienia poza design systemem”).
 
 ## Opis ekranu do testu agentem (etap 5)
 

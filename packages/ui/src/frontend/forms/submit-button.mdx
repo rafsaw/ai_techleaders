@@ -1,0 +1,119 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { SubmitButton } from "@devmentor/ui/frontend/forms/SubmitButton";
+import { DoDont } from "../../../.storybook/blocks/stories";
+import * as SubmitButtonStories from "./submit-button.stories";
+
+<Meta of={SubmitButtonStories} />
+
+# Submit button
+
+`import { SubmitButton } from "@devmentor/ui/frontend/forms/SubmitButton"`
+
+Public kit (F3): the form's submit button with a built-in pending state. Same look as the
+signed-in `Button` (Q3, B1, B2, B3), plain Tailwind; the spinner is the lucide icon directly,
+because the public kit does not import shadcn components.
+
+## 1. What it is for
+
+A submit button sends a public form and shows that it is sending, so the visitor neither waits
+in doubt nor sends twice.
+
+## 2. When to use
+
+- The one main action of a public form: **Sign in**, **Create account**, **Confirm** (E01).
+- A second, smaller form next to it: **Resend confirmation** (`outline`, E01 `email_not_confirmed`).
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| Navigation (GitHub sign-in, links to other pages) | `LinkButton` | E01 UI/UX: the GitHub button is a real link |
+| A signed-in form | `Button` (shadcn) in `CrudForm` | Q1 |
+| Two main actions on one screen | one main action; the other `outline` or a link | R01.6 |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| Button | yes | `type="submit"`, `h-button-md` 36 px, `rounded-button`, `text-label` |
+| Spinner | while pending | 16 px, `aria-hidden` |
+| Label | yes | verb and object; *-ing* form while pending |
+
+## 5. Variants
+
+| Variant | When |
+|---|---|
+| `default` | the main action of the page (R01.6) |
+| `outline` | a secondary form action |
+
+<Canvas of={SubmitButtonStories.Variants} />
+
+## 6. States
+
+| State | Look | Source |
+|---|---|---|
+| Hover | `primary/90`; outline gets `accent` | B2 |
+| Focus | 2 px `ring` outline, offset 2 px | B3 |
+| Pressed | as hover, no movement | B2 |
+| Pending | disabled, spinner, *Signing in…* | P-C4, prompt Form pattern (no double submit) |
+| Disabled | `disabled` colours, `not-allowed`; the reason is the pending label or text near the form | B2 |
+
+<Canvas of={SubmitButtonStories.States} />
+
+## 7. Behaviour and accessibility
+
+- A native `<button type="submit">`: Enter in a field and Space/Enter on the button submit (story *Long content, narrow* tests Enter and the disabled second press).
+- While pending the name changes to the *-ing* label, so screen readers hear what is happening; the spinner is hidden.
+- `SchemaForm` passes `pending` from the form state; you do not manage it yourself.
+
+## 8. Content
+
+- Verb and object, about 3 words (P-C3): *Sign in*, *Create account*, *Resend confirmation*.
+- Pending: the same verb in *-ing* form with an ellipsis (P-C4).
+- Leave 30 % for translation; at 320 px use full width instead of shortening (P-C5).
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | `w-full` (in `SchemaForm` always: P-F4, proposal approved by PO(Rafał)) |
+| 768 px, 1440 px | the width of the form (`max-w-text`) in `SchemaForm` |
+
+<Canvas of={SubmitButtonStories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `children` | `ReactNode` | — | idle label |
+| `pendingLabel` | `string` | — | label while pending |
+| `pending` | `boolean` | `false` | disables and shows the spinner |
+| `variant` | `"default" \| "outline"` | `"default"` | look |
+| …rest | `<button>` props | — | `type` is always `submit` |
+
+<Controls of={SubmitButtonStories.Playground} />
+
+## 11. Code
+
+```tsx
+<SubmitButton pending={isSubmitting} pendingLabel="Signing in…">Sign in</SubmitButton>
+```
+
+From the product: `SchemaForm` renders it with `submitLabel` and `pendingLabel`.
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<SubmitButton pending pendingLabel="Creating account…">Create account</SubmitButton>}
+    doText="Pending says what is happening and blocks a second submit."
+    dontExample={<SubmitButton pendingLabel="…">OK</SubmitButton>}
+    dontText="OK names no action (P-C3)."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: **Link button** (navigation), signed-in `Button`.
+- Used in: **Schema form**, Form pattern (public).

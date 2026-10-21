@@ -1,0 +1,126 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { Notice } from "@devmentor/ui/frontend/feedback/Notice";
+import { DoDont } from "../../../.storybook/blocks/stories";
+import * as NoticeStories from "./notice.stories";
+
+<Meta of={NoticeStories} />
+
+# Notice
+
+`import { Notice } from "@devmentor/ui/frontend/feedback/Notice"`
+
+Public kit (F3: `info | success | error`): the public counterpart of the signed-in `Alert`, the
+same compact bordered panel in plain Tailwind.
+
+## 1. What it is for
+
+A notice tells a signed-out visitor what happened or what to know before acting, and what to do
+next.
+
+## 2. When to use
+
+| Message | Variant | Page | Source |
+|---|---|---|---|
+| N03: *Password reset is not available yet.* … | `info` | `/sign-in`, `/sign-up` | E01 Flow 2 |
+| *Check your inbox at ada@example.com* (24-hour expiry) | `success` | `/sign-up/check-email` | E01 UI/UX |
+| *GitHub sign-in failed. Try again or sign in with email.* | `error` | `/sign-in?error=github_failed` | E01 edge cases |
+| *GitHub sign-in was cancelled. Try again* | `info` | `/sign-in?error=github_cancelled` | E01 UI/UX |
+| A form failure without a field (*Email or password is incorrect*) | `error` | public forms, through `SchemaForm` | E01 sign-in |
+| *Not taking bookings yet* | `info` | `/mentors/[id]` | E02 MD4 (stage 3) |
+
+The variant per message (P-N1, proposal approved by PO(Rafał)): cancelled by the user is `info`, a
+failure is `error`.
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| A signed-in or `/backend` page | `Alert` | Q1 |
+| An error in one field | the field's error | WCAG 3.3.1 |
+| A short-lived confirmation | nothing in 1.0: no toast | Q5 |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| Panel | yes | `rounded-panel`, `border-border`, `bg-card`, `p-panel-compact`, no shadow (B4) |
+| Icon | yes | 16 px, `aria-hidden`: info, check, octagon-x |
+| Title | yes | `text-label`, variant colour: what happened |
+| Body | optional | `text-body`, normal colour: what to do; may hold a link or button |
+
+## 5. Variants
+
+| Variant | Role | Colour |
+|---|---|---|
+| `info` (default) | `status` | foreground |
+| `success` | `status` | `success` |
+| `error` | `alert` | `destructive` |
+
+<Canvas of={NoticeStories.Variants} />
+
+## 6. States
+
+Not interactive; links and buttons inside it have their own states. No warning variant in F3.
+
+<Canvas of={NoticeStories.States} />
+
+## 7. Behaviour and accessibility
+
+- `info` and `success` are `role="status"`, `error` is `role="alert"` (E01 UI/UX accessibility). Story *Variants* tests the roles.
+- Colour is never the only signal: the title says what happened (WCAG 1.4.1).
+- Focus does not move to it.
+
+## 8. Content
+
+- Title: what happened, one sentence (use the spec's wording).
+- Body: what to do next; a link or button for the action.
+- Long text wraps.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | text wraps next to the icon |
+| 768 px, 1440 px | the width of the form or content (`max-w-text`) |
+
+<Canvas of={NoticeStories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `variant` | `"info" \| "success" \| "error"` | `"info"` | look and role |
+| `title` | `ReactNode` | — | what happened |
+| `children` | `ReactNode` | — | what to do |
+| …rest | `<div>` props | — | |
+
+<Controls of={NoticeStories.Playground} />
+
+## 11. Code
+
+```tsx
+<Notice variant="error" title="GitHub sign-in failed.">Try again or sign in with email.</Notice>
+```
+
+From the product (`/sign-up/check-email`):
+
+```tsx
+<Notice variant="success" title={`Check your inbox at ${email}`}>The link expires in 24 hours.</Notice>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<Notice variant="error" title="GitHub sign-in failed.">Try again or sign in with email.</Notice>}
+    doText="What happened and what to do next."
+    dontExample={<Notice variant="error" title="Error: github_failed" />}
+    dontText="An internal code tells the visitor nothing."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: signed-in **Alert**, field errors.
+- Used in: **Schema form** (form error), `/sign-in` banners, `/sign-up/check-email`, `/confirm-email` and `/invite` states (stage 3).

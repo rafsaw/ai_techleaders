@@ -1,0 +1,132 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { TextField } from "@devmentor/ui/frontend/forms/TextField";
+import { DoDont } from "../../../.storybook/blocks/stories";
+import * as TextFieldStories from "./text-field.stories";
+
+<Meta of={TextFieldStories} />
+
+# Text field
+
+`import { TextField } from "@devmentor/ui/frontend/forms/TextField"`
+
+Public kit (Q1 = a, platform F3): plain Tailwind on the same tokens as the signed-in `Input` +
+`Field`, with no shadcn or Base UI. Label, input, hint and error come as one component.
+
+## 1. What it is for
+
+A text field lets a signed-out visitor type a short value (name, email) and tells them what it
+is for and what went wrong.
+
+## 2. When to use
+
+- `/sign-up`: display name and email; `/sign-in`: email (E01 UI/UX).
+- Usually through `SchemaForm`, which wires values and errors for you.
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| A password | `PasswordField` | E01 AD6 |
+| A signed-in or `/backend` page | `Input` + `Field` (shadcn kit) | Q1 |
+| A value the user cannot change | plain text | P-C6 |
+| Long text | none in the public kit yet (What is missing) | — |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| Label | yes | `text-label`, always visible, linked with `htmlFor`; the placeholder is only an example (prompt, Form pattern) |
+| Input | yes | `h-control-md` 36 px, `rounded-control`, `border-input`, `text-control` (16 px below 768 px) |
+| Hint | optional | `text-meta`, `muted-foreground`, under the input, visible before typing |
+| Error | when invalid | `text-meta`, `destructive`, `role="alert"`; a list when there are several |
+
+Same order and tokens as the signed-in `Field` (label, control, description, error).
+
+## 5. Variants
+
+| `type` | When |
+|---|---|
+| `text` (default) | display name |
+| `email` | email; mobile keyboards show `@` |
+
+<Canvas of={TextFieldStories.Variants} />
+
+## 6. States
+
+| State | Look | Source |
+|---|---|---|
+| Default, filled | border `input` | B1 |
+| Hover | no change: hover changes the edge only on controls that act (C7) | C7 |
+| Focus | 2 px `ring` outline, offset 2 px | B3 |
+| Error | border `destructive` and the message under it; the label keeps its colour | B3, WCAG 3.3.1, 1.4.1 |
+| Disabled | `disabled` colours, no opacity; the reason in the hint | B2 |
+| Loading, selected | not applicable; the form's submit button shows loading | P-C4 |
+
+<Canvas of={TextFieldStories.States} />
+
+## 7. Behaviour and accessibility
+
+- The label names the input; hint and error are linked with `aria-describedby`, the error sets `aria-invalid` (E01 UI/UX accessibility, WCAG 1.3.1, 3.3.1). Story *Long content, narrow* tests both.
+- The error is `role="alert"`, like the signed-in `FieldError`.
+- Pass `autoComplete` (`name`, `email`) so browsers can fill it (WCAG 1.3.5).
+- Hit area 36 px high.
+
+## 8. Content
+
+- Label: a noun phrase without a colon (*Display name*, *Email*, P-C7).
+- Hint: a rule or what happens with the value (*This is the name others see. You can change it.*).
+- Error: what to do (*Enter a valid email address*), from the shared schema.
+- Long values scroll inside the input; hint and error wrap.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | full width; text is 16 px so iOS does not zoom (B1) |
+| 768 px, 1440 px | within the form's `max-w-text` |
+
+<Canvas of={TextFieldStories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `label` | `string` | — | visible label |
+| `type` | `"text" \| "email"` | `"text"` | input type |
+| `hint` | `ReactNode` | — | rule or example under the input |
+| `errors` | `readonly string[]` | — | messages for this field |
+| `id` | `string` | generated | input id |
+| …rest | `<input>` props | — | `name`, `value`, `onChange`, `onBlur`, `autoComplete`, `disabled` |
+
+<Controls of={TextFieldStories.Playground} />
+
+## 11. Code
+
+Minimal:
+
+```tsx
+<TextField label="Email" type="email" name="email" autoComplete="email" />
+```
+
+From the product (`/sign-up`), through `SchemaForm`:
+
+```tsx
+{ name: "displayName", label: "Display name", autoComplete: "name", hint: "This is the name others see. You can change it." }
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<TextField label="Email" type="email" placeholder="ada@example.com" />}
+    doText="The label names the field; the placeholder is only an example."
+    dontExample={<TextField label="" aria-label="Email" placeholder="Email" />}
+    dontText="A placeholder as the name disappears when the user types (prompt, Form pattern)."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: signed-in `Input` + `Field` (shadcn kit), **Password field**.
+- Used in: **Schema form**, `/sign-in`, `/sign-up` (stage 3 screens).

@@ -11,7 +11,9 @@
     "./backend/api/*": "./src/backend/api/*.ts",
     "./backend/forms/*": "./src/backend/forms/*.tsx",
     "./backend/tables/*": "./src/backend/tables/*.tsx",
-    "./backend/feedback/*": "./src/backend/feedback/*.tsx"
+    "./backend/feedback/*": "./src/backend/feedback/*.tsx",
+    "./forms/*": "./src/forms/*.ts",
+    "./frontend/*": "./src/frontend/*.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

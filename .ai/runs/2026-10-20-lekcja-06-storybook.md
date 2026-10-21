@@ -77,3 +77,16 @@
 - Wynik: partia 3 zakończona, czeka na decyzje P-LD1–P-LD4, P-E1–P-E4 i „dalej”.
 - Decyzje po partii 3: P-LD1–P-LD4, P-E1–P-E3 przyjęte; P-E4 (b): domyślny tytuł
   `ErrorMessage` „Couldn't load the data”, `errorTitle` w `DataTable` zapisany jako możliwy później.
+
+## 2026-10-21: etap 2, partia 4
+
+- F2: `ui/src/forms/useSchemaForm.ts` i `field-errors.ts`; `CrudForm` na hooku bez zmiany API
+  i testów (nowe: fokus na pierwszym błędzie). F3: `ui/src/frontend/` (TextField, PasswordField,
+  SubmitButton, SchemaForm, Notice, LinkButton), eksporty `./forms/*`, `./frontend/*`.
+- Znalezione i poprawione: brak eksportu w `package.json` (Vite nie rozwiązał importu), test
+  linku nawigujący ramkę testową, brak ikony GitHub w lucide (bez logo, luka).
+- Sprawdzone: test:storybook 113/113 × 2, lint, typecheck, check:tokens, test:coverage (235,
+  100%), build, test:integration (4/4), Chromium 6 stron × 2 motywy × 2 szerokości.
+- Wynik: etap 2 zakończony, czeka na decyzje P-F2–P-F4, P-PF1, P-LB1, P-N1 i „dalej”.
+- Decyzje po partii 4: P-F2–P-F4, P-PF1, P-LB1, P-N1 przyjęte („proposal approved by PO(Rafał)”);
+  do zrobienia poza DS: „pokaż hasło” w specyfikacji E01 przy Phase 2.
