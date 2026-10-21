@@ -1,0 +1,49 @@
+import { Meta, Unstyled } from "@storybook/addon-docs/blocks";
+import { AlertCircle, Check, ChevronRight, Copy, ExternalLink, Info, Loader2, TriangleAlert } from "lucide-react";
+
+<Meta title="Foundations/Icons" />
+
+# Icons
+
+The library is **lucide-react**, the icon library configured for shadcn in this repository
+(`components.json`).
+
+<Unstyled>
+  <div className="flex flex-wrap gap-between-groups text-foreground">
+    <span className="flex items-center gap-in-group text-sm"><Check aria-hidden className="size-4" /> Check</span>
+    <span className="flex items-center gap-in-group text-sm"><Info aria-hidden className="size-4" /> Info</span>
+    <span className="flex items-center gap-in-group text-sm"><TriangleAlert aria-hidden className="size-4" /> TriangleAlert</span>
+    <span className="flex items-center gap-in-group text-sm"><AlertCircle aria-hidden className="size-4" /> AlertCircle</span>
+    <span className="flex items-center gap-in-group text-sm"><Copy aria-hidden className="size-4" /> Copy</span>
+    <span className="flex items-center gap-in-group text-sm"><ExternalLink aria-hidden className="size-4" /> ExternalLink</span>
+    <span className="flex items-center gap-in-group text-sm"><ChevronRight aria-hidden className="size-4" /> ChevronRight</span>
+    <span className="flex items-center gap-in-group text-sm"><Loader2 aria-hidden className="size-4" /> Loader2</span>
+  </div>
+</Unstyled>
+
+## Sizes
+
+| Size | Class | Where | Status |
+|---|---|---|---|
+| 16 px | `size-4` | default in buttons, alerts, inline with `text-sm` | existing shadcn convention; confirm in stage 2 |
+| 14 px | `size-3.5` | small buttons, with `text-meta` | existing shadcn convention; confirm in stage 2 |
+| 12 px | `size-3` | extra small buttons | existing shadcn convention; confirm in stage 2 |
+
+## When an icon needs a label
+
+| Situation | What to do | Source |
+|---|---|---|
+| Icon next to visible text | `aria-hidden`; the text is the name | WCAG 1.1.1 |
+| Icon-only button (e.g. copy link) | `aria-label` with a verb and object: "Copy public link" | WCAG 4.1.2, 2.5.3 |
+| Status icon | always together with status text; the icon alone never carries the meaning | Q2, WCAG 1.4.1 |
+| External link | `ExternalLink` icon plus "(opens in a new tab)" for screen readers | E02 UI/UX |
+
+## Never used
+
+| Icon | Why | Source |
+|---|---|---|
+| `Sparkles` | the generic AI symbol | A01, Z5 |
+| `Star` | ratings | A03, N02 |
+| `Heart`, `ThumbsUp` | community and likes | A04 |
+| `Video`, `Camera`, `Mic` | sessions are text only | A06, N01 |
+| Emoji instead of icons | noise; text only in the product | R02.5, A01 |

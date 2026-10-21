@@ -8,15 +8,15 @@ czekamy na „dalej” od PO. W nowej sesji najpierw przeczytaj ten plik.
 | Etap | Status | Data |
 |---|---|---|
 | 0. Inwentaryzacja i plan | **zakończony**, wszystkie pytania rozstrzygnięte | 2026-10-20 – 2026-10-21 |
-| 1. Fundamenty | nie zaczęty | — |
+| 1. Fundamenty | **zrobiony**, czeka na „dalej” i decyzje o propozycjach P-* | 2026-10-21 |
 | 2. Komponenty bazowe | nie zaczęty | — |
 | 3. Komponenty produktu, wzorce, ekrany | nie zaczęty | — |
 | 4. Strony, które uczą | nie zaczęty | — |
 | 5. Sprawdzenie i raport | nie zaczęty | — |
 
-**Następny krok:** etap 1 (Fundamenty), dopiero po „dalej” od PO. Na start etapu 1:
-dobrać odcienie ról success i warning (nie fiolet, nie indygo) i policzyć kontrast
-wszystkich par w obu motywach dla wartości, które faktycznie trafią do `globals.css`.
+**Następny krok:** PO decyduje o propozycjach z etapu 1 (P-T1–P-T3, P-L1–P-L4, P-S1,
+P-TH1, sekcja „Etap 1: propozycje do decyzji”), potem „dalej” do etapu 2. Etap 2 zaczyna się
+od listy różnic kształtu, gęstości i stanów względem bazy shadcn (Z-3).
 
 ## Przeczytane materiały
 
@@ -260,6 +260,85 @@ Szacunek: ok. 55 stron MDX (8 ogólnych, 7 Foundations, 2 epiki, ~37 stron kompo
 i wzorców), 22 prymitywy × ~6 stories ≈ 130, 14 komponentów produktu × ~6 ≈ 85,
 6 wzorców × ~6 ≈ 35 (formularz ~10 ze stanami API), 10 ekranów × ~4 stany ≈ 40.
 Razem ok. 290 stories.
+
+## Etap 1: co zrobione (2026-10-21)
+
+- **Zależności** (tylko z planu): w `@devmentor/ui` devDependencies `storybook`,
+  `@storybook/react-vite`, `@storybook/addon-docs`, `@storybook/addon-a11y`,
+  `@storybook/addon-vitest`, `@storybook/addon-themes` (wszystkie 10.6.3),
+  `@vitest/browser-playwright`, `playwright`, `vite`, `@tailwindcss/vite`, `remark-gfm`,
+  `msw`, `msw-storybook-addon`; dependencies `@fontsource-variable/geist`,
+  `@fontsource-variable/geist-mono`. Root: `vitest` i `@vitest/coverage-v8` z `^5.0.4` na
+  `^5.0.5`, bo addon-vitest ściągał drugą kopię Vitest 5.0.5 (jedna wersja w drzewie).
+- **Storybook** w `.storybook/`: `main.ts` (docs z remark-gfm, a11y, vitest, themes, msw,
+  wyłączona telemetria i powiadomienia o nowościach), `preview.tsx` (`a11y: { test: "error" }`,
+  motyw na `<html>` także dla stron MDX bez stories, MSW loader, kolejność menu),
+  `manager.ts` (marka „DevMentor”, tytuł karty, ukryty nagłówek i tytuł ramki bez słowa
+  Storybook, wyłączona checklista startowa), `preview.css` (tokeny, fonty, ciemne strony docs),
+  `public/mockServiceWorker.js` (z `msw init`).
+- **Testy stories:** `vitest.storybook.config.ts` (Chromium przez Playwright). Skrypty:
+  `storybook`, `build-storybook`, `test:storybook`, `test:storybook:themes`, `check:tokens`
+  (w `@devmentor/ui`) i aliasy w root (`test:storybook` uruchamia oba motywy).
+- **Tokeny** w `src/styles/globals.css`, trzy warstwy, komentarz ze źródłem przy każdym
+  tokenie znaczeniowym: surowe (`--warm-*`, `--red/green/amber-*`, fonty), znaczeniowe
+  (kolory shadcn + `--success`, `--warning`, `--spacing-in-group/between-groups/panel/
+  component/section`, `--text-row-title`, `--text-meta`, `--radius-control/button/panel/pill`,
+  `--duration-control/menu/dialog`, `--font-mono`), komponentowe (`--spacing-list-row-y`,
+  `--spacing-list-row-gap`, `--spacing-button-lg/md/sm/xs`). Fiolet usunięty (Z-4).
+  Klasy: `gap-in-group`, `p-panel`, `text-row-title`, `rounded-panel`, `h-button-md`,
+  `duration-control`, `text-success`… Reduced motion: 0 ms dla tokenów i animacji.
+- **Wartości `--warm-*`:** tokeny.md podaje L i zakres nasycenia 0,003–0,013, bez wartości
+  na stopień. Przyjęte nasycenie: 0:.003, 50:.004, 100:.006, 200:.008, 300:.010, 400:.012,
+  450–500:.013, 600:.012, 700:.011, 800:.009, 900:.007, 950:.005. Hex skrajnych stopni zgodny
+  z tokeny.md (#fffdfb, #0b0a08).
+- **success / warning (Q2):** jasny `oklch(0.5 0.12 150)` i `oklch(0.52 0.11 65)`, ciemny
+  `oklch(0.75 0.14 150)` i `oklch(0.78 0.13 75)`. Wartości startowe.
+- **Kontrast:** policzony przed zapisem (skrypt w scratchpadzie) i zmierzony w przeglądarce
+  na stronie Foundations/Color; wyniki zgodne. Wszystkie pary tekstu ≥ 4,5, UI ≥ 3 poza
+  `border` (wyjątek T7). Rozbieżność z tokeny.md: `border`/`background` w ciemnym = 1,89,
+  a tokeny.md podawał 1,31; obie wartości < 3, wyjątek T7 bez zmian.
+- **Strony Foundations** (`src/docs/foundations/*.mdx`): Color (role, tabela kontrastu mierzona
+  na żywo w obu motywach), Typography, Spacing and layout, Shape and depth, Motion, Icons,
+  Themes. Bloki pomocnicze: `.storybook/blocks/{contrast.ts,tokens.tsx}`.
+- **Skrypt tokenów:** `scripts/check-tokens.mjs` (exit 1), testy `tests/check-tokens.test.ts`.
+  Dziś znajduje 18 wartości w istniejących komponentach (alert, badge, button, card); to
+  zakres Z-3 w etapie 2. Aplikacja: 7 pozycji tylko informacyjnie (Z-5).
+- **Konfiguracja repo:** `vitest.config.ts` wyklucza `**/*.stories.tsx` z pokrycia (Z-6),
+  `eslint.config.mjs` ignoruje `storybook-static` i wygenerowany worker MSW, `.gitignore`
+  dostał `storybook-static/`, `packages/ui/tsconfig.json` obejmuje `.storybook`.
+
+## Etap 1: co sprawdzone
+
+- `npm run build-storybook`: OK. Zbudowany Storybook obejrzany w Chromium (1440 px) na 7
+  stronach w obu motywach: tabele Markdown renderują się jako tabele (0 surowych `|---`),
+  `<html>` ma `dark` w ciemnym motywie, Geist Variable załadowany, brak błędów konsoli,
+  w managerze brak tekstu „Storybook” (także ukryty nagłówek, tytuł karty).
+- Testy stories: tymczasowa story (usunięta) potwierdziła, że play function działa, naruszenie
+  a11y (`image-alt`) kończy test błędem, a przebieg `STORYBOOK_THEME=dark` ma `.dark` na `<html>`.
+- `npm run typecheck`, `npm run lint`, `npm run test:coverage` (21 plików, 207 testów, 100%),
+  `npm run build` (Next.js), `npm run test:integration` (4/4): OK.
+- `npm run check:tokens`: exit 1 (18 pozycji w istniejących komponentach, etap 2).
+
+## Etap 1: czego nie sprawdzono
+
+- `npm run test:storybook` kończy się błędem „No test files found”, bo nie ma jeszcze żadnej
+  story (pierwsze w etapie 2). Strony MDX nie są testowane przez Vitest; a11y stron docs
+  sprawdzę w etapie 5.
+- Szerokości 320 i 768 px dla stron Foundations (tabele mają przewijanie poziome).
+- Wygląd aplikacji (`/backend`, `/`) po zmianie tokenów obejrzany tylko przez testy integracyjne.
+- `check:tokens` nie jest dodany do CI (padłby do czasu etapu 2).
+
+## Etap 1: propozycje do decyzji (bez źródła w materiałach)
+
+- **P-T1** nagłówek strony `text-2xl font-semibold`; **P-T2** nagłówek sekcji
+  `text-lg font-semibold`; **P-T3** tekst `text-sm` (14 px, rozmiar shadcn).
+- **P-L1** margines strony 16 px przy 320 px; **P-L2** formularze w jednej kolumnie także
+  przy 768 px; **P-L3** przy 1440 px treść wyśrodkowana na maks. szerokości;
+  **P-L4** maks. szerokość treści `max-w-5xl` (64 rem), tekst ciągły `max-w-prose`.
+- **P-S1** cień tylko dla warstw nad stroną (menu, popover, dialog).
+- **P-TH1** warianty `dark:` tylko tam, gdzie tokenu nie da się użyć.
+- Rozmiary ikon 16/14/12 px i etykieta 14 px medium: stan zastany shadcn, do potwierdzenia
+  w etapie 2.
 
 ## Opis ekranu do testu agentem (etap 5)
 

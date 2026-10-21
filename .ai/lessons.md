@@ -27,6 +27,31 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-21 — Storybook docs-only MDX pages run no decorators
+
+**Context:** `withThemeByClassName` toggled `.dark` for stories, but MDX pages without stories
+stayed light, and the measured contrast table showed only the light theme.
+**Lesson:** sync global state that must reach docs pages (theme class on `<html>`) from the
+preview channel (`SET_GLOBALS`, `GLOBALS_UPDATED`) in `preview.tsx`, not only in a decorator.
+**Applies to:** `packages/ui/.storybook/preview.tsx`, any addon that relies on decorators.
+
+### 2026-10-21 — msw-storybook-addon 3 changed its API
+
+**Context:** `import { initialize, mswLoader } from "msw-storybook-addon"` failed the Storybook
+build with MISSING_EXPORT.
+**Lesson:** with v3 and CSF 3 stories use `import { mswLoader } from "msw-storybook-addon/csf3"`
+and `loaders: [mswLoader()]`, add `"msw-storybook-addon"` to `addons`, and drop `initialize()`.
+**Applies to:** `packages/ui/.storybook/{main.ts,preview.tsx}`.
+
+### 2026-10-21 — `@storybook/addon-vitest` can pull a second Vitest
+
+**Context:** `npm install -D -w @devmentor/ui …` crashed (`Cannot read properties of null
+(reading 'edgesOut')`); adding the deps to `package.json` and running `npm install` worked, but
+the addon then installed Vitest 5.0.5 next to the root's 5.0.4.
+**Lesson:** add workspace dev deps by editing `package.json` + `npm install` when npm crashes,
+then check `npm ls vitest` and keep one version by raising the root range.
+**Applies to:** root `package.json`, `packages/ui/package.json`.
+
 ### 2026-10-17 — Split platform primitives from feature specs
 
 **Context:** E01 started as one spec covering the accounts features and the

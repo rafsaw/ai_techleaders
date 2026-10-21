@@ -1,0 +1,90 @@
+import { Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { Table } from "../../../.storybook/blocks/tokens";
+
+<Meta title="Foundations/Typography" />
+
+# Typography
+
+Two typefaces: **Geist** for the interface and **Geist Mono** for code. Both are start values;
+the choice of typeface is still open (Q4, gap in R01–R02). Fonts are bundled through
+`@fontsource-variable/geist` and `@fontsource-variable/geist-mono`, never loaded from a CDN.
+The Next.js app keeps loading Geist through `next/font` (Z-5).
+
+## Rules
+
+| Rule | Source |
+|---|---|
+| Hierarchy by size and weight, never by colour. | R01.5, Z2 |
+| A list row has a title in `text-row-title` and one metadata line in `text-meta text-muted-foreground`. | R01.1, R01.5, C1 |
+| `font-mono` only for code, file names, paths and configuration. Never for headings, metadata or labels. | R01.2, Z3 |
+| Prices and times use tabular figures (`tabular-nums`) so columns line up. | Q4 |
+| Running text is at most about 65 characters per line (`max-w-prose`). | prompt, WCAG 1.4.8 (AAA, advisory) |
+
+## Roles
+
+Rows marked **Proposal** have no decision behind them yet; they use Tailwind's default type
+scale and are listed in the stage report for your decision.
+
+<Unstyled>
+  <Table head={["Role", "Sample", "Classes", "Status / source"]}>
+    <tr>
+      <td className="py-2 pr-4">Page heading</td>
+      <td className="py-2 pr-4 text-2xl font-semibold text-foreground">Mentor setup</td>
+      <td className="py-2 pr-4 font-mono text-meta">text-2xl font-semibold</td>
+      <td className="py-2 pr-4">Proposal P-T1</td>
+    </tr>
+    <tr>
+      <td className="py-2 pr-4">Section heading</td>
+      <td className="py-2 pr-4 text-lg font-semibold text-foreground">Upcoming slots</td>
+      <td className="py-2 pr-4 font-mono text-meta">text-lg font-semibold</td>
+      <td className="py-2 pr-4">Proposal P-T2</td>
+    </tr>
+    <tr>
+      <td className="py-2 pr-4">List row title</td>
+      <td className="py-2 pr-4 text-row-title text-foreground">Ada Nowak</td>
+      <td className="py-2 pr-4 font-mono text-meta">text-row-title</td>
+      <td className="py-2 pr-4">T3, R01.5</td>
+    </tr>
+    <tr>
+      <td className="py-2 pr-4">Body</td>
+      <td className="py-2 pr-4 text-sm text-foreground">Mentees can only book times you publish.</td>
+      <td className="py-2 pr-4 font-mono text-meta">text-sm</td>
+      <td className="py-2 pr-4">Proposal P-T3 (existing shadcn size)</td>
+    </tr>
+    <tr>
+      <td className="py-2 pr-4">Label</td>
+      <td className="py-2 pr-4 text-sm font-medium text-foreground">Price for 25 minutes (USD)</td>
+      <td className="py-2 pr-4 font-mono text-meta">text-sm font-medium</td>
+      <td className="py-2 pr-4">existing shadcn `Label`; confirm in stage 2</td>
+    </tr>
+    <tr>
+      <td className="py-2 pr-4">Metadata</td>
+      <td className="py-2 pr-4 text-meta text-muted-foreground">TypeScript · 25 min · $40</td>
+      <td className="py-2 pr-4 font-mono text-meta">text-meta text-muted-foreground</td>
+      <td className="py-2 pr-4">T3, R01.5</td>
+    </tr>
+    <tr>
+      <td className="py-2 pr-4">Numbers</td>
+      <td className="py-2 pr-4 text-sm tabular-nums text-foreground">$40 · $70 · 09:30 · 14:05</td>
+      <td className="py-2 pr-4 font-mono text-meta">tabular-nums</td>
+      <td className="py-2 pr-4">Q4</td>
+    </tr>
+    <tr>
+      <td className="py-2 pr-4">Code</td>
+      <td className="py-2 pr-4 font-mono text-sm text-foreground">ingress-nginx/values.yaml</td>
+      <td className="py-2 pr-4 font-mono text-meta">font-mono</td>
+      <td className="py-2 pr-4">R01.2, Z3</td>
+    </tr>
+  </Table>
+</Unstyled>
+
+## Line length
+
+<Unstyled>
+  <p className="max-w-prose text-sm text-foreground">
+    Where you reside, or where your business is legally established. You can't change this
+    Stripe account's country later. This paragraph is limited by max-w-prose, which keeps a
+    line of running text at about 65 characters.
+  </p>
+</Unstyled>
