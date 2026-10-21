@@ -65,3 +65,15 @@
 - Sprawdzone: test:storybook 65/65 × 2, lint, typecheck, test:coverage, check:tokens (0 w ui),
   build, test:integration, przegląd w Chromium 6 stron × 2 motywy × 2 szerokości.
 - Wynik: partia 2 zakończona, czeka na „dalej” i decyzje P-C9–P-C11, P-T4, mapowanie stanów.
+
+## 2026-10-21: etap 2, partia 3
+
+- Skeleton (`ui:add`, globals.css i package.json bez zmian mimo komunikatu CLI), Spinner, Empty,
+  ErrorMessage, LoadingMessage na tokenach; CrudForm i DataTable na tokenach odstępów.
+- Znalezione i poprawione: obrys fokusu tabeli ucinany przez `overflow-hidden` panelu
+  `DataTable`; białe ramki przykładów w docs w ciemnym motywie (dotyczyło też partii 1–2).
+- Sprawdzone: test:storybook 85/85 × 2, lint, typecheck, check:tokens, test:coverage (222, 100%),
+  build, test:integration (4/4), Chromium 5 stron × 2 motywy × 2 szerokości.
+- Wynik: partia 3 zakończona, czeka na decyzje P-LD1–P-LD4, P-E1–P-E4 i „dalej”.
+- Decyzje po partii 3: P-LD1–P-LD4, P-E1–P-E3 przyjęte; P-E4 (b): domyślny tytuł
+  `ErrorMessage` „Couldn't load the data”, `errorTitle` w `DataTable` zapisany jako możliwy później.

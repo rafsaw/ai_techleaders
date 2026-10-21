@@ -1,0 +1,131 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { ErrorMessage } from "@devmentor/ui/backend/feedback/ErrorMessage";
+import { DoDont } from "../../../.storybook/blocks/stories";
+import * as ErrorStateStories from "./error-state.stories";
+
+<Meta of={ErrorStateStories} />
+
+# Error state
+
+`import { ErrorMessage } from "@devmentor/ui/backend/feedback/ErrorMessage"`
+
+`ErrorMessage` is the shared error renderer (AGENTS.md: the only error renderer): a destructive
+`Alert` with a title, the server's message and an optional **Retry**.
+
+## 1. What it is for
+
+An error state tells the user that a list or a form could not be loaded or saved, what the
+server said, and whether trying again can help.
+
+## 2. When to use
+
+- `DataTable` when the list fails to load (`error` + `onRetry`), e.g. `/backend/users`.
+- `CrudForm` when the server refuses a save without field errors (*Could not save*); the form keeps its values.
+- Any signed-in list or form whose request fails (no network, server error).
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| An error in one field | `FieldError` under the field | B3, WCAG 3.3.1 |
+| A provider status with its own next step (Stripe) | `Alert` with the spec's sentence and action | E02 Flow 3 |
+| A refusal inside a confirmation (slot booked meanwhile) | `Alert` inside the dialog | E02 Flow 4 |
+| A short-lived note | nothing in 1.0: no toast; an error that needs action is never a toast | Q5; prompt, How to choose |
+| A public page | public `Notice` (batch 4) | Q1 |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| Alert (`variant="destructive"`) | yes | `role="alert"`, `rounded-panel`, border, `p-panel-compact` |
+| Icon | yes | `OctagonX`, 16 px, `aria-hidden` |
+| Title | yes | what failed (`title`, default *Couldn't load the data*, P-E4) |
+| Message | yes | the server's or `apiCall`'s message, in the normal text colour |
+| **Retry** | when `onRetry` is passed | outline, small, top right |
+
+## 5. Variants
+
+| Variant | When |
+|---|---|
+| With **Retry** | loading again can help (lists) |
+| Without **Retry** | the user acts on the form instead (`CrudForm`) |
+
+<Canvas of={ErrorStateStories.Variants} />
+
+## 6. States
+
+One state: shown. It is not interactive itself; **Retry** has the states of a small outline
+Button. While a retry runs, the caller shows its loading state in place of the error.
+
+<Canvas of={ErrorStateStories.States} />
+
+## 7. Behaviour and accessibility
+
+- `role="alert"`: read at once when it appears (WAI-ARIA `alert`). Story *Playground* tests the text and Retry.
+- Focus does not move to it; **Retry** is in the normal tab order (story *Long content, narrow* tests Tab and Enter).
+- Colour is not the only signal: the title says it failed (WCAG 1.4.1).
+
+## 8. Content
+
+- Title: what failed, naming the thing (*Could not load users*, *Could not save*).
+- Message: from the server or `apiCall`; it already says what to do (*Could not reach the server. Check your connection and try again.*).
+- **Retry** has no object, against P-C3: the shared component does not know what it reloads (P-E3, proposal approved by Rafał).
+- The default title says what happened (*Couldn't load the data*), so `DataTable`, which passes no title, never shows *Something went wrong* twice next to `apiHandler`'s 500 message (P-E4, decision by Rafał; lesson 06 content rule: an error says what happened and what to do, and **Retry** says what to do).
+- Never blame the user; never show a code alone (*Error 502*).
+- Long text wraps.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | the message wraps; **Retry** stays top right |
+| 768 px, 1440 px | at the width of the list or form it replaces |
+
+<Canvas of={ErrorStateStories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `title` | `string` | `"Couldn't load the data"` | what failed; pass your own when you know the thing (*Could not load users*) |
+| `message` | `string` | — | the server's message |
+| `onRetry` | `() => void` | — | shows **Retry** when set |
+
+<Controls of={ErrorStateStories.Playground} />
+
+## 11. Code
+
+Minimal:
+
+```tsx
+<ErrorMessage title="Could not load users" message={message} onRetry={reload} />
+```
+
+From the product (`/backend/users`, through `DataTable`, which passes no title today):
+
+```tsx
+<DataTable
+  columns={columns}
+  rows={rows}
+  getRowId={(user) => user.id}
+  error={state.status === "error" ? state.message : null}
+  onRetry={retry}
+/>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<ErrorMessage title="Could not load users" message="Could not reach the server. Check your connection and try again." onRetry={() => {}} />}
+    doText="Name what failed and keep the server's next step."
+    dontExample={<ErrorMessage title="Error" message="Error 502" />}
+    dontText="A code says neither what happened nor what to do; the user cannot act."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: **Alert** (provider status, news), **FieldError** (one field), toast (not in 1.0).
+- Used in: `DataTable`, `CrudForm`, Form pattern (server error, no network).

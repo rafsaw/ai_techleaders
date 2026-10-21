@@ -12,10 +12,18 @@ html.dark .sbdocs.sbdocs-wrapper {
   background-color: var(--background);
 }
 html.dark .sbdocs-content,
-html.dark .sbdocs-content :is(h1, h2, h3, h4, p, li, th, td, strong, a) {
+html.dark .sbdocs-content :is(h1, h2, h3, h4, p, li, th, td, strong, a):not(.docs-story *) {
   color: var(--foreground);
 }
-html.dark .sbdocs-content :is(th, td) {
+/* Story canvases and the args table keep their own light surface otherwise: in dark mode
+   the stories' light text then sat on white. Story content keeps its own token colours. */
+html.dark .sbdocs-content .sbdocs-preview,
+html.dark .sbdocs-content .docblock-argstable-body :is(tr, td) {
+  background-color: var(--background);
+  border-color: var(--border);
+  color: var(--foreground);
+}
+html.dark .sbdocs-content :is(th, td):not(.docs-story *) {
   background-color: var(--background);
   border-color: var(--border);
 }
@@ -24,7 +32,7 @@ html.dark .sbdocs-content code {
   border-color: var(--border);
   color: var(--foreground);
 }
-html.dark .sbdocs-content :is(tr, thead) {
+html.dark .sbdocs-content :is(tr, thead):not(.docs-story *) {
   background-color: var(--background);
 }
 

@@ -18,7 +18,8 @@ describe("shared feedback", () => {
   it("announces an error and retries only when a callback exists", () => {
     const onRetry = vi.fn();
     const { rerender } = render(<ErrorMessage message="Database unavailable" />);
-    expect(screen.getByRole("alert")).toHaveTextContent("Something went wrong");
+    expect(screen.getByRole("alert")).toHaveTextContent("Couldn't load the data");
+    expect(screen.getByRole("alert").querySelector("svg")).toHaveAttribute("aria-hidden", "true");
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
     rerender(<ErrorMessage title="Could not load" message="Database unavailable" onRetry={onRetry} />);
     expect(screen.getByRole("alert")).toHaveTextContent("Could not load");
@@ -31,6 +32,7 @@ describe("shared feedback", () => {
     const { rerender } = render(<LoadingMessage />);
     expect(screen.getAllByRole("status")).toHaveLength(1);
     expect(screen.getByRole("status")).toHaveTextContent("Loading…");
+    expect(screen.getByRole("status")).toHaveClass("gap-in-group", "py-component", "text-body");
     rerender(<LoadingMessage label="Fetching users" />);
     expect(screen.getByRole("status")).toHaveTextContent("Fetching users");
   });

@@ -27,6 +27,18 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-21 — Storybook docs canvases stay white in a dark theme
+
+**Context:** Lesson 06 design system; dark-mode docs pages looked fine around the canvases, but story examples (light token text) sat on Storybook's white `.sbdocs-preview` and args table.
+**Lesson:** When theming Storybook docs with CSS, also set the background of `.sbdocs-preview` and `.docblock-argstable-body` rows, and scope text-colour overrides with `:not(.docs-story *)` so stories keep their own token colours. Check the story canvases, not only the prose, in screenshots.
+**Applies to:** `packages/ui/.storybook/preview.css`.
+
+### 2026-10-21 — overflow-hidden on a wrapper hides a child's focus outline
+
+**Context:** `DataTable` wraps the focusable table scroll container in a rounded `overflow-hidden` panel; the container's outline (offset outward) was clipped, so keyboard focus was invisible.
+**Lesson:** When a focusable child fills an `overflow-hidden` parent, draw the focus ring on the parent with `has-[<child>:focus-visible]:outline-*`, and verify the computed outline in a real browser.
+**Applies to:** `packages/ui/src/backend/tables/DataTable.tsx`, any clipped panel around a focusable region.
+
 ### 2026-10-21 — Storybook docs-only MDX pages run no decorators
 
 **Context:** `withThemeByClassName` toggled `.dark` for stories, but MDX pages without stories

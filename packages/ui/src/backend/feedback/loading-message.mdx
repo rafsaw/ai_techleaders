@@ -1,0 +1,114 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { LoadingMessage } from "@devmentor/ui/backend/feedback/LoadingMessage";
+import { Spinner } from "@devmentor/ui/components/spinner";
+import { DoDont } from "../../../.storybook/blocks/stories";
+import * as LoadingMessageStories from "./loading-message.stories";
+
+<Meta of={LoadingMessageStories} />
+
+# Loading message
+
+`import { LoadingMessage } from "@devmentor/ui/backend/feedback/LoadingMessage"`
+
+The shared loading renderer (AGENTS.md: the only loading renderer): a spinner and a visible
+label in one status region.
+
+## 1. What it is for
+
+A loading message tells the user that a list or panel is on its way when its shape is not
+known yet, in words they can read.
+
+## 2. When to use
+
+- `DataTable` while `rows` is `undefined` or `isLoading` (`/backend/users`).
+- A signed-in panel whose layout depends on the data (P-LD1, proposal approved by Rafał).
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| A list of known shape (slots) | `Skeleton` rows | P-LD1, proposal approved by Rafał |
+| Work started by a button | `Spinner` in the button | P-C4 |
+| A whole page navigation | nothing: the browser shows it | — |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| Region | yes | `role="status"`, left-aligned, `py-component` |
+| Spinner | yes | 16 px, `aria-hidden` |
+| Label | yes | `text-body`, `muted-foreground`; default *Loading…* |
+
+## 5. Variants
+
+None. Only the label changes; name what loads when you can.
+
+<Canvas of={LoadingMessageStories.Variants} />
+
+## 6. States
+
+One state: loading. It is replaced by the data, the empty state or the error state. The spinner
+stands still with reduced motion (Q4). Hover, focus, pressed, disabled, selected and error do
+not apply.
+
+<Canvas of={LoadingMessageStories.States} />
+
+## 7. Behaviour and accessibility
+
+- One `role="status"` region; the spinner is hidden, so the label is read once (story *Playground* tests it).
+- Not focusable.
+- Left-aligned like the content it replaces (P-LD4, proposal approved by Rafał; prompt, What to avoid: "everything centred").
+
+## 8. Content
+
+- Label: *Loading* plus what loads, with an ellipsis (*Loading users…*).
+- A translated label may be 30 % longer; it wraps next to the spinner (P-C5).
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | the label wraps next to the spinner |
+| 768 px, 1440 px | one line where the list will be |
+
+<Canvas of={LoadingMessageStories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `label` | `string` | `"Loading…"` | what loads |
+
+<Controls of={LoadingMessageStories.Playground} />
+
+## 11. Code
+
+Minimal:
+
+```tsx
+<LoadingMessage label="Loading users…" />
+```
+
+From the product: `DataTable` renders it for you while `isLoading` is true or `rows` is
+`undefined`:
+
+```tsx
+<DataTable columns={columns} rows={undefined} getRowId={(user) => user.id} isLoading />
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<LoadingMessage label="Loading users…" />}
+    doText="Spinner and a label that names what loads."
+    dontExample={<Spinner />}
+    dontText="A spinner alone in an empty panel does not say what is coming."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: **Skeleton** (known shape), **Spinner** (inside a control).
+- Used in: `DataTable`.

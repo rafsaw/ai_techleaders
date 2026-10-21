@@ -9,14 +9,13 @@ czekamy na „dalej” od PO. W nowej sesji najpierw przeczytaj ten plik.
 |---|---|---|
 | 0. Inwentaryzacja i plan | **zakończony**, wszystkie pytania rozstrzygnięte | 2026-10-20 – 2026-10-21 |
 | 1. Fundamenty | **zakończony**, propozycje P-* rozstrzygnięte i wpisane | 2026-10-21 |
-| 2. Komponenty bazowe | **w toku**: partie 1–2 z 4 zrobione (partia 1 w 766a227), decyzje po partii 2 wpisane; czeka na „dalej” do partii 3 | 2026-10-21 |
+| 2. Komponenty bazowe | **w toku**: partie 1–3 z 4 zrobione (partie 1–2 w 766a227, d2073e8); decyzje po partii 3 wpisane; czeka na „dalej” do partii 4 | 2026-10-21 |
 | 3. Komponenty produktu, wzorce, ekrany | nie zaczęty | — |
 | 4. Strony, które uczą | nie zaczęty | — |
 | 5. Sprawdzenie i raport | nie zaczęty | — |
 
-**Następny krok:** „dalej” od PO, potem partia 3: Skeleton (dodać), Spinner, Empty,
-ErrorState (`backend/feedback`), LoadingMessage, plus `gap-2` → `gap-in-group` w CrudForm. Przed
-testem agentem zostają rzeczy z sekcji „Do zrobienia poza design systemem”.
+**Następny krok:** „dalej” od PO do partii 4 (zestaw publiczny F3). Przed testem agentem
+zostają rzeczy z sekcji „Do zrobienia poza design systemem”.
 
 ## Przeczytane materiały
 
@@ -678,6 +677,87 @@ Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 2)”.
   (*Stripe is checking your details*, *Starting Stripe setup*, *Locked*) to `secondary`.
 - **Tabela: kontener zawsze w kolejności Tab** (`tabIndex={0}`), także gdy się nie przewija.
   Alternatywa: ustawiać `tabIndex` tylko przy przepełnieniu (wymaga JS i `ResizeObserver`).
+
+## Etap 2, partia 3: co zrobione (2026-10-21)
+
+Komponenty: Skeleton (dodany `ui:add`), Spinner, Empty + `EmptyState`, Error state
+(`ErrorMessage`), Loading message (`LoadingMessage`).
+
+- **`ui:add skeleton`:** CLI pisze „Updated globals.css”, ale plik i wszystkie `package.json`
+  są bez zmian (sprawdzone sumami md5 przed i po). Dodał tylko `skeleton.tsx`.
+- **Skeleton:** `rounded-control`, `bg-muted`, `animate-pulse`; `aria-hidden` domyślnie (P-LD3).
+- **Spinner:** `cn` z `lib/utils`, `shrink-0`; API bez zmian (sam: `role="status"` „Loading”).
+- **Empty:** do lewej (prompt, What to avoid: „wszystko wyśrodkowane”; R01.1), bez własnej ramki
+  (P-E1), tytuł `text-row-title` (P-E2), opis `text-body` `muted-foreground`, odstępy z tokenów.
+  API bez zmian (Z-1).
+- **ErrorMessage:** ikona `OctagonX` z `aria-hidden` (jak w Alert); reszta bez zmian.
+- **LoadingMessage:** do lewej, `gap-in-group py-component text-body` (P-LD4).
+- **CrudForm:** `gap-4` → `gap-between-groups`, `gap-2` → `gap-in-group` (te same wartości).
+- **DataTable:** `rounded-panel border-border`, odstępy z tokenów, paginacja `text-meta
+  tabular-nums`; **panel rysuje obrys fokusu**, gdy kontener tabeli ma fokus z klawiatury:
+  `overflow-hidden` panelu ucinał obrys z partii 2, więc w `/backend` fokus tabeli był
+  niewidoczny (sprawdzone w Chromium: obrys 2 px solid).
+- **Storybook, ciemny motyw docs (dotyczy też partii 1–2):** ramki z przykładami i tabela
+  kontrolek miały białe tło Storybooka, a treść jasny tekst z tokenów, więc przykłady były
+  nieczytelne. Poprawka w `.storybook/preview.css`: tło `--background` dla `.sbdocs-preview`
+  i tabeli argumentów; nadpisania koloru tekstu docs nie dotykają treści stories.
+- **Stories (20 nowych, razem 85):** Skeleton 4, Spinner 4, Empty state 4, Error state 4,
+  Loading message 4. Tytuły w „Primitives/Signed-in/”.
+- **Strony dokumentacji:** `skeleton.mdx`, `spinner.mdx`, `empty.mdx`,
+  `backend/feedback/error-state.mdx`, `backend/feedback/loading-message.mdx`, każda z 13 sekcjami;
+  `table.mdx` odsyła do tych stron; Foundations/Motion: wiersz o pętlach (spin, pulse).
+- **Testy jednostkowe:** `components/loading-and-empty.test.tsx`, uzupełnione `feedback.test.tsx`.
+- **Wyjątki `dark:`:** brak.
+
+## Etap 2, partia 3: co sprawdzone
+
+- test:storybook w obu motywach: 85/85 i 85/85 (play functions, a11y `error`).
+- lint, typecheck, check:tokens (0 w ui), test:coverage (222 testy, 100%), build Next.js,
+  test:integration (4/4).
+- Zbudowany Storybook w Chromium: 5 nowych stron × 2 motywy × 320/1440 px: bez poziomego
+  przewijania, 0 surowych tabel, 0 błędów konsoli; po poprawce ciemnego motywu ponownie Separator
+  i Empty state.
+- Obrys fokusu tabeli w panelu `DataTable` (wstrzyknięty do zbudowanego Storybooka, 320 px, ciemny).
+
+## Etap 2, partia 3: czego nie sprawdzono
+
+- `/backend/users` w przeglądarce po zmianie `DataTable`, `LoadingMessage`, `EmptyState` (tylko
+  testy integracyjne). `DataTable` nie ma jeszcze story (wzorce w etapie 3).
+- Strony partii 1–2 w ciemnym motywie po poprawce `preview.css` obejrzane tylko na przykładzie
+  Separator; poprawka jest wspólna dla wszystkich stron.
+- Czytnik ekranu na żywo; a11y stron MDX (etap 5).
+
+## Etap 2, partia 3: do decyzji (oznaczone w docs jako proposal)
+
+Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 3)”.
+
+- **P-LD1** Kiedy co: Skeleton przy pierwszym ładowaniu listy o znanym kształcie (`/mentor/slots`);
+  `LoadingMessage`, gdy kształt nieznany i w `/backend` (`DataTable`); Spinner tylko w kontrolce,
+  która uruchomiła pracę.
+- **P-LD2** Pętle Tailwinda poza trzema czasami Q4: `animate-pulse` 2 s, `animate-spin` 1 s;
+  przy reduced motion stoją.
+- **P-LD3** Skeleton ma domyślnie `aria-hidden`; ładowanie ogłasza region `role="status"` +
+  `aria-busy` z ukrytą etykietą.
+- **P-LD4** `LoadingMessage` do lewej (było wyśrodkowane, `py-10`).
+- **P-E1** Pusty stan bez własnej ramki (shadcn: przerywana ramka, środek).
+- **P-E2** Tytuł pustego stanu `text-row-title`.
+- **P-E3** Przycisk **Retry** bez dopełnienia (wbrew P-C3), bo wspólny komponent nie wie, co
+  ładuje. Alternatywa: prop z etykietą.
+- **P-E4** `DataTable` nie przekazuje tytułu błędu, więc przy 500 widać „Something went wrong”
+  dwa razy (domyślny tytuł i komunikat `apiHandler`). Opcje: (a) nowy prop `errorTitle` w
+  `DataTable` (zmiana API, poza planem bez zgody), (b) inny domyślny tytuł w `ErrorMessage`
+  (np. „Could not load”), (c) zostawić. Nie zmieniłem nic.
+
+## Decyzje PO z 2026-10-21 (po partii 3)
+
+- **P-LD1, P-LD2, P-LD3, P-LD4, P-E1, P-E2, P-E3:** przyjęte tak, jak zaproponowane; w docs
+  oznaczone „proposal approved by Rafał”.
+- **P-E4: opcja (b).** Domyślny tytuł `ErrorMessage` to „Couldn't load the data” (był
+  „Something went wrong”), API bez zmian. Źródło: zasada treści z lekcji 06 (komunikat błędu
+  mówi, co się stało i co zrobić; **Retry** mówi, co zrobić). `CrudForm` dalej podaje swój tytuł
+  „Could not save”.
+- **Możliwe później (opcja a):** prop `errorTitle` w `DataTable`, żeby lista mówiła, czego nie
+  wczytała („Could not load users”). Zmiana API, więc tylko za zgodą PO.
 
 ## Opis ekranu do testu agentem (etap 5)
 

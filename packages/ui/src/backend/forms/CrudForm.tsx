@@ -116,7 +116,7 @@ export function CrudForm<TSchema extends z.ZodType>({
   }
 
   return (
-    <form noValidate onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="flex flex-col gap-4">
+    <form noValidate onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="flex flex-col gap-between-groups">
       {formError && <ErrorMessage title="Could not save" message={formError} />}
       <FieldGroup>
         {fields.map((field) => {
@@ -142,7 +142,7 @@ export function CrudForm<TSchema extends z.ZodType>({
           );
         })}
       </FieldGroup>
-      <div className="flex justify-end gap-2">
+      <div className="flex justify-end gap-in-group">
         {onCancel && (
           <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
             Cancel
