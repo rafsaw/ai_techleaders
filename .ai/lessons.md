@@ -259,3 +259,21 @@ after upgrading Next.
 **Context:** The prompt asks for state matrices that show hover and focus without a pointer, using the component's own declarations.
 **Lesson:** `.storybook/preview-states.css` redefines `@custom-variant hover|active|focus-visible` to also match `[data-preview-state~=…]`. The Storybook build compiles it; the app's CSS does not import it, so production keeps the plain pseudo-classes. Set `data-preview-state` on the component in a story.
 **Applies to:** state-matrix stories in `packages/ui/src/components/*.stories.tsx`.
+
+### 2026-10-21 — `cva` variant functions do not resolve class conflicts
+
+**Context:** A link styled with `buttonVariants({ variant: "outline" })` lost its border in the dark theme. `cva` concatenated the base `border-transparent` and the variant's `border-input`; the later rule in the CSS won. `<Button>` was fine because it passed the string through `cn`.
+**Lesson:** Exported `*Variants` helpers in `packages/ui/src/components/` wrap the `cva` function in `cn(...)` (see `button.tsx`, `badge.tsx`). Test them with whole class names (`value.split(" ")`), because substrings such as `data-disabled:border-transparent` give false failures.
+**Applies to:** every exported `cva` helper used outside its component.
+
+### 2026-10-21 — `shadcn add` prompts before overwriting an edited component
+
+**Context:** `npm run ui:add -- alert-dialog` asked "button.tsx already exists. Would you like to overwrite?" and a non-interactive run hung.
+**Lesson:** Run it as `(printf 'n\n'; sleep 60) | npm run ui:add -- <name>` so restyled primitives are kept, then diff `package.json` (root, app, ui) and `globals.css`, and switch the new file's `import { cn } from "cn"` to `@devmentor/ui/lib/utils`.
+**Applies to:** `npm run ui:add` after stage 2 of the design system.
+
+### 2026-10-21 — `pkill -f <pattern>` can kill the shell that runs it
+
+**Context:** `pkill -f "http.server 6007"; npm run …` in one Bash call exited with 144 before the rest ran: the shell's own command line contained the pattern.
+**Lesson:** Stop helper servers in a separate command, or match on something only the target has (`pkill -f "^python3 -m http.server"`), and don't chain the real work after it.
+**Applies to:** local preview servers started from agent shells.

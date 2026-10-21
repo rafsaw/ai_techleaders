@@ -4,7 +4,7 @@ import { cn } from "@devmentor/ui/lib/utils"
 
 // Shape, density and states: Q3 (heights, radius), B1 (padding), B2 (hover, press,
 // disabled colours), B3 (focus), C7 (destructive hover). Docs: button.mdx.
-const buttonVariants = cva(
+const buttonVariantClasses = cva(
   "group/button inline-flex shrink-0 items-center justify-center gap-in-group rounded-button border border-transparent bg-clip-padding text-label whitespace-nowrap transition-colors duration-control outline-none select-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring aria-invalid:border-destructive data-disabled:cursor-not-allowed data-disabled:border-transparent data-disabled:bg-disabled data-disabled:text-disabled-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
@@ -39,16 +39,22 @@ const buttonVariants = cva(
   }
 )
 
+// cva only concatenates; cn resolves conflicts such as border-transparent vs the outline
+// variant's border-input. Links styled as buttons use this function directly.
+function buttonVariants(props?: Parameters<typeof buttonVariantClasses>[0]) {
+  return cn(buttonVariantClasses(props))
+}
+
 function Button({
   className,
   variant = "default",
   size = "default",
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonPrimitive.Props & VariantProps<typeof buttonVariantClasses>) {
   return (
     <ButtonPrimitive
       data-slot="button"
-      className={cn(buttonVariants({ variant, size, className }))}
+      className={buttonVariants({ variant, size, className })}
       {...props}
     />
   )

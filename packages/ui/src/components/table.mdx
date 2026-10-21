@@ -1,0 +1,144 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { Card, CardContent } from "@devmentor/ui/components/card";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@devmentor/ui/components/table";
+import { DoDont } from "../../.storybook/blocks/stories";
+import * as TableStories from "./table.stories";
+
+<Meta of={TableStories} />
+
+# Table
+
+```tsx
+import { Table, TableCaption, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell } from "@devmentor/ui/components/table"
+```
+
+shadcn `base-nova` table, restyled with DevMentor tokens. In `/backend` it is used through
+`DataTable` (`@devmentor/ui/backend/tables/DataTable`), which adds loading, error, empty states
+and pagination.
+
+## 1. What it is for
+
+A table lets the user compare the same few facts across many records, column by column.
+
+## 2. When to use
+
+- Records with the same fields that people compare or scan by column: the users list on `/backend/users` (reference example, AGENTS.md; `operator` only, E01 AD4).
+- In `/backend`, always through `DataTable`, so loading, empty and error states are the shared ones (AGENTS.md, "Reusable API & UI layer").
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| A list a mentor or mentee scans for one item (slots, mentors, sessions) | a dense list: title and one metadata line, rows separated by lines | R01.1, R01.3, C1 |
+| Two or three facts about one thing | a description list or a card | — |
+| Layout | CSS grid or flex; tables are for data only (WCAG 1.3.1) | WCAG 1.3.1 |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| Container | yes (automatic) | scrolls sideways when needed; focusable for keyboard scrolling |
+| `TableCaption` | yes | names the table (`text-meta`), read as its accessible name |
+| `TableHeader` + `TableHead` | yes | `text-label`; header cells are `th` with column scope |
+| `TableBody` + `TableRow` + `TableCell` | yes | `px-in-group py-list-row-y` (8 / 12 px), lines between rows |
+| `TableFooter` | optional | totals; separated by a line, no tinted background |
+
+<Canvas of={TableStories.Anatomy} />
+
+## 5. Variants
+
+None. Density comes from the list-row tokens (K2: dense only on lists). Numbers and dates in
+cells use `tabular-nums` (Q4); right-align numbers and row actions.
+
+## 6. States
+
+<Canvas of={TableStories.States} />
+
+| State | Look | Source |
+|---|---|---|
+| Row: default | line under each row (`border`) | R01.3, Z4 |
+| Row: hover | background `accent` | tokeny.md (`accent`: hover of a row) |
+| Row: selected | `data-state="selected"`, background `muted`; not used in E01/E02 | shadcn API (Z-1) |
+| Container: focus | 2 px `ring` outline when focused with the keyboard | B3 |
+| Loading, empty, error | in `DataTable` and `backend/feedback` (batch 3) | AGENTS.md |
+| Disabled, pressed | not applicable | — |
+
+## 7. Behaviour and accessibility
+
+- Semantic `table`, `thead`, `th`, `td`: screen readers announce the column header with each cell (WCAG 1.3.1).
+- The caption is the table's accessible name (story *Playground* tests it).
+- When the table is wider than the screen, its container scrolls and is focusable (`tabIndex={0}`), so keyboard users can scroll it with the arrow keys (WCAG 2.1.1, axe `scrollable-region-focusable`). It stays in the tab order even when it does not scroll (proposal approved by Rafał; the alternative, setting `tabIndex` only on overflow, needs JavaScript). Story *Narrow* tests the scroll, the focus and the outline.
+- Row actions are real buttons with a name that includes the row (*Edit Ada Nowak*, WCAG 2.4.6).
+- Rows are not clickable as a whole.
+
+## 8. Content
+
+- Header: short nouns (*Name*, *Email*, *Created*).
+- Dates as `YYYY-MM-DD` in `/backend` (operators, not end users); end-user dates follow the Content page (stage 4).
+- Long text in a cell does not wrap (`whitespace-nowrap`); the container scrolls instead.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | columns keep their width; the table scrolls sideways in its container, the page does not |
+| 768 px | usually fits |
+| 1440 px | within `max-w-content` |
+
+<Canvas of={TableStories.Narrow} />
+
+## 10. API
+
+| Component | Props | Description |
+|---|---|---|
+| `Table` | `<table>` props | wraps itself in the scroll container |
+| `TableCaption` | `<caption>` props | accessible name |
+| `TableHeader`, `TableBody`, `TableFooter` | `<thead>`, `<tbody>`, `<tfoot>` props | sections |
+| `TableRow` | `<tr>` props, `data-state="selected"` | row |
+| `TableHead`, `TableCell` | `<th>`, `<td>` props | cells; `className` for alignment (`text-right`) |
+
+<Controls of={TableStories.Playground} />
+
+## 11. Code
+
+```tsx
+<Table>
+  <TableCaption>Users</TableCaption>
+  <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Email</TableHead></TableRow></TableHeader>
+  <TableBody>
+    {users.map((u) => (
+      <TableRow key={u.id}><TableCell>{u.name}</TableCell><TableCell>{u.email}</TableCell></TableRow>
+    ))}
+  </TableBody>
+</Table>
+```
+
+From the product (`/backend/users`), through `DataTable`:
+
+```tsx
+<DataTable
+  columns={columns}
+  rows={state.status === "ready" ? state.users : undefined}
+  getRowId={(user) => user.id}
+  isLoading={state.status === "loading"}
+  error={state.status === "error" ? state.message : null}
+  onRetry={retry}
+/>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<ul className="w-full divide-y divide-border"><li className="flex flex-col gap-list-row-gap py-list-row-y"><span className="text-row-title">Wed, 4 Nov, 18:30</span><span className="text-meta text-muted-foreground">Open · Reserves 50 minutes</span></li></ul>}
+    doText="Slots are a dense list: title and one line of metadata (R01.1)."
+    dontExample={<Table><TableCaption>Slots</TableCaption><TableHeader><TableRow><TableHead>Start</TableHead><TableHead>State</TableHead></TableRow></TableHeader><TableBody><TableRow><TableCell>Wed, 4 Nov, 18:30</TableCell><TableCell>Open</TableCell></TableRow></TableBody></Table>}
+    dontText="A table for a list people scan for one item adds headers nobody compares."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: dense list rows (`SlotList`, stage 3), `DataTable` (the `/backend` wrapper).
+- Used in: `/backend/users` (`DataTable`).

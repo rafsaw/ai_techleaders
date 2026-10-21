@@ -28,6 +28,8 @@ export const cn = createCn({
         "button-x-md",
         "button-x-sm",
         "button-x-xs",
+        "badge",
+        "badge-x",
       ],
       radius: ["control", "button", "panel", "pill"],
       shadow: ["overlay"],
@@ -35,6 +37,7 @@ export const cn = createCn({
     },
     classGroups: {
       duration: [{ duration: ["control", "menu", "dialog"] }],
+      "grid-cols": [{ "grid-cols": ["icon-text", "text-action"] }],
     },
   },
 })

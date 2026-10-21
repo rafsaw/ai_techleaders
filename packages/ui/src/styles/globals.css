@@ -84,6 +84,20 @@
   --spacing-button-x-md: 12px;
   --spacing-button-x-sm: 10px;
   --spacing-button-x-xs: 8px;
+
+  /* Component tokens: badge (B5, proposal approved by Rafał 2026-10-21). Utilities: h-badge, px-badge-x */
+  --spacing-badge: 24px; /* badge height; text-label inside (B5) */
+  --spacing-badge-x: 8px; /* badge horizontal padding (P-T4, proposal approved by Rafał 2026-10-21) */
+}
+
+/* Named grid layouts, so components need no arbitrary grid values (prompt rule 3). */
+@utility grid-cols-icon-text {
+  /* icon column, then text: alert with an icon */
+  grid-template-columns: auto minmax(0, 1fr);
+}
+@utility grid-cols-text-action {
+  /* text, then an action at the end: card header with CardAction */
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 /* Type role for text typed into a control (B1, proposal approved by Rafał 2026-10-21):
@@ -115,14 +129,17 @@
 }
 
 @utility duration-control {
+  --tw-duration: var(--duration-control); /* also read by tw-animate-css enter/exit animations */
   transition-duration: var(--duration-control);
   animation-duration: var(--duration-control);
 }
 @utility duration-menu {
+  --tw-duration: var(--duration-menu);
   transition-duration: var(--duration-menu);
   animation-duration: var(--duration-menu);
 }
 @utility duration-dialog {
+  --tw-duration: var(--duration-dialog);
   transition-duration: var(--duration-dialog);
   animation-duration: var(--duration-dialog);
 }
@@ -152,6 +169,7 @@
   --color-success: var(--success);
   --color-destructive: var(--destructive);
   --color-disabled: var(--disabled);
+  --color-scrim: var(--scrim);
   --color-disabled-foreground: var(--disabled-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
@@ -231,6 +249,7 @@
   --ring: var(--warm-500); /* focus outline (T5, WCAG 2.4.7) */
   --disabled: var(--warm-100); /* surface of a disabled action or field; no opacity (B2, proposal approved by Rafał 2026-10-21) */
   --disabled-foreground: var(--warm-500); /* text of a disabled action or field: 4.73:1 on --disabled (B2) */
+  --scrim: color-mix(in oklch, var(--warm-950) 40%, transparent); /* page dimmer behind a dialog; not a surface (Z5). Value: P-T4, proposal approved by Rafał 2026-10-21 */
   --chart-1: oklch(0.87 0 0); /* unchanged; chart colours are a gap */
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -272,6 +291,7 @@
   --ring: var(--warm-450); /* T5 */
   --disabled: var(--warm-800); /* B2 */
   --disabled-foreground: var(--warm-400); /* B2: 5.85:1 on --disabled */
+  --scrim: color-mix(in oklch, var(--warm-950) 70%, transparent); /* P-T4, proposal approved by Rafał */
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);

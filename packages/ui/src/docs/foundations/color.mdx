@@ -48,6 +48,7 @@ Swatches are painted with the token itself; the values are read from the loaded 
       { token: "--input", purpose: "field outlines", avoid: "separators", source: "T5" },
       { token: "--ring", purpose: "focus outline", avoid: "decoration", source: "T5, WCAG 2.4.7" },
       { token: "--disabled", purpose: "surface of a disabled action or field", avoid: "opacity on the component", source: "B2, proposal approved by Rafał" },
+      { token: "--scrim", purpose: "dims the page behind a dialog (40 % light, 70 % dark of warm-950)", avoid: "panels, surfaces, blur (Z5)", source: "P-T4 (value), proposal approved by Rafał; needed by the alert dialog" },
       { token: "--disabled-foreground", purpose: "text of a disabled action or field", avoid: "placeholders, metadata", source: "B2, proposal approved by Rafał" },
     ]}
   />
@@ -82,8 +83,10 @@ elements such as outlines and focus rings (WCAG 1.4.11).
       { fg: "--destructive", bg: "--background", kind: "text", tint: { light: 0.1, dark: 0.1 }, note: "destructive button fill (10 % in both themes)" },
       { fg: "--destructive", bg: "--card", kind: "text", tint: { light: 0.1, dark: 0.1 } },
       { fg: "--disabled-foreground", bg: "--disabled", kind: "text", note: "disabled action or field (B2); WCAG exempts inactive controls, we keep 4.5 anyway" },
-      { fg: "--success", bg: "--card", kind: "text", tint: { light: 0.1, dark: 0.2 } },
-      { fg: "--warning", bg: "--card", kind: "text", tint: { light: 0.1, dark: 0.2 } },
+      { fg: "--success", bg: "--background", kind: "text", tint: { light: 0.1, dark: 0.1 }, note: "success badge (10 % in both themes, B5)" },
+      { fg: "--success", bg: "--card", kind: "text", tint: { light: 0.1, dark: 0.1 } },
+      { fg: "--warning", bg: "--background", kind: "text", tint: { light: 0.1, dark: 0.1 }, note: "warning badge (10 % in both themes, B5)" },
+      { fg: "--warning", bg: "--card", kind: "text", tint: { light: 0.1, dark: 0.1 } },
       { fg: "--primary", bg: "--background", kind: "ui", note: "button shape against the page" },
       { fg: "--input", bg: "--background", kind: "ui" },
       { fg: "--input", bg: "--card", kind: "ui" },

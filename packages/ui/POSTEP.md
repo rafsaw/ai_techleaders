@@ -9,14 +9,14 @@ czekamy na „dalej” od PO. W nowej sesji najpierw przeczytaj ten plik.
 |---|---|---|
 | 0. Inwentaryzacja i plan | **zakończony**, wszystkie pytania rozstrzygnięte | 2026-10-20 – 2026-10-21 |
 | 1. Fundamenty | **zakończony**, propozycje P-* rozstrzygnięte i wpisane | 2026-10-21 |
-| 2. Komponenty bazowe | **w toku**: partia 1 z 4 zrobiona, decyzje P-C1–P-C8 i P-F1 wpisane; czeka na „dalej” do partii 2 | 2026-10-21 |
+| 2. Komponenty bazowe | **w toku**: partie 1–2 z 4 zrobione (partia 1 w 766a227), decyzje po partii 2 wpisane; czeka na „dalej” do partii 3 | 2026-10-21 |
 | 3. Komponenty produktu, wzorce, ekrany | nie zaczęty | — |
 | 4. Strony, które uczą | nie zaczęty | — |
 | 5. Sprawdzenie i raport | nie zaczęty | — |
 
-**Następny krok:** „dalej” od PO, potem partia 2: Card, Badge, Alert, AlertDialog (dodać),
-Separator, Table. Przed testem agentem (etap 5) zostają rzeczy z sekcji „Do zrobienia poza
-design systemem”.
+**Następny krok:** „dalej” od PO, potem partia 3: Skeleton (dodać), Spinner, Empty,
+ErrorState (`backend/feedback`), LoadingMessage, plus `gap-2` → `gap-in-group` w CrudForm. Przed
+testem agentem zostają rzeczy z sekcji „Do zrobienia poza design systemem”.
 
 ## Przeczytane materiały
 
@@ -167,6 +167,20 @@ Reguły bez źródła w materiałach: w dokumentacji „proposal approved by Raf
   `required`, żeby czytnik ogłosił „wymagane”. Story Field/Profile form to testuje.
 - **Link jako Button:** AGENTS.md i kodu aplikacji nie zmieniamy (zasada 11). Dokumentacja
   Button zostaje przy `buttonVariants()` na `<Link>`. PO zrobi poprawkę osobnym commitem.
+
+## Decyzje PO z 2026-10-21 (po partii 2)
+
+Wszystkie jako „proposal approved by Rafał” (w dokumentacji i tokenach).
+
+- **P-C9:** tytuł karty `sm` w roli `text-row-title` (16/600).
+- **P-C10:** plakietka 1–3 słowa, do ok. 30 znaków; dłuższy stan w tekście.
+- **P-C11:** AlertDialog `size="sm"` tylko dla krótkiego pytania w jednej linii.
+- **P-T4:** `--scrim` 40 % (jasny) / 70 % (ciemny) z warm-950; `--spacing-badge-x` 8 px.
+- **Mapowanie stanów E02 na warianty:** Badge *Saved*, *Confirmed* → `success`; *Incomplete* →
+  `warning`; *Blocked* → `destructive`; stany oczekiwania (*Stripe is checking your details*,
+  *Starting Stripe setup*, *Locked*) → neutralny `secondary`. Alert: `ready` → `success`,
+  `pending` → `default`, `incomplete` → `warning`, `blocked` i `check_failed` → `destructive`.
+- **Tabela:** kontener zawsze w kolejności Tab (`tabIndex={0}`), także bez przewijania.
 
 ## Do zrobienia poza design systemem (przed testem agentem, etap 5)
 
@@ -574,6 +588,96 @@ Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 1)”.
   z 2026-10-14), więc czytnik ogłasza przycisk zamiast linku (WCAG 4.1.2). Dokumentacja Button
   zaleca `className={buttonVariants(...)}` na `<Link>`. Do decyzji: zmienić regułę w AGENTS.md
   (to zmiana poza design systemem, więc jej nie robię) czy zostawić obie drogi.
+
+## Etap 2, partia 2: co zrobione (2026-10-21)
+
+Komponenty: Card, Badge, Alert, AlertDialog (dodany `ui:add`), Separator, Table.
+
+- **`ui:add alert-dialog`:** CLI zapytał o nadpisanie `button.tsx`; odpowiedź „nie”, plik
+  nietknięty. Dodał tylko `alert-dialog.tsx`; `package.json` (root, app, ui) i `globals.css`
+  bez zmian (sprawdzone diffem).
+- **Tokeny:** `--spacing-badge` 24 px (B5), `--spacing-badge-x` 8 px, `--scrim` (40 % jasny,
+  70 % ciemny z warm-950), utility `grid-cols-icon-text` i `grid-cols-text-action` (zamiast
+  wartości arbitralnych), `--tw-duration` w `duration-*` (animacje tw-animate-css biorą czasy
+  z tokenów ruchu).
+- **Kontrast statusów `/10` w obu motywach** (policzony przed zapisem): success i warning
+  4,70–4,87 : 1 jasny, 7,17–8,46 : 1 ciemny; destructive 4,91–5,09 / 5,45–6,18. Bez `dark:`.
+- **Card (B4):** `border-border` zamiast `ring`, `rounded-panel`, `p-panel` / `p-panel-compact`,
+  tytuł `text-section-title` (`text-row-title` w `sm`), stopka z linią bez tła. API bez zmian.
+- **Badge (B5):** `rounded-pill`, `h-badge`, `text-label`; nowe warianty `success`, `warning`.
+- **Alert (B4, B5):** `rounded-panel`, `p-panel-compact`, ramka bez cienia; wariant koloruje ikonę
+  i tytuł, opis w kolorze tekstu; nowe warianty `success`, `warning`; `data-variant`.
+- **AlertDialog:** `bg-scrim` bez rozmycia (Z5), okno z ramką i `shadow-overlay` (P-S1),
+  `rounded-panel`, `p-panel`, tylko zanikanie w `duration-dialog` (Q4), stopka Cancel → akcja
+  (P-C2), przy 320 px margines `inset-x-page-gutter`; nagłówek zawsze do lewej.
+- **Table:** `text-body`, nagłówki `text-label`, komórki `px-in-group py-list-row-y`, hover `accent`,
+  stopka z linią bez tła; **kontener z `tabIndex={0}` i obrysem fokusu**: test a11y przy 320 px
+  znalazł przewijany obszar bez dostępu z klawiatury (WCAG 2.1.1).
+- **Separator:** komentarz i import `cn`; wygląd bez zmian.
+- **`buttonVariants` i `badgeVariants` łączą klasy przez `cn`:** `cva` tylko skleja, więc link
+  z `buttonVariants({ variant: "outline" })` miał `border-transparent` i `border-input` naraz
+  i w ciemnym motywie tracił obramowanie. Nazwy i sygnatury bez zmian (Z-1).
+- **`check:tokens`: 0 pozycji w `packages/ui`** (zostały tylko informacyjne w aplikacji, Z-5).
+- **Stories (31 nowych, razem 65):** Card 5, Badge 5, Alert 6, Alert dialog 8, Separator 4,
+  Table 4. Dialogi w docs renderują się w osobnych ramkach (`docs.story.inline: false`).
+- **Strony dokumentacji:** `card.mdx`, `badge.mdx`, `alert.mdx`, `alert-dialog.mdx`,
+  `separator.mdx`, `table.mdx`, każda z 13 sekcjami.
+- **Foundations:** Color (rola `scrim`, pary `/10` dla success i warning w obu motywach),
+  Shape and depth (tokeny plakietki, scrim, nazwane siatki), Motion (dialog: tylko zanikanie).
+- **Testy jednostkowe:** `components/alert-dialog.test.tsx`, uzupełnione
+  `form-controls.test.tsx` i `lib/utils.test.ts`.
+- **Wyjątki `dark:`:** brak.
+
+### Warianty statusu (B5): źródła
+
+| Wariant | Ekran | Plik specyfikacji |
+|---|---|---|
+| Badge `success` (*Saved*, *Confirmed*) | `/mentor` | `2026-10-18-mentor-setup.md`, Flow 1 (tabela pozycji), Flow 3 krok 6 `ready` |
+| Badge `warning` (*Incomplete*) | `/mentor` | `2026-10-18-mentor-setup.md`, Flow 1, Flow 3 krok 6 `incomplete` |
+| Alert `success` („Stripe confirmed your account.”) | `/mentor?stripe=returned` | `2026-10-18-mentor-setup.md`, Flow 3 krok 6 `ready`, UI/UX `/mentor` |
+| Alert `warning` („Stripe onboarding isn't finished.”) | `/mentor?stripe=returned` | `2026-10-18-mentor-setup.md`, Flow 3 krok 6 `incomplete` |
+
+Mapowanie stanu na wariant: specyfikacja nie przypisuje kolorów; mapowanie to proposal approved
+by Rafał (2026-10-21).
+
+## Etap 2, partia 2: co sprawdzone
+
+- `test:storybook` w obu motywach: 65/65 i 65/65 (play functions i a11y `error`). Testy dialogu
+  (fokus na Cancel, Tab w pętli, Escape, powrót fokusu, scrim nie zamyka) przeszły 5 razy z rzędu
+  po dodaniu `waitFor` (strażnik fokusu Base UI przenosi fokus asynchronicznie).
+- **Vitest naprawdę ustawia szerokość 320 px** (niewiadoma z partii 1 rozstrzygnięta): dzięki
+  temu axe wykrył przewijaną tabelę bez dostępu z klawiatury.
+- Zbudowany Storybook w Chromium: 6 nowych stron w obu motywach przy 1440 i 320 px (bez
+  poziomego przewijania, 0 surowych tabel, brak błędów konsoli); stories dialogu (320 px ciemny,
+  1440 px jasny z błędem 409), alertów (ciemny), plakietek (jasny), karty (ciemny).
+- `/backend` na zrzutach z testów integracyjnych (`test-results/integration/…/users-*.png`):
+  formularz z błędami, tabela, karta, przyciski na nowych tokenach.
+- lint, typecheck, test:coverage (100 %), check:tokens (0 w ui), build, test:integration.
+
+## Etap 2, partia 2: czego nie sprawdzono
+
+- `/backend` w ciemnym motywie (aplikacja nie ma przełącznika motywu) i przy 320 px.
+- Na zrzucie `/backend` widać jaśniejszy prostokąt tła pod tabelą; to układ strony aplikacji
+  (`users-panel.tsx`), poza design systemem. Nie badałem przyczyny.
+- Czytnik ekranu na żywo.
+- Strony MDX nie przechodzą przez test a11y (etap 5); przykład „Don't” w Badge to kropka
+  z `role="img"`.
+
+## Etap 2, partia 2: do decyzji
+
+Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 2)”.
+
+- **P-C9** tytuł karty `sm` w roli `text-row-title` (16/600), bo `text-section-title` (18/600)
+  w wąskiej karcie pozycji listy jest za duży względem B4.
+- **P-C10** plakietka: 1–3 słowa, do ok. 30 znaków; dłuższy stan idzie do tekstu (opisu karty
+  lub alertu), bo plakietka się nie zawija.
+- **P-C11** AlertDialog `size="sm"` tylko dla krótkiego pytania w jednej linii.
+- **P-T4** wartości: `--scrim` 40 % jasny / 70 % ciemny z warm-950; `--spacing-badge-x` 8 px.
+- **Mapowanie stanów E02 na warianty** (tabela wyżej): potwierdzenie, że *Saved* i *Confirmed*
+  to `success`, *Incomplete* to `warning`, *Blocked* to `destructive`, a stany oczekiwania
+  (*Stripe is checking your details*, *Starting Stripe setup*, *Locked*) to `secondary`.
+- **Tabela: kontener zawsze w kolejności Tab** (`tabIndex={0}`), także gdy się nie przewija.
+  Alternatywa: ustawiać `tabIndex` tylko przy przepełnieniu (wymaga JS i `ResizeObserver`).
 
 ## Opis ekranu do testu agentem (etap 5)
 

@@ -53,3 +53,15 @@
 - Sprawdzone: test:storybook w obu motywach (34/34 × 2), lint, typecheck, test:coverage
   (100%), build, test:integration (4/4), check:tokens (0 w partii 1; 12 w partii 2).
 - Wynik: partia 1 zakończona, czeka na „dalej” i decyzje P-C1–P-C8, P-F1, link jako przycisk.
+
+## 2026-10-21: etap 2, partia 2
+
+- Card, Badge, Alert, AlertDialog (`ui:add`, bez nadpisania button.tsx), Separator, Table.
+- Tokeny: `--spacing-badge`, `--spacing-badge-x`, `--scrim`, `grid-cols-icon-text`,
+  `grid-cols-text-action`, `--tw-duration` w `duration-*`.
+- Znalezione i poprawione: tabela przy 320 px bez dostępu z klawiatury (axe w teście, `tabIndex`),
+  `buttonVariants`/`badgeVariants` bez łączenia klas (link outline bez ramki w ciemnym motywie),
+  niestabilny test fokusu w dialogu (`waitFor`).
+- Sprawdzone: test:storybook 65/65 × 2, lint, typecheck, test:coverage, check:tokens (0 w ui),
+  build, test:integration, przegląd w Chromium 6 stron × 2 motywy × 2 szerokości.
+- Wynik: partia 2 zakończona, czeka na „dalej” i decyzje P-C9–P-C11, P-T4, mapowanie stanów.

@@ -1,0 +1,110 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { Separator } from "@devmentor/ui/components/separator";
+import { DoDont } from "../../.storybook/blocks/stories";
+import * as SeparatorStories from "./separator.stories";
+
+<Meta of={SeparatorStories} />
+
+# Separator
+
+`import { Separator } from "@devmentor/ui/components/separator"`
+
+shadcn `base-nova` separator (Base UI `Separator`) in the `border` colour.
+
+## 1. What it is for
+
+A separator draws a thin line between parts of one panel, so the user sees where one group
+ends without a new card or a shadow.
+
+## 2. When to use
+
+- Between sections of one panel (display name and sign-in methods on `/account`, E01).
+- Between list rows use `divide-y divide-border` on the list (R01.3, Z4, C1); a `Separator` element is for one-off lines.
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| Separating rows of a list | `divide-y divide-border` on the list | R01.3, Z4 |
+| Separating two unrelated parts of a page | spacing: `gap-component` or `gap-section` | T4 |
+| Making a group stand out | a heading (type role), not a heavier line | R01.5, Z2 |
+
+## 4. Anatomy
+
+One part: a 1 px line in `--border` (`h-px` horizontal, `w-px` vertical).
+
+## 5. Variants
+
+| Orientation | When |
+|---|---|
+| `horizontal` (default) | between stacked sections |
+| `vertical` | between items in one row (rare; a middle dot `·` in text is usually enough, R01.1) |
+
+<Canvas of={SeparatorStories.Orientations} />
+
+## 6. States
+
+None: a separator is not interactive. The line is below 3 : 1 on purpose (exception T7:
+decorative; sections are recognised by their text, WCAG 1.4.11).
+
+<Canvas of={SeparatorStories.States} />
+
+## 7. Behaviour and accessibility
+
+- Base UI renders `role="separator"` with `aria-orientation` (story *Playground* tests it). Screen readers may announce it as a separator.
+- Never put meaning only in the line: every section has its own label or heading (WCAG 1.3.1).
+- Not focusable.
+
+## 8. Content
+
+No text. A labelled divider (*or*) is `FieldSeparator` in forms.
+
+## 9. Responsiveness
+
+A horizontal separator spans its container at every width; a vertical one takes the height of
+its row.
+
+<Canvas of={SeparatorStories.Narrow} />
+
+## 10. API
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `orientation` | `"horizontal" \| "vertical"` | `"horizontal"` | direction |
+| `className` | `string` | — | layout only (margins) |
+| …rest | Base UI Separator props | — | |
+
+<Controls of={SeparatorStories.Playground} />
+
+## 11. Code
+
+```tsx
+<Separator />
+```
+
+From the product (`/account`, between the name form and the sign-in methods):
+
+```tsx
+<div className="flex flex-col gap-between-groups">
+  <DisplayNameForm />
+  <Separator />
+  <SignInMethods />
+</div>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<ul className="w-full divide-y divide-border"><li className="py-list-row-y">Wed, 4 Nov, 18:30</li><li className="py-list-row-y">Thu, 5 Nov, 09:00</li></ul>}
+    doText="Rows of a list get their lines from divide-y on the list."
+    dontExample={<div className="flex w-full flex-col gap-in-group"><span>Wed, 4 Nov, 18:30</span><Separator /><Separator /><span>Thu, 5 Nov, 09:00</span></div>}
+    dontText="Stacked or extra separators add noise; one line per boundary."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: `divide-y` on a list, `FieldSeparator` (labelled, in forms), `Card` borders.
+- Used in: `AccountSummary` (stage 3), list rows (via `divide-y`).

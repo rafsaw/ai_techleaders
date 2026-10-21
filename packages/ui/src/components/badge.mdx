@@ -1,0 +1,144 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+import { CheckIcon } from "lucide-react";
+
+import { Badge } from "@devmentor/ui/components/badge";
+import { DoDont } from "../../.storybook/blocks/stories";
+import * as BadgeStories from "./badge.stories";
+
+<Meta of={BadgeStories} />
+
+# Badge
+
+`import { Badge, badgeVariants } from "@devmentor/ui/components/badge"`
+
+shadcn `base-nova` badge (Base UI `useRender`), restyled with DevMentor tokens. The only pill
+shape in the product (Q3, Z5).
+
+## 1. What it is for
+
+A badge names the state or category of one thing in a word or two, so the user can scan a
+list or a panel without reading full sentences.
+
+## 2. When to use
+
+| Product state | Variant | Screen | Source |
+|---|---|---|---|
+| Slot *Open* | `outline` | `/mentor/slots` | E02 Flow 4 (`2026-10-18-mentor-setup.md`) |
+| Slot *Booked* | `secondary` | `/mentor/slots` | E02 Flow 4 |
+| Account roles: *mentee*, *mentor*, *operator* | `secondary` | `/account` | E01 account page (`2026-10-17-accounts-and-roles.md`) |
+| Setup item *Saved* (profile), *Confirmed* (payouts) | `success` | `/mentor` | E02 Flow 1 item table, Flow 3 step 6 `ready` |
+| Setup item *Incomplete* (payouts, needs **Continue with Stripe**) | `warning` | `/mentor` | E02 Flow 1 item table, Flow 3 step 6 `incomplete` |
+| Setup item *Blocked* | `destructive` | `/mentor` | E02 Flow 1 item table, Flow 3 step 6 `blocked` |
+| *Stripe is checking your details*, *Starting Stripe setup*, *Locked* | `secondary` | `/mentor` | E02 Flow 1 (waiting, no colour meaning) |
+
+Which E02 state gets which variant (success for *Saved* and *Confirmed*, warning for
+*Incomplete*, destructive for *Blocked*, neutral `secondary` for waiting states) is not set by the
+spec; the mapping is a proposal approved by Rafał (2026-10-21).
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| A count of notifications | nothing: no notification badges | C6, R02.4 |
+| A clickable action | `Button` | WAI-ARIA Button |
+| A full sentence about the state | text in the card description or an `Alert` | P-C10, proposal approved by Rafał |
+| Ratings, "Top mentor", levels | nothing: no ratings or prestige labels | A03, N02, Z8 |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| Container | yes | `rounded-pill`, `h-badge` 24 px, `px-badge-x` 8 px |
+| Label | yes | `text-label` (14/500), one to three words (P-C10, proposal approved by Rafał) |
+| Icon | optional | lucide 12 px, `aria-hidden`; repeats the meaning of the word |
+
+## 5. Variants
+
+| Variant | When | Source |
+|---|---|---|
+| `secondary` | neutral state or category (Booked, roles, waiting states) | R01.4 |
+| `outline` | available, nothing to do (slot Open) | R01.3 |
+| `success` | done, confirmed by the server (Saved, Confirmed) | Q2, B5; E02 Flow 1/3 |
+| `warning` | needs the user's attention or action (Incomplete) | Q2, B5; E02 Flow 1/3 |
+| `destructive` | failed or blocked (Blocked) | Q2 (`destructive` only for errors) |
+| `default` | not used in E01/E02; kept for the shadcn API (Z-1) | Z-1 |
+| `ghost`, `link` | not used in E01/E02; kept for the shadcn API (Z-1) | Z-1 |
+
+Status variants use a 10 % tint of their role in both themes; text on it measures 4.70 : 1 or
+more (Foundations/Color), so no `dark:` override is needed.
+
+<Canvas of={BadgeStories.Variants} />
+
+## 6. States
+
+<Canvas of={BadgeStories.States} />
+
+| State | Look | Source |
+|---|---|---|
+| Static (status) | no hover, no focus: it is not interactive | WAI-ARIA |
+| Link: hover | `outline`: background `accent`; `secondary`: border `input` | B2 |
+| Link: focus | 2 px `ring` outline, 2 px offset | B3 |
+| Disabled, loading, pressed, selected, error | not applicable | — |
+
+## 7. Behaviour and accessibility
+
+- A badge is plain text inside a `span`; screen readers read its word in place. Put it next to the thing it describes (in the row or the card header) so the relation is clear (WCAG 1.3.1).
+- Colour never carries the state alone: the word does, the icon repeats it (Q2, WCAG 1.4.1). Story *Status with icon* tests the text.
+- Do not add `role="status"`: a badge does not announce changes. A changed state after an action is announced by the `Alert` or the form message.
+- As a link (`render={<a href />}`) it keeps the link role and gets the focus outline.
+
+## 8. Content
+
+- One to three words, about 30 characters at most; a longer state belongs in text (P-C10, proposal approved by Rafał).
+- Sentence case for states (*Open*, *Booked*); roles in lower case, as stored (*mentor*).
+- Translation: badges do not wrap; check the longest translation at 320 px (P-C5).
+
+## 9. Responsiveness
+
+Badges keep their size at every width; a group of badges wraps to the next line with
+`flex-wrap gap-in-group`.
+
+<Canvas of={BadgeStories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `variant` | `"default" \| "secondary" \| "outline" \| "success" \| "warning" \| "destructive" \| "ghost" \| "link"` | `"default"` | see Variants |
+| `render` | `ReactElement \| function` | `<span>` | Base UI: render as a link |
+| `className` | `string` | — | layout only |
+| …rest | `<span>` props | — | |
+
+`badgeVariants({ variant })` returns the class string.
+
+<Controls of={BadgeStories.Playground} />
+
+## 11. Code
+
+```tsx
+<Badge variant="secondary">Booked</Badge>
+```
+
+From the product (`/mentor`, payouts item):
+
+```tsx
+<CardAction>
+  <Badge variant="success"><CheckIcon aria-hidden />Confirmed</Badge>
+</CardAction>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<Badge variant="success"><CheckIcon aria-hidden />Confirmed</Badge>}
+    doText="The word carries the state; the colour and icon repeat it."
+    dontExample={<span role="img" aria-label="Confirmed" className="inline-block size-3 rounded-pill bg-success" />}
+    dontText="A coloured dot alone means nothing to colour-blind users and screen readers (WCAG 1.4.1)."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: **Button** (an action), **Alert** (a sentence about the page), the status line on `/mentor` (`BookableStatusLine`, stage 3).
+- Used in: slot rows (`SlotRow`), setup checklist items, `AccountSummary` (stage 3).

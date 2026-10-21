@@ -21,6 +21,8 @@ export default defineConfig({
       "@base-ui/react/input",
       "@base-ui/react/merge-props",
       "@base-ui/react/use-render",
+      "@base-ui/react/alert-dialog",
+      "@base-ui/react/separator",
       "@storybook/addon-docs",
       "@storybook/react-dom-shim",
     ],

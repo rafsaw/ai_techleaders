@@ -19,3 +19,12 @@ describe("cn", () => {
     expect(cn("duration-control", "duration-menu")).toBe("duration-menu");
   });
 });
+
+describe("cn with named grid layouts", () => {
+  it("treats grid-cols-icon-text and grid-cols-text-action as one group", () => {
+    expect(cn("grid-cols-2", "grid-cols-icon-text")).toBe("grid-cols-icon-text");
+    expect(cn("grid-cols-icon-text", "grid-cols-text-action")).toBe("grid-cols-text-action");
+    expect(cn("h-badge", "h-6")).toBe("h-6");
+    expect(cn("px-badge-x", "px-2")).toBe("px-2");
+  });
+});

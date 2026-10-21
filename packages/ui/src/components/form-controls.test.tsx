@@ -62,3 +62,38 @@ describe("form controls", () => {
     expect(onClick).not.toHaveBeenCalled();
   });
 });
+
+describe("panels and status", () => {
+  it("keeps a focusable scroll container around tables (WCAG 2.1.1)", async () => {
+    const { Table, TableBody, TableRow, TableCell } = await import("./table");
+    const { container } = render(<Table><TableBody><TableRow><TableCell>Ada Nowak</TableCell></TableRow></TableBody></Table>);
+    expect(container.querySelector('[data-slot="table-container"]')).toHaveAttribute("tabindex", "0");
+  });
+
+  it("renders the status variants of badges and alerts", async () => {
+    const { Badge, badgeVariants } = await import("./badge");
+    const { Alert } = await import("./alert");
+    render(<><Badge variant="success">Confirmed</Badge><Badge variant="warning">Incomplete</Badge>
+      <Alert variant="success" role="status">Stripe confirmed your account.</Alert>
+      <Alert variant="warning">Stripe onboarding isn&apos;t finished.</Alert></>);
+    expect(screen.getByText("Confirmed")).toHaveClass("bg-success/10", "text-success", "rounded-pill", "h-badge", "text-label");
+    expect(screen.getByText("Incomplete")).toHaveClass("bg-warning/10", "text-warning");
+    expect(screen.getByRole("status")).toHaveAttribute("data-variant", "success");
+    expect(screen.getByRole("alert")).toHaveClass("text-warning");
+    expect(badgeVariants({ variant: "success" })).toContain("text-success");
+  });
+});
+
+describe("variant class functions", () => {
+  it("resolve conflicting classes for links styled as buttons or badges", async () => {
+    const { buttonVariants } = await import("./button");
+    const { badgeVariants } = await import("./badge");
+    const classes = (value: string) => value.split(" ");
+    expect(classes(buttonVariants({ variant: "outline" }))).toContain("border-input");
+    expect(classes(buttonVariants({ variant: "outline" }))).not.toContain("border-transparent");
+    expect(classes(buttonVariants())).toContain("bg-primary");
+    expect(classes(badgeVariants({ variant: "outline" }))).toContain("border-border");
+    expect(classes(badgeVariants({ variant: "outline" }))).not.toContain("border-transparent");
+    expect(classes(badgeVariants())).toContain("bg-primary");
+  });
+});
