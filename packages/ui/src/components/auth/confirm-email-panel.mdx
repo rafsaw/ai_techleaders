@@ -1,0 +1,111 @@
+import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./confirm-email-panel.stories";
+
+<Meta of={Stories} />
+
+# Confirm email panel
+
+`import { ConfirmEmailPanel } from "@devmentor/ui/components/auth/ConfirmEmailPanel"`
+
+E01 product component for `/confirm-email` (Flow 2, AD7), public kit only.
+
+## 1. What it is for
+
+It tells the person what the confirmation link they opened can do, and lets them finish
+confirming with their password when it is valid.
+
+## 2. When to use
+
+- `/confirm-email?token=…&returnTo=…`, with the state from the server's token inspection.
+
+## 3. When not to use
+
+| Situation | Use instead |
+|---|---|
+| Signing in | `SignInOptions` |
+| An invitation link | `InvitationPanel` |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| Sentence with the address (valid) | yes | *Enter your password to confirm ada@example.com* |
+| Password form (valid) | yes | `SchemaForm`, **Confirm** |
+| Notice (other states) | yes | why, in one sentence |
+| **Sign in** (other states) | yes | the next action |
+
+## 5. Variants
+
+One per link state: `valid`, `expired`, `used`, `invalid` (E01 Flow 2 table). Notice variants:
+expired `info`, used `success`, invalid `error` (P-A8, proposal approved by Rafał, after P-N1).
+
+## 6. States (data states)
+
+| State | Story |
+|---|---|
+| Valid | *Playground* |
+| Expired | *Expired* |
+| Already confirmed | *Already confirmed* |
+| Invalid | *Invalid* |
+| Loading | *Pending* |
+| Error: wrong password (401) | *Wrong password* |
+| Long address, 320 px | *Long content, narrow* |
+| Empty, many, partial | not applicable: one link, one address |
+
+<Canvas of={Stories.Invalid} />
+
+## 7. Behaviour and accessibility
+
+- The page never consumes the token on GET (AD7); only **Confirm** does.
+- The invalid state is `role="alert"`; expired and used are `role="status"`.
+- A wrong password keeps the link usable and shows the generic message.
+
+## 8. Content
+
+Copy from E01 Flow 2. Every state says why in one sentence and offers one action (E01 UI/UX).
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | a long address breaks anywhere (`wrap-anywhere`) |
+| 768 px, 1440 px | within `max-w-text` |
+
+<Canvas of={Stories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Description |
+|---|---|---|
+| `state` | `{ status: "valid", email } \| { status: "expired" \| "used" \| "invalid" }` | from the token inspection |
+| `signInHref` | `string` | `/sign-in` with `returnTo` |
+| `confirm` | `{ schema, submit, onConfirmed }` | `submit` posts `{ token, password, returnTo }` |
+
+<Controls of={Stories.Playground} />
+
+## 11. Code
+
+```tsx
+<ConfirmEmailPanel
+  state={state}
+  signInHref={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`}
+  confirm={{
+    schema: z.object({ password: z.string().min(1, "Enter your password") }),
+    submit: ({ password }) => apiCall("/api/auth/confirm-email", { method: "POST", body: { token, password, returnTo } }),
+    onConfirmed: (to) => window.location.assign(to),
+  }}
+/>
+```
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| Say why the link does not work and what to do | a bare "Invalid token" | E01 UI/UX: one sentence why, plus the next action |
+| Confirm on POST with the password | confirm on page load | AD7: scanners prefetch links |
+
+## 13. Related
+
+- Built from: **Notice**, **Schema form**, **Link button**.
+- Used in: Confirm email screen.

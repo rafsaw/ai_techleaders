@@ -10,12 +10,12 @@ czekamy na „dalej” od PO. W nowej sesji najpierw przeczytaj ten plik.
 | 0. Inwentaryzacja i plan | **zakończony**, wszystkie pytania rozstrzygnięte | 2026-10-20 – 2026-10-21 |
 | 1. Fundamenty | **zakończony**, propozycje P-* rozstrzygnięte i wpisane | 2026-10-21 |
 | 2. Komponenty bazowe | **zakończony**: partie 1–4 (1–3 w 766a227, d2073e8, 9739dab); decyzje po partii 4 wpisane | 2026-10-21 |
-| 3. Komponenty produktu, wzorce, ekrany | nie zaczęty | — |
+| 3. Komponenty produktu, wzorce, ekrany | **w toku**: partia 1 z 5 zrobiona (komponenty E01), decyzje P-A1–P-A8 wpisane; czeka na „dalej” do partii 2 | 2026-10-21 |
 | 4. Strony, które uczą | nie zaczęty | — |
 | 5. Sprawdzenie i raport | nie zaczęty | — |
 
-**Następny krok:** „dalej” od PO do etapu 3 (komponenty produktu, wzorce, ekrany). Przed testem
-agentem zostają rzeczy z sekcji „Do zrobienia poza design systemem”.
+**Następny krok:** „dalej” od PO do partii 2 etapu 3 (komponenty strefy zalogowanej E02). Przed
+testem agentem zostają rzeczy z sekcji „Do zrobienia poza design systemem”.
 
 ## Przeczytane materiały
 
@@ -328,6 +328,9 @@ zostają w specyfikacji E01 Phase 2; design system ich nie dodaje.
 - E06 Later (#33).
 - Prymitywy poza zestawem: Checkbox, RadioGroup, Switch, Avatar, Dialog, Menu, Popover,
   Tooltip, Tabs (żaden ekran E01/E02 ich nie potrzebuje).
+- Menu (luka): po jej rozwiązaniu pełna nazwa konta przechodzi z nagłówka do menu konta
+  w `SiteHeader`; dzisiejsze ucinanie nazwy wielokropkiem to rozwiązanie tymczasowe (P-A4,
+  2026-10-21).
 - Toast: brak w 1.0 (decyzja PO).
 - Wzorzec „lista z filtrami”: razem z E03, bo żaden ekran E01/E02 nie ma filtrów (Q6 = a).
 - Zestaw ikon: luka do decyzji PO; do tego czasu tylko `lucide-react` (2026-10-21). lucide nie
@@ -830,6 +833,81 @@ Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 4)”.
   `PasswordField.tsx` oznaczone „proposal approved by PO(Rafał)”.
 - **Do zrobienia przy P-PF1:** dopisać „pokaż hasło” do specyfikacji E01 przy Phase 2 (zob. „Do
   zrobienia poza design systemem”).
+
+## Etap 3: partie (plan, 2026-10-21)
+
+1. Komponenty produktu E01 (`components/auth/`): SignInOptions, ConfirmEmailPanel,
+   InvitationPanel, AccountSummary, SiteHeader.
+2. Komponenty strefy zalogowanej E02: BookableStatusLine, SetupChecklist + SetupItem,
+   PayoutStatus, SlotList + SlotRow.
+3. Publiczne komponenty E02: MentorProfileHeader, PublicWorkLinks, PriceList, TextOnlyNote,
+   NotBookableNotice.
+4. Wzorce: Form (MSW: sukces, oczekiwanie, błąd pola, błąd serwera, brak sieci), Detail view,
+   Delete confirmation, Setup checklist, Sign-in and return, Provider status.
+5. Ekrany E01 i E02 na pełny ekran z mapą stanów.
+
+## Etap 3, partia 1: co zrobione (2026-10-21)
+
+- **`ui/src/components/auth/`** (folder koncepcji, AGENTS.md p. 3): `SignInOptions`,
+  `ConfirmEmailPanel`, `InvitationPanel`, `SiteHeader` (tylko zestaw publiczny F3) i
+  `AccountSummary` (shadcn, strefa zalogowana). Komponenty są prezentacyjne: dane i wywołania
+  `apiCall` przychodzą w propsach (ui bez dostępu do danych). Teksty ze specyfikacji E01.
+- **SignInOptions:** GitHub pierwszy (prawdziwy link), banery `github_*`, formularz e-mail z N03
+  (Phase 2; bez propsa `email` wariant Phase 1), po `email_not_confirmed` osobny formularz
+  **Resend confirmation** z czterema wynikami.
+- **ConfirmEmailPanel:** 4 stany linku z Flow 2; hasło i **Confirm** w stanie ważnym.
+- **InvitationPanel:** 5 stanów Flow 3; przy niezgodnym koncie brak Accept i brak zaproszonego
+  adresu; Accept i Sign out pokazują błąd serwera bez nawigacji.
+- **AccountSummary:** karta z formularzem nazwy (`children`), `dl` z e-mailem, rolami (Badge)
+  i metodami logowania, powitanie `?welcome=1`.
+- **SiteHeader:** Sign in / linki zależne od ról / nazwa / Sign out (POST); prop
+  `linkComponent` dla `next/link` (ui nie importuje Next; ESLint Next zabrania `<a href="/">`).
+- **Znalezione przez test a11y:** komunikat błędu wylogowania z `role="alert"` na `<li>` łamał
+  semantykę listy; przeniesiony pod listę.
+- **Stories (36 nowych, razem 149):** każdy komponent ze stanami danych (ładowanie, błąd,
+  częściowe dane, dużo danych, długie teksty przy 320 px; pusty stan opisany jako nie dotyczy).
+- **Strony dokumentacji:** 5 stron po 13 sekcji z mapą stanów.
+- **Testy jednostkowe:** `components/auth/auth.test.tsx`.
+
+## Etap 3, partia 1: co sprawdzone
+
+- test:storybook w obu motywach: 149/149 × 2; lint, typecheck, check:tokens (0 w ui),
+  test:coverage (248 testów, 100%), build Next.js, test:integration (4/4).
+- Chromium: 5 stron × 2 motywy × 320/1440 px bez poziomego przewijania i błędów konsoli;
+  SignInOptions (ciemny, 1440) i SiteHeader (320) obejrzane na zrzutach.
+
+## Etap 3, partia 1: czego nie sprawdzono
+
+- Komponentów na prawdziwych stronach: strony E01 Phase 1/2 nie istnieją w tej gałęzi.
+- Schematy w stories to zastępniki `signInSchema`, `accountUpdateSchema` (core ich jeszcze nie ma).
+- `CrudForm` nie ma jeszcze propsa `resetOnSuccess` (E01 Phase 1); `AccountSummary` go nie wymaga.
+- Czytnik ekranu na żywo.
+
+## Etap 3, partia 1: do decyzji (oznaczone w docs jako proposal)
+
+Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 1 etapu 3)”.
+
+- **P-A1** Tekst dla `github_no_verified_email` (spec podaje tylko intencję): „Your GitHub account
+  has no verified email.” + „Verify an email on GitHub and try again, or create an account with
+  email.”
+- **P-A2** Nagłówek sekcji „Sign in with email” na `/sign-in` z linią oddzielającą od GitHub.
+- **P-A3** Drugie zdanie przy niezgodnym koncie: „Sign out, then sign in or create an account
+  with the invited address.”
+- **P-A4** Długa nazwa w nagłówku ucięta wielokropkiem po 12 rem, pełna w `title`. Przy 320 px
+  nagłówek z wszystkimi rolami zajmuje cztery linie (zrzut); alternatywa: menu konta (luka
+  „Menu” w What is missing).
+- **P-A5** Błąd wylogowania: „Could not sign out. Try again.” pod linkami.
+- **P-A6** `SiteHeader` przyjmuje `linkComponent` (aplikacja podaje `Link` z Next).
+- **P-A7** Zaproszenie bez sesji: **Sign in** jako główna akcja, **Create an account** jako `outline`.
+- **P-A8** Warianty Notice dla stanów linku potwierdzającego: wygasły `info`, użyty `success`,
+  nieważny `error` (jak P-N1).
+
+## Decyzje PO z 2026-10-21 (po partii 1 etapu 3)
+
+- **P-A1–P-A8:** przyjęte tak, jak zaproponowane; w docs, stories i komentarzu `SignInOptions.tsx`
+  oznaczone „proposal approved by Rafał”.
+- **P-A4 to rozwiązanie tymczasowe:** po rozwiązaniu luki „Menu” pełna nazwa przechodzi do menu
+  konta (wpis przy luce w „What is missing”; oznaczenie w `site-header.mdx` i story).
 
 ## Opis ekranu do testu agentem (etap 5)
 

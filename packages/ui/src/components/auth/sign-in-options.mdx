@@ -1,0 +1,127 @@
+import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./sign-in-options.stories";
+
+<Meta of={Stories} />
+
+# Sign-in options
+
+`import { SignInOptions } from "@devmentor/ui/components/auth/SignInOptions"`
+
+E01 product component for `/sign-in`, built from the public kit (F3) only: `LinkButton`,
+`Notice`, `SchemaForm`, `SubmitButton`.
+
+## 1. What it is for
+
+It lets a visitor sign in the way the product prefers (GitHub first) or with email, and tells
+them plainly why a previous attempt failed.
+
+## 2. When to use
+
+- `/sign-in` only (E01 UI/UX). Phase 1: GitHub only (no `email` prop); Phase 2: with the email form.
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| Creating an account | `/sign-up` with `SchemaForm` (stage 3 screen) | E01 Flow 2 |
+| The invitation page | `InvitationPanel`, which links here with `returnTo` | E01 Flow 3 |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| GitHub banner | when `?error=` is a known code | `Notice`; copy in `GITHUB_ERRORS` |
+| **Sign in with GitHub** | yes | `LinkButton`, full width, first (E01 UI/UX: GitHub first, a real link) |
+| Email section | Phase 2 | heading *Sign in with email* (P-A2, proposal approved by Rafał), line above it |
+| N03 notice | with the email form | above the fields, before typing (E01 Flow 2) |
+| Email form | Phase 2 | `SchemaForm`: Email, Password, **Sign in** |
+| **Resend confirmation** | after `email_not_confirmed` | separate form, `outline` |
+| **Create an account** | Phase 2 | `LinkButton variant="link"` |
+
+## 5. Variants
+
+| Variant | When |
+|---|---|
+| GitHub only | Phase 1 (story *GitHub only*) |
+| GitHub + email | Phase 2 (story *Playground*) |
+
+## 6. States (data states)
+
+| State | Story | Source |
+|---|---|---|
+| Idle | *Playground* | E01 UI/UX |
+| Partial: GitHub only | *GitHub only* | E01 Phase 1 |
+| Error: GitHub cancelled (`info`) | *GitHub cancelled* | E01 UI/UX; P-N1 |
+| Error: GitHub failed | *GitHub failed* | E01 edge cases |
+| Error: no verified email | *GitHub no verified email* | E01 Flow 1; wording P-A1, proposal approved by Rafał |
+| Error: email taken | *GitHub email taken* | E01 edge cases |
+| Loading | *Pending* | P-C4 |
+| Error: wrong credentials (401) | *Wrong password* | E01 sign-in |
+| Error with next step: unconfirmed (403) + resend results | *Email not confirmed* | E01 sign-in, Flow 2 copy |
+| Long content, 320 px | *Long content, narrow* | — |
+| Empty, many | not applicable: no list | — |
+
+<Canvas of={Stories.EmailNotConfirmed} />
+
+## 7. Behaviour and accessibility
+
+- Tab order: GitHub, email, password (and its toggle), **Sign in**, **Create an account** (story *Playground* tests GitHub first).
+- Banners: failures `role="alert"`, the cancel note `role="status"`.
+- After `email_not_confirmed`, **Resend confirmation** re-posts the same email and password (E01: only the person who knows the password can trigger a link). A later successful or different failure removes it.
+- No password-reset link (N03).
+
+## 8. Content
+
+All copy from `2026-10-17-accounts-and-roles.md` except the `github_no_verified_email` wording
+and the section heading (P-A1, P-A2, proposal approved by Rafał). Resend results reuse the sign-up copy (*Check
+your inbox at …*, *We couldn't send the email — try again*) and the confirm copy (*Your
+address is already confirmed — sign in.*).
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | one column; GitHub and **Sign in** full width |
+| 768 px, 1440 px | within `max-w-text`, centred by the page |
+
+<Canvas of={Stories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Description |
+|---|---|---|
+| `githubHref` | `string` | `/api/auth/github` with the validated `returnTo` |
+| `error` | `string?` | `?error=`; unknown codes show nothing |
+| `email` | `{ schema, signIn, resend, onSignedIn, signUpHref }?` | Phase 2; `signIn` and `resend` are `apiCall`s |
+
+<Controls of={Stories.Playground} />
+
+## 11. Code
+
+```tsx
+<SignInOptions
+  githubHref={`/api/auth/github?returnTo=${encodeURIComponent(returnTo)}`}
+  error={searchParams.error}
+  email={{
+    schema: signInSchema.pick({ email: true, password: true }),
+    signIn: (values) => apiCall("/api/auth/sign-in", { method: "POST", body: { ...values, returnTo } }),
+    resend: (values) => apiCall("/api/auth/confirm-email/resend", { method: "POST", body: values }),
+    onSignedIn: (to) => window.location.assign(to),
+    signUpHref: `/sign-up?returnTo=${encodeURIComponent(returnTo)}`,
+  }}
+/>
+```
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| GitHub first, as the main action | the email form first | D13: GitHub is the primary method |
+| One generic credential message | "No account with this email" | E01: never reveal which emails exist |
+| N03 before the form | a password-reset link | N03: no reset in 1.0 |
+
+## 13. Related
+
+- Built from: **Link button**, **Notice**, **Schema form**, **Submit button**.
+- Used in: Sign in screen, Sign-in and return pattern (later batches).

@@ -90,3 +90,16 @@
 - Wynik: etap 2 zakończony, czeka na decyzje P-F2–P-F4, P-PF1, P-LB1, P-N1 i „dalej”.
 - Decyzje po partii 4: P-F2–P-F4, P-PF1, P-LB1, P-N1 przyjęte („proposal approved by PO(Rafał)”);
   do zrobienia poza DS: „pokaż hasło” w specyfikacji E01 przy Phase 2.
+
+## 2026-10-21: etap 3, partia 1
+
+- Plan etapu 3 na 5 partii zapisany w POSTEP.md.
+- `components/auth/`: SignInOptions, ConfirmEmailPanel, InvitationPanel, AccountSummary,
+  SiteHeader; 36 stories ze stanami danych, 5 stron docs, testy jednostkowe.
+- Znalezione i poprawione: `role="alert"` na `<li>` w SiteHeader (axe), `<a href="/">` zabronione
+  przez ESLint Next (prop `linkComponent`).
+- Sprawdzone: test:storybook 149/149 × 2, lint, typecheck, check:tokens, test:coverage (248,
+  100%), build, test:integration (4/4), Chromium 5 stron × 2 motywy × 2 szerokości.
+- Wynik: partia 1 zakończona, czeka na decyzje P-A1–P-A8 i „dalej”.
+- Decyzje po partii 1 etapu 3: P-A1–P-A8 przyjęte; P-A4 tymczasowe do czasu menu konta (wpis
+  przy luce „Menu”).

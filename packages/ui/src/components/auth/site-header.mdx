@@ -1,0 +1,110 @@
+import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./site-header.stories";
+
+<Meta of={Stories} />
+
+# Site header
+
+`import { SiteHeader } from "@devmentor/ui/components/auth/SiteHeader"`
+
+E01 product component used in both areas. Tailwind only (F3), so public pages may use it.
+`/error` keeps its own identity-free header (E01).
+
+## 1. What it is for
+
+It shows who is signed in and takes them to their account, their role's area or out, from
+every page.
+
+## 2. When to use
+
+- The layout of public and signed-in pages (E01 UI/UX; E02 Phase 1 adds **Mentor setup**).
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| `/error` | its identity-free header | E01 |
+| `/backend` | the backend layout | AGENTS.md |
+
+## 4. Anatomy
+
+| Part | Shown | Notes |
+|---|---|---|
+| *DevMentor* | always | link to `/` |
+| **Sign in** | signed out | `returnTo` when the page has one |
+| **Mentor setup** | role `mentor` | `/mentor` |
+| **Backend** | role `operator` | `/backend` |
+| Display name | signed in | link to `/account`; cut with an ellipsis after 12 rem, full name in `title` (P-A4, proposal approved by Rafał; temporary until the account menu, see What is missing: Menu) |
+| **Sign out** | signed in | POST, then full navigation (E01 F5) |
+| Error line | sign-out failed | *Could not sign out. Try again.* (P-A5, proposal approved by Rafał) |
+
+## 5. Variants
+
+By account: signed out, mentee, mentor, operator (and combinations).
+
+## 6. States (data states)
+
+| State | Story |
+|---|---|
+| Signed in (mentee) | *Playground* |
+| Signed out | *Signed out* |
+| Many: mentor and operator | *Mentor and operator* |
+| Loading: signing out | *Signing out* |
+| Error: sign-out failed | *Sign out failed* |
+| Long name, 320 px | *Long content, narrow* |
+| Empty | not applicable |
+
+## 7. Behaviour and accessibility
+
+- `header` landmark with a `nav` named *Account*; links in a list.
+- The sign-out error is `role="alert"` and describes the button (`aria-describedby`). An earlier version put it inside the list; axe flagged the role on `li`, so it sits below the list.
+- In the app, pass `linkComponent={Link}` (Next) for client navigation; ui cannot import Next (P-A6, proposal approved by Rafał).
+
+## 8. Content
+
+Labels from E01: *Sign in*, *Sign out*, *Backend*; *Mentor setup* from E02.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | the links wrap under the brand; a long name is cut |
+| 768 px, 1440 px | one row within `max-w-content`, page gutter on the sides |
+
+<Canvas of={Stories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Description |
+|---|---|---|
+| `account` | `{ displayName, roles } \| null` | from the principal |
+| `signInHref` | `string` | default `/sign-in` |
+| `signOut` | `() => Promise<ApiResult<{ redirectTo }>>` | `apiCall` |
+| `onSignedOut` | `(redirectTo) => void` | full navigation |
+| `linkComponent` | component or `"a"` | Next's `Link` in the app |
+
+<Controls of={Stories.Playground} />
+
+## 11. Code
+
+```tsx
+<SiteHeader
+  account={principal && { displayName: principal.displayName, roles: principal.roles }}
+  signOut={() => apiCall("/api/auth/sign-out", { method: "POST" })}
+  onSignedOut={(to) => window.location.assign(to)}
+  linkComponent={Link}
+/>
+```
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| Show **Backend** only to operators | show it and answer 404 | E01: role-dependent header |
+| Sign out with POST | a GET link to sign out | prefetch would sign people out |
+
+## 13. Related
+
+- Built from: **Link button** (`linkButtonVariants`).
+- Used in: every screen of E01 and E02.
