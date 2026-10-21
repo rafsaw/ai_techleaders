@@ -29,7 +29,7 @@ list or a panel without reading full sentences.
 | Setup item *Saved* (profile), *Confirmed* (payouts) | `success` | `/mentor` | E02 Flow 1 item table, Flow 3 step 6 `ready` |
 | Setup item *Incomplete* (payouts, needs **Continue with Stripe**) | `warning` | `/mentor` | E02 Flow 1 item table, Flow 3 step 6 `incomplete` |
 | Setup item *Blocked* | `destructive` | `/mentor` | E02 Flow 1 item table, Flow 3 step 6 `blocked` |
-| *Stripe is checking your details*, *Starting Stripe setup*, *Locked* | `secondary` | `/mentor` | E02 Flow 1 (waiting, no colour meaning) |
+| *Pending* (Stripe is checking), *Setup interrupted*, *Starting Stripe setup*, *Locked* | `secondary` | `/mentor` | E02 Flow 1 (waiting, no colour meaning); short labels for the spec's longer states: P-C10; *Pending* and *Setup interrupted* are P-S1a/b, proposal |
 
 Which E02 state gets which variant (success for *Saved* and *Confirmed*, warning for
 *Incomplete*, destructive for *Blocked*, neutral `secondary` for waiting states) is not set by the

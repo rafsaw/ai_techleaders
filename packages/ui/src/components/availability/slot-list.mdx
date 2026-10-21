@@ -1,0 +1,114 @@
+import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./slot-list.stories";
+
+<Meta of={Stories} />
+
+# Slot list
+
+```tsx
+import { SlotList } from "@devmentor/ui/components/availability/SlotList"
+import { SlotRow } from "@devmentor/ui/components/availability/SlotRow"
+```
+
+E02 product component for *Upcoming slots* on `/mentor/slots` (Flow 4), signed-in kit: a dense
+list of rows (R01.1, R01.3), not cards.
+
+## 1. What it is for
+
+It shows a mentor the times mentees can book, which ones are taken, and lets them withdraw an
+open one safely.
+
+## 2. When to use
+
+- `/mentor/slots`, below the *Add a slot* form.
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| Records to compare by column | `Table` / `DataTable` | table.mdx |
+| Public slot picking (E04) | not built yet (What is missing) | Q6 |
+
+## 4. Anatomy
+
+| Part | Notes |
+|---|---|
+| Heading *Upcoming slots* | level 2 |
+| `SlotRow` | start (`children`, the page's `LocalTime`), `text-row-title`, `tabular-nums`; metadata line: zone · *Reserves 50 minutes; the mentee picks 25 or 50* |
+| State | badge *Open* (`outline`) or *Booked* (`secondary`) |
+| **Remove** | open rows: small destructive button → alert dialog *Remove the slot on …?* |
+| Booked sentence | booked rows, instead of Remove (E02 Flow 4 step 3) |
+
+## 5. Variants
+
+Rows: open (with Remove) and booked (with the sentence).
+
+## 6. States (data states)
+
+| State | Story | Source |
+|---|---|---|
+| Rows | *Playground* | E02 Flow 4 |
+| Loading | *Loading* (skeleton rows) | P-LD1 |
+| Empty | *Empty*: *No upcoming slots* / *Mentees can only book times you publish.* | E02 UI/UX |
+| Error: load failed | *Load error*: *Couldn't load your slots* + Retry (P-M5, proposal approved by Rafał) | P-E4 |
+| Error: booked meanwhile | *Booked meanwhile*: the spec's 409 sentence, only **Close** | E02 Flow 4 |
+| Many | *Many* (14 rows) | R01.1 |
+| Long content, 320 px | *Long content, narrow* | — |
+
+<Canvas of={Stories.Many} />
+
+## 7. Behaviour and accessibility
+
+- A `section` named by its heading; rows are a list; lines between rows (`divide-y`).
+- Remove follows the Delete confirmation pattern: the question names the slot, focus starts on **Cancel**, Escape closes (Alert dialog).
+- The row disappears only after the server confirms (Q4); a 409 keeps the dialog open with the reason.
+- Loading is announced once (`role="status"`, `aria-busy`).
+
+## 8. Content
+
+Row text and messages from E02 Flow 4. The dialog description *Mentees will no longer see this
+time.* comes from the Alert dialog page.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | metadata wraps; badge and Remove stay at the right |
+| 768 px, 1440 px | within `max-w-text` |
+
+<Canvas of={Stories.LongContentNarrow} />
+
+## 10. API
+
+| Component | Props | Description |
+|---|---|---|
+| `SlotList` | `count`, `loading?`, `error?`, `onRetry?`, `children` | the section and its states |
+| `SlotRow` | `children` (formatted start), `timeZone`, `booked`, `remove?` | one row; `remove` is `DELETE /api/availability/slots?id=…` |
+
+<Controls of={Stories.Playground} />
+
+## 11. Code
+
+```tsx
+<SlotList count={slots.length}>
+  {slots.map((slot) => (
+    <SlotRow key={slot.id} timeZone={zone} booked={slot.booked}
+      remove={() => apiCall(`/api/availability/slots?id=${slot.id}`, { method: "DELETE" })}>
+      <LocalTime iso={slot.startsAt} />
+    </SlotRow>
+  ))}
+</SlotList>
+```
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| A line between rows | a card per slot | R01.3, Z4 |
+| The booked sentence instead of Remove | a disabled Remove | B2, E02 Flow 4 |
+
+## 13. Related
+
+- Built from: **Badge**, **Button**, **Alert dialog**, **Skeleton**, **Empty state**, **Error state**.
+- Used in: Slots screen, Delete confirmation pattern.

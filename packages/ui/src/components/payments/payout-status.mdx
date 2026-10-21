@@ -1,0 +1,112 @@
+import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./payout-status.stories";
+
+<Meta of={Stories} />
+
+# Payout status
+
+`import { PayoutStatus } from "@devmentor/ui/components/payments/PayoutStatus"`
+
+E02 product component: item 2 of the `/mentor` checklist, *Payouts with Stripe* (Flow 1 and 3).
+Provisioning state comes before payout status (Flow 3, G3).
+
+## 1. What it is for
+
+It tells a mentor where their Stripe payout setup stands and gives them the one thing they
+can do next.
+
+## 2. When to use
+
+- Inside `SetupChecklist` on `/mentor`.
+
+## 3. When not to use
+
+| Situation | Use instead |
+|---|---|
+| Stripe's answer right after returning (`?stripe=returned`) | an `Alert` banner (Provider status pattern, batch 4) |
+| Money amounts | `PriceList` (batch 3) |
+
+## 4. Anatomy
+
+`SetupItem` with title *Payouts with Stripe*, the state badge (one to three words, P-C10), a note with
+the spec's full sentence when the badge is a short label, and one action; before a local
+payout row exists, a **Country** select with the spec's hint, then **Continue to Stripe**.
+
+## 5. Variants (state → action)
+
+| State | Badge | Action | Source |
+|---|---|---|---|
+| `locked` | *Locked* + *Save your profile first.* | — | E02 Flow 1 |
+| `no-row` | *Not started* (P-M3, proposal approved by Rafał) | Country + **Continue to Stripe** | E02 Flow 1, Flow 3 step 1 |
+| `provisioning-pending` | *Starting Stripe setup* | **Retry setup** | E02 Flow 1 |
+| `reconciliation-required` | *Setup interrupted* + note *We need to check an earlier setup attempt.* | **Retry setup** | E02 Flow 1; short label P-S1a, proposal, after Flow 3 step 3 "Recover an interrupted attempt" (P-C10) |
+| `failed` | *Setup failed* (P-M2, proposal approved by Rafał) | **Contact the DevMentor team** | E02 Flow 1 |
+| `incomplete` | *Incomplete* | **Continue with Stripe** | E02 Flow 1 |
+| `pending` | *Pending* + note *Stripe is checking your details.* | **Check status** (link to the return route) | E02 Flow 1, 3; short label P-S1b, proposal: the payout status name `pending` from Flow 3 step 6 (P-C10) |
+| `blocked` | *Blocked* | **Contact the DevMentor team** | E02 Flow 1 |
+| `ready` | *Confirmed* | — | E02 Flow 1 |
+
+## 6. States (data states)
+
+One story per state above, plus *Pending* (loading: *Opening Stripe…*), *Start conflict*
+(error: 409 message kept, **Retry setup** still there) and *Long content, narrow*. Empty and
+many: not applicable.
+
+<Canvas of={Stories.StartConflict} />
+
+## 7. Behaviour and accessibility
+
+- POSTs go through the page's `apiCall`; success follows `{ url }` with full navigation (E02 Flow 3 step 4).
+- While a POST runs, the button is disabled with an *-ing* label: *Starting Stripe setup…*, *Retrying setup…*, *Opening Stripe…* (P-C4; wording P-M7, proposal approved by Rafał).
+- A failure keeps the server's message in a destructive `Alert` and leaves the action available (E02 Flow 3 step 6).
+- Country: visible label *Country*, instruction option *Choose a country*, alphabetical, the spec's hint linked with `aria-describedby`; submitting without one shows *Choose a country.* (P-C8; wording P-M6, proposal approved by Rafał).
+- **Check status** and **Contact the DevMentor team** are links, not buttons.
+
+## 8. Content
+
+States and actions from E02 Flow 1; hint and conflict message from Flow 3. Where *Contact the
+DevMentor team* leads is not in the spec yet: the page passes it as `contactHref` (PO, 2026-10-21; the address goes into the E02 spec with the `/mentor` pages).
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | select full width, hint wraps, button below |
+| 768 px, 1440 px | within `max-w-text` |
+
+<Canvas of={Stories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Description |
+|---|---|---|
+| `payout` | union of the nine states; `no-row` carries `countries`, `pending` carries `checkStatusHref` | from `MentorSetupDto` |
+| `startOnboarding` | `(body: { country? }) => Promise<ApiResult<{ url }>>` | `POST /api/payments/onboarding` |
+| `onOnboardingUrl` | `(url) => void` | `window.location.assign` |
+| `contactHref` | `string` | where the contact action goes |
+
+<Controls of={Stories.Playground} />
+
+## 11. Code
+
+```tsx
+<PayoutStatus
+  payout={setup.payout}
+  startOnboarding={(body) => apiCall("/api/payments/onboarding", { method: "POST", body })}
+  onOnboardingUrl={(url) => window.location.assign(url)}
+  contactHref={contactHref}
+/>
+```
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| Show provisioning before payout status | *Incomplete* while the account is not provisioned | E02 Flow 3, G3 |
+| Keep the error and offer the recovery action | hide the button after an error | E02 Flow 3 step 6 |
+
+## 13. Related
+
+- Built from: **Setup checklist** (`SetupItem`), **Native select**, **Field**, **Button**, **Alert**.
+- Used in: Mentor setup screen, Provider status pattern.

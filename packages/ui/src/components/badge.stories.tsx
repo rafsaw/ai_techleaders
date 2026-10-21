@@ -55,13 +55,13 @@ export const Variants: Story = {
 export const StatusWithIcon: Story = {
   render: () => (
     <div className="flex flex-wrap gap-in-group">
-      <Badge variant="secondary"><ClockIcon aria-hidden />Stripe is checking your details</Badge>
+      <Badge variant="secondary"><ClockIcon aria-hidden />Pending</Badge>
       <Badge variant="success"><CheckIcon aria-hidden />Confirmed</Badge>
     </div>
   ),
   play: async ({ canvas }) => {
     await expect(canvas.getByText("Confirmed")).toBeVisible();
-    await expect(canvas.getByText("Stripe is checking your details")).toBeVisible();
+    await expect(canvas.getByText("Pending")).toBeVisible();
   },
 };
 

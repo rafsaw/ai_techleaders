@@ -103,3 +103,16 @@
 - Wynik: partia 1 zakończona, czeka na decyzje P-A1–P-A8 i „dalej”.
 - Decyzje po partii 1 etapu 3: P-A1–P-A8 przyjęte; P-A4 tymczasowe do czasu menu konta (wpis
   przy luce „Menu”).
+
+## 2026-10-21: etap 3, partia 2
+
+- `mentors/` BookableStatusLine, SetupItem, SetupChecklist; `payments/` PayoutStatus;
+  `availability/` SlotList, SlotRow; 33 stories ze stanami danych, 4 strony docs, testy.
+- Znalezione i poprawione: ucięta plakietka z długim stanem przy 320 px (lekcja), rozpychanie
+  wiersza slotu przez długą nazwę strefy, test dialogu bez `waitFor`.
+- Sprawdzone: test:storybook 182/182 × 2, lint, typecheck, check:tokens, test:coverage (265,
+  100%), build, test:integration (4/4), Chromium 4 strony × 2 motywy × 2 szerokości.
+- Wynik: partia 2 zakończona, czeka na decyzje P-M1–P-M8, pytanie o kontakt i „dalej”.
+- Decyzje po partii 2 etapu 3: P-M1–P-M7 przyjęte, P-M8 odrzucone (P-C10). Krótkie etykiety
+  *Setup interrupted* i *Pending* (P-S1a/b, proposal), pełne zdania ze spec pod tytułem; story
+  Badge z długą plakietką poprawione; adres kontaktu do spec E02 (poza DS).

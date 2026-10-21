@@ -10,12 +10,13 @@ czekamy na „dalej” od PO. W nowej sesji najpierw przeczytaj ten plik.
 | 0. Inwentaryzacja i plan | **zakończony**, wszystkie pytania rozstrzygnięte | 2026-10-20 – 2026-10-21 |
 | 1. Fundamenty | **zakończony**, propozycje P-* rozstrzygnięte i wpisane | 2026-10-21 |
 | 2. Komponenty bazowe | **zakończony**: partie 1–4 (1–3 w 766a227, d2073e8, 9739dab); decyzje po partii 4 wpisane | 2026-10-21 |
-| 3. Komponenty produktu, wzorce, ekrany | **w toku**: partia 1 z 5 zrobiona (komponenty E01), decyzje P-A1–P-A8 wpisane; czeka na „dalej” do partii 2 | 2026-10-21 |
+| 3. Komponenty produktu, wzorce, ekrany | **w toku**: partie 1–2 z 5 zrobione, decyzje po partii 2 wpisane; czeka na decyzję o krótkich etykietach P-S1a/b i „dalej” do partii 3 | 2026-10-21 |
 | 4. Strony, które uczą | nie zaczęty | — |
 | 5. Sprawdzenie i raport | nie zaczęty | — |
 
-**Następny krok:** „dalej” od PO do partii 2 etapu 3 (komponenty strefy zalogowanej E02). Przed
-testem agentem zostają rzeczy z sekcji „Do zrobienia poza design systemem”.
+**Następny krok:** decyzja PO o krótkich etykietach P-S1a/b, potem „dalej” do partii 3 etapu 3
+(publiczne komponenty E02). Przed testem agentem zostają rzeczy z sekcji „Do zrobienia poza design
+systemem”.
 
 ## Przeczytane materiały
 
@@ -183,6 +184,9 @@ Wszystkie jako „proposal approved by Rafał” (w dokumentacji i tokenach).
 
 ## Do zrobienia poza design systemem (przed testem agentem, etap 5)
 
+- **Adres „Contact the DevMentor team” (E02):** ustalić prawdziwy adres kontaktu przy stronach
+  `/mentor` i dopisać go do specyfikacji E02 (`2026-10-18-mentor-setup.md`). Do tego czasu
+  `PayoutStatus` przyjmuje go w propsie `contactHref` (decyzja PO 2026-10-21).
 - **„Pokaż hasło” w specyfikacji E01 (przy Phase 2):** `PasswordField` ma przycisk pokazania
   hasła (P-PF1, zatwierdzone 2026-10-21), a `2026-10-17-accounts-and-roles.md` dziś go nie
   wymienia (AD6 i UI/UX mówią tylko o podpowiedzi i menedżerach haseł). Dopisać go do UI/UX
@@ -908,6 +912,83 @@ Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 1 etapu 3
   oznaczone „proposal approved by Rafał”.
 - **P-A4 to rozwiązanie tymczasowe:** po rozwiązaniu luki „Menu” pełna nazwa przechodzi do menu
   konta (wpis przy luce w „What is missing”; oznaczenie w `site-header.mdx` i story).
+
+## Etap 3, partia 2: co zrobione (2026-10-21)
+
+Komponenty strefy zalogowanej E02 (shadcn), w folderach koncepcji (AGENTS.md p. 3):
+
+- **`mentors/BookableStatusLine`:** cztery zdania z E02 Flow 1 (nazywa tylko brakujące
+  elementy), przy „bookable” publiczny link (mono, R01.2) i **Copy link** z wynikiem `role="status"`.
+- **`mentors/SetupItem` + `mentors/SetupChecklist`:** lista `ol` małych kart; pozycje Profile
+  i Slots z mapowaniem stanów E02 Flow 1; pozycja Payouts z `PayoutStatus`. Stan zawsze tekstem
+  w plakietce (warianty wg zatwierdzonego mapowania), notatka „Save your profile first.”.
+- **`payments/PayoutStatus`:** 9 stanów (aprowizacja przed stanem wypłat, Flow 3/G3), wybór kraju
+  z podpowiedzią ze spec, POST przez `apiCall` strony, błąd serwera w `Alert` z dalszą akcją.
+- **`availability/SlotList` + `availability/SlotRow`:** gęsta lista z liniami (R01.1, R01.3),
+  szkielet przy ładowaniu (P-LD1), pusty stan ze spec, błąd z Retry, wiersze Open/Booked,
+  **Remove** z dialogiem potwierdzenia (pytanie z datą, 409 „booked meanwhile” zostawia tylko
+  **Close**), zdanie o rezerwacji zamiast przycisku w wierszu zarezerwowanym.
+- **Znalezione w przeglądarce i poprawione:** (1) przy 320 px plakietka z długim stanem
+  („We need to check an earlier setup attempt”) obok tytułu karty zasłaniała tytuł i była ucięta;
+  test przewijania tego nie złapał, bo `overflow-hidden` plakietki chowa nadmiar → plakietka pod
+  tytułem, może się łamać (P-M8); (2) długa nazwa strefy czasowej rozpychała wiersz slotu
+  w wąskiej ramce docs → `wrap-anywhere` w linii metadanych; (3) test dialogu: widoczność
+  sprawdzana w `waitFor` (zanikanie).
+- **Stories (33 nowe, razem 182):** każdy komponent ze stanami danych (ładowanie, pusto, błąd,
+  częściowe dane, dużo danych, długie teksty przy 320 px; „nie dotyczy” opisane w docs).
+- **Strony dokumentacji:** 4 strony po 13 sekcji z mapą stanów.
+- **Testy jednostkowe:** `components/mentors/mentor-setup.test.tsx`.
+
+## Etap 3, partia 2: co sprawdzone
+
+- test:storybook w obu motywach: 182/182 × 2; lint, typecheck, check:tokens (0 w ui),
+  test:coverage (265 testów, 100%), build Next.js, test:integration (4/4).
+- Chromium: 4 strony × 2 motywy × 320/1440 px bez przewijania w bok i błędów konsoli;
+  zrzuty: Setup checklist (320 ciemny, 1440 jasny), Slot list „Many” (1440).
+
+## Etap 3, partia 2: czego nie sprawdzono
+
+- Komponentów na prawdziwych stronach: `/mentor` i `/mentor/slots` nie istnieją w tej gałęzi.
+- `LocalTime` zostaje w aplikacji (E02 UI/UX); stories podają gotowe sformatowane czasy.
+- Czytnik ekranu na żywo.
+
+## Etap 3, partia 2: do decyzji (oznaczone w docs jako proposal)
+
+Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 2 etapu 3)”.
+
+- **P-M1** Przycisk **Copy link** i wynik „Copied.” / „Could not copy. Select the link and copy it.”
+- **P-M2** Stan `failed` (aprowizacja) jako plakietka „Setup failed” (`destructive`); spec podaje
+  tylko akcję.
+- **P-M3** Stan przed wyborem kraju jako „Not started” (`secondary`).
+- **P-M4** Akcja następnego kroku jako `default`, akcje przy zakończonych pozycjach jako `outline`
+  lub link (Edit profile, Manage slots, View public page); Check status jako `secondary`.
+- **P-M5** Tytuł błędu ładowania listy slotów: „Couldn't load your slots”.
+- **P-M6** Pole kraju: etykieta „Country”, opcja-instrukcja „Choose a country”, kolejność
+  alfabetyczna, błąd „Choose a country.”.
+- **P-M7** Etykiety oczekiwania: „Starting Stripe setup…”, „Retrying setup…”, „Opening Stripe…”.
+- **P-M8** Plakietka stanu pod tytułem pozycji (nie obok) i z łamaniem tekstu.
+- **Pytanie:** dokąd prowadzi **Contact the DevMentor team** (adres e-mail? strona?). Spec tego
+  nie mówi; komponent przyjmuje `contactHref`, w stories `mailto:team@devmentor.example`.
+
+## Decyzje PO z 2026-10-21 (po partii 2 etapu 3)
+
+- **Contact the DevMentor team:** adres zostaje w propsie `contactHref`; prawdziwy adres trafi do
+  specyfikacji E02 przy stronach `/mentor` (wpis w „Do zrobienia poza design systemem”).
+- **P-M1–P-M7:** przyjęte; w docs oznaczone „proposal approved by Rafał”.
+- **P-M8: odrzucone.** Obowiązuje P-C10: plakietka ma 1–3 słowa i się nie zawija. Plakietka
+  wróciła obok tytułu (`CardAction`). Dłuższe stany ze specyfikacji idą do tekstu pod tytułem
+  (`note`), a plakietka dostaje krótką etykietę:
+  - `reconciliation_required`: plakietka *Setup interrupted*, tekst „We need to check an earlier
+    setup attempt.” — **P-S1a, proposal** (w spec nie ma krótkiej etykiety; słowo z Flow 3 krok 3
+    „Recover an interrupted attempt”);
+  - payout `pending`: plakietka *Pending*, tekst „Stripe is checking your details.” — **P-S1b,
+    proposal** (nazwa statusu `pending` z Flow 3 krok 6; w UI spec jej nie pokazuje);
+  - pozostałe stany mieszczą się w P-C10 bez zmian (*Starting Stripe setup*, *No upcoming slots*,
+    *N upcoming (M booked)* do ok. 30 znaków).
+  - Przy okazji: story `Badge` „Status with icon” (partia 2 etapu 2) miało plakietkę „Stripe is
+    checking your details” wbrew P-C10; teraz *Pending*. Mapowanie w `badge.mdx` poprawione.
+  - Lekcja w `.ai/lessons.md` (2026-10-21, „A no-horizontal-scroll check misses clipped text”)
+    poprawiona: nie zawijać plakietki, tylko krótka etykieta + zdanie w tekście.
 
 ## Opis ekranu do testu agentem (etap 5)
 

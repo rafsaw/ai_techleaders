@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-21 — A no-horizontal-scroll check misses clipped text
+
+**Context:** Lesson 06 design system, `SetupItem` at 320 px. A long state in a `Badge` (`overflow-hidden whitespace-nowrap`) beside the card title covered the title and was cut off, yet `scrollWidth <= clientWidth` passed.
+**Lesson:** `overflow-hidden` hides overflow from scroll-width checks, so for narrow-screen stories look at the screenshot too. Do not fix a long badge by letting it wrap (rejected by PO as P-M8): a badge holds one to three words and never wraps (P-C10). Put a short label in the badge and the spec's full sentence in the text under the title.
+**Applies to:** stories "Long content, narrow" in `packages/ui`, `Badge` with long text.
+
 ### 2026-10-21 — Storybook docs canvases stay white in a dark theme
 
 **Context:** Lesson 06 design system; dark-mode docs pages looked fine around the canvases, but story examples (light token text) sat on Storybook's white `.sbdocs-preview` and args table.

@@ -1,0 +1,107 @@
+import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./bookable-status-line.stories";
+
+<Meta of={Stories} />
+
+# Bookable status line
+
+`import { BookableStatusLine, bookableSentence } from "@devmentor/ui/components/mentors/BookableStatusLine"`
+
+E02 product component for the top of `/mentor` (Flow 1), signed-in kit.
+
+## 1. What it is for
+
+It tells a mentor in one sentence whether mentees can book them now and, if not, what is
+still missing.
+
+## 2. When to use
+
+- `/mentor`, above the setup checklist (E02 Flow 1, step 2).
+
+## 3. When not to use
+
+| Situation | Use instead |
+|---|---|
+| The state of one setup item | `SetupItem` badge |
+| Stripe's answer after returning | an `Alert` banner (Provider status pattern, batch 4) |
+| The public profile | `NotBookableNotice` (batch 3) |
+
+## 4. Anatomy
+
+| Part | Shown | Notes |
+|---|---|---|
+| Sentence | always | `text-row-title`; one of four (E02 Flow 1) |
+| Public link | bookable | the URL in mono (R01.2: paths), breaks anywhere |
+| **Copy link** | bookable | small outline button (P-M1, proposal approved by Rafał) |
+| Copy result | after a copy | `role="status"`: *Copied.* or *Could not copy. Select the link and copy it.* (P-M1, proposal approved by Rafał) |
+
+## 5. Variants
+
+| State | Sentence | Source |
+|---|---|---|
+| `bookable` | *You are bookable.* + link | E02 Flow 1 |
+| `not-bookable` | *Not bookable yet: finish your profile and Stripe.* (names only the missing items) | E02 Flow 1 |
+| `no-slots` | *You are bookable, but you have no upcoming slots, so mentees have nothing to pick.* | E02 Flow 1 (Phase 3) |
+| `phase-1` | *Not bookable yet.* | E02 Flow 1 (Phase 1) |
+
+## 6. States (data states)
+
+| State | Story |
+|---|---|
+| Bookable | *Playground* |
+| Partial: both missing / only Stripe missing | *Not bookable*, *Only Stripe missing* |
+| Empty: no slots | *No slots* |
+| Phase 1 | *Phase one* |
+| Error: copy refused | *Copy failed* |
+| Long URL, 320 px | *Long content, narrow* |
+| Loading | not applicable: `/mentor` renders on the server from stored state (E02 Flow 1, step 3) |
+
+<Canvas of={Stories.NotBookable} />
+
+## 7. Behaviour and accessibility
+
+- Plain text, read in order; not a live region (it does not change on the page).
+- The copy result is a polite status, so the mentor hears it without losing focus.
+- Hierarchy by type size and weight, not colour (R01.5).
+
+## 8. Content
+
+The four sentences are the spec's. Missing items are joined with *and*.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | the sentence wraps; the link breaks anywhere; Copy link wraps below |
+| 768 px, 1440 px | within `max-w-text` |
+
+<Canvas of={Stories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Description |
+|---|---|---|
+| `state` | `bookable { publicUrl } \| not-bookable { missing } \| no-slots \| phase-1` | from `MentorSetupDto` |
+| `copy` | `(text) => Promise<void>` | default `navigator.clipboard.writeText` |
+| `bookableSentence(state)` | function | the sentence alone (for tests and screens) |
+
+<Controls of={Stories.Playground} />
+
+## 11. Code
+
+```tsx
+<BookableStatusLine state={{ status: "not-bookable", missing: ["stripe"] }} />
+```
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| Name only what is missing | "Complete all steps" | E02 Flow 1 |
+| One plain sentence | a progress bar or percentage | prompt, What to avoid; R01.5 |
+
+## 13. Related
+
+- With: **Setup checklist** (below it). Confused with: **Not bookable notice** (public).
+- Used in: Mentor setup screen, Setup checklist pattern.
