@@ -34,7 +34,7 @@ describe("page composition", () => {
     render(<BackendLayout><h1>Page content</h1></BackendLayout>);
     expect(screen.getByRole("heading", { name: "Page content" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Users" })).toHaveAttribute("href", "/backend/users");
-    expect(screen.getByRole("button", { name: "View site" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "View site" })).toHaveAttribute("href", "/");
   });
 
   it("defines the root document language, font, metadata and body", () => {

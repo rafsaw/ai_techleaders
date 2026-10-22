@@ -235,10 +235,11 @@ Every new reusable component has one designated home:
 - **Editing shadcn components:**
   - Treat generated components as owned code: edit them in
     `packages/ui/src/components/` and keep their public API stable.
-  - Components are built on **Base UI**, not Radix. To render a link as a
-    button, use
-    `<Button nativeButton={false} render={<Link href="…" />}>`, not
-    `asChild`.
+  - Components are built on **Base UI**, not Radix. Style navigation links with
+    `<Link href="…" className={buttonVariants({ variant: "outline", size: "sm" })}>`;
+    do not render them through `Button`, which adds `role="button"` and changes
+    their link semantics (WCAG 4.1.2).
+- **Design system:** read [packages/ui/docs/design-system.md](packages/ui/docs/design-system.md) before building a screen.
 - **Styling setup:**
   - Global styles and theme tokens live only in
     `packages/ui/src/styles/globals.css`. The app's
