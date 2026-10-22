@@ -1,0 +1,91 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/Content" />
+
+# Content
+
+Speak directly, without marketing, as in the interviews. DevMentor helps someone resolve
+a specific blocker in a booked text session; it does not sell a learning journey or promise
+an immediate answer (POSTEP Q5 tone approval; brief D01, D03, D16; A02, A07).
+
+References `A*`/`R*` are from `lekcja-06/referencje.md`. `P-*` are proposals approved by
+Rafał in `packages/ui/POSTEP.md`; E01/E02 are the account and mentor-setup specs in `.ai/specs/`.
+Example amounts and dates below are fictional formatting examples, not claims about customers.
+
+## What DevMentor says
+
+<table tabIndex={0} aria-label="What DevMentor says" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Say"}</th><th scope="col">{"Do not say"}</th><th scope="col">{"Why / source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"\u201cText sessions only.\u201d"}</td><td>{"\u201cStart your mentorship journey!\u201d"}</td><td>{"Describe the actual format, not a course. N01; A02, A06; P-PP6"}</td></tr>
+    <tr><td>{"\u201cChoose a start time from the mentor's available slots.\u201d"}</td><td>{"\u201cGet an instant answer from a top expert!\u201d"}</td><td>{"Scheduled help has a minimum lead time and no instant-start promise. D03, D16; A07, A08"}</td></tr>
+    <tr><td>{"\u201cSee the mentor's public work.\u201d"}</td><td>{"\u201cJoin thousands of happy developers and our five-star mentors.\u201d"}</td><td>{"Trust comes from work; do not invent customers, ratings or testimonials. N02; R01.7; A03, A08; prompt rule 7"}</td></tr>
+  </tbody>
+</table>
+
+## Actions and labels
+
+<table tabIndex={0} aria-label="Actions and labels" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Rule"}</th><th scope="col">{"Example"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Use a verb and object; keep labels around three words / 25 characters where possible."}</td><td>{"Save profile, Publish slot, Remove slot. Avoid OK and Submit."}</td><td>{"P-C3; prompt stage 4 Content"}</td></tr>
+    <tr><td>{"Keep approved exceptions instead of forcing a longer generic label."}</td><td>{"Retry in shared ErrorMessage; the adjacent text names the failed operation."}</td><td>{"P-E3"}</td></tr>
+    <tr><td>{"Use an ongoing verb and ellipsis for pending work."}</td><td>{"Publishing slot\u2026, Starting Stripe setup\u2026, Opening Stripe\u2026."}</td><td>{"P-C4, P-M7"}</td></tr>
+    <tr><td>{"State navigation as a destination/action, using a real link."}</td><td>{"View public page; Sign in with GitHub."}</td><td>{"E01 D13 flow; E02 Flow 1; POSTEP Link as Button decision"}</td></tr>
+    <tr><td>{"Use a noun phrase for a field label; put units in parentheses and omit the colon."}</td><td>{"Price for 25 minutes (USD)."}</td><td>{"P-C7; E02 Flow 2"}</td></tr>
+    <tr><td>{"Mark optional fields with \u201c(optional)\u201d; keep required labels plain and set the native required attribute."}</td><td>{"Display name; use \u201c(optional)\u201d only when the schema actually allows omission."}</td><td>{"P-F1; WCAG 3.3.2, 4.1.2"}</td></tr>
+    <tr><td>{"Keep the whole action visible at 320 px and reserve 30% for longer translations."}</td><td>{"Allow full-width actions instead of truncating Remove slot."}</td><td>{"P-C5"}</td></tr>
+    <tr><td>{"Keep a status badge short; use adjacent description for the full explanation."}</td><td>{"Incomplete; \u201cStripe needs more information before you can take bookings.\u201d"}</td><td>{"P-C10; E02 Flow 3; POSTEP P-M8 rejection"}</td></tr>
+  </tbody>
+</table>
+
+## Errors: what happened and what to do
+
+<table tabIndex={0} aria-label="Errors: what happened and what to do" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Situation"}</th><th scope="col">{"Message / next action"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"A price is outside the approved input range"}</td><td>{"Explain that the price must be whole dollars between $5 and $1,000; keep the value editable and focus the first invalid field after submit."}</td><td>{"E02 MD2; F2; WCAG 3.3.1, 3.3.3"}</td></tr>
+    <tr><td>{"Slots failed to load"}</td><td>{"\u201cCouldn't load your slots\u201d and Retry."}</td><td>{"P-M5; P-E3"}</td></tr>
+    <tr><td>{"Copying the public URL failed"}</td><td>{"\u201cCould not copy. Select the link and copy it.\u201d"}</td><td>{"P-M1"}</td></tr>
+    <tr><td>{"Sign-out failed"}</td><td>{"\u201cCould not sign out. Try again.\u201d Keep the account controls on screen."}</td><td>{"P-A5"}</td></tr>
+    <tr><td>{"A page is absent or unavailable to this person"}</td><td>{"\u201cPage not found\u201d; \u201cThis page doesn't exist, or you don't have access to it.\u201d and a route back."}</td><td>{"P-DV3; proposal approved by Rafa\u0142; app 404 implementation still missing"}</td></tr>
+    <tr><td>{"A slot overlaps"}</td><td>{"Preserve the server message naming the other slot's ISO UTC start and the 50-minute block; do not silently change its zone."}</td><td>{"E02 Flow 4 overlap error"}</td></tr>
+    <tr><td>{"An unexpected request failed"}</td><td>{"Keep typed data, report the failure beside the task, and offer the existing retry action. Do not expose stack traces or hide an actionable error in a toast."}</td><td>{"F2; core API envelope contract in AGENTS.md; prompt stages 3\u20134"}</td></tr>
+  </tbody>
+</table>
+
+Do not claim success because a request started or because Stripe redirected back.
+Show saved/ready copy only after the server confirms it (Q4; E02 MD7, MD9).
+Use [Usage and accessibility](?path=/docs/design-system-usage-and-accessibility--docs)
+for field associations and announcements (WCAG 3.3.1, 4.1.3).
+
+## Empty states: why empty, then the next step
+
+<table tabIndex={0} aria-label="Empty states: why empty, then the next step" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Situation"}</th><th scope="col">{"Copy and action"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"No upcoming slots"}</td><td>{"\u201cNo upcoming slots\u201d; \u201cMentees can only book times you publish.\u201d Keep the slot form available above the list."}</td><td>{"E02 Flow 4; P-SCR5; Slot list documented empty state"}</td></tr>
+    <tr><td>{"Public profile saved, onboarding incomplete"}</td><td>{"\u201cNot taking bookings yet.\u201d Do not offer a booking action."}</td><td>{"E02 MD4; P-PP7"}</td></tr>
+    <tr><td>{"A generic managed list has no records"}</td><td>{"Use the existing EmptyState and the feature's specified create action; do not pretend a loading/error state is empty."}</td><td>{"platform F1; prompt stage 3 collection states"}</td></tr>
+    <tr><td>{"Filters match nothing"}</td><td>{"Explain no matching results and offer Clear filters, rather than an unrelated create action. This E03 pattern is "}<strong>{"missing"}</strong>{", not permission to add its copy/flow in E01/E02."}</td><td>{"prompt stage 3; POSTEP Q6"}</td></tr>
+  </tbody>
+</table>
+
+## Dates, times, money and numbers
+
+<table tabIndex={0} aria-label="Dates, times, money and numbers" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Value"}</th><th scope="col">{"Format / behaviour"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Slot start"}</td><td>{"Render in the viewer's browser zone and name the zone; retain the ISO instant as machine-readable "}<code>{"time"}</code>{"/"}<code>{"dateTime"}</code>{". Do not add a time-zone selector."}</td><td>{"E02 MD6; UI/UX LocalTime contract"}</td></tr>
+    <tr><td>{"Date/time before client mount"}</td><td>{"ISO string inside "}<code>{"time"}</code>{"; replace with local formatting after mount to avoid hydration mismatch."}</td><td>{"E02 UI/UX LocalTime contract"}</td></tr>
+    <tr><td>{"Human-readable date and clock style"}</td><td><strong>{"Proposal P-DOC1, awaiting PO approval:"}</strong>{" use unambiguous English day/month names and a 24-hour clock, e.g. \u201cWed, 4 Nov 2026, 18:30\u201d plus the named viewer zone. Stories already illustrate similar formats; the exact global locale/clock policy is not approved."}</td><td>{"Existing SlotRow example is not a product-wide policy; E02 MD6 specifies zone only"}</td></tr>
+    <tr><td>{"Duration"}</td><td>{"25 minutes or 50 minutes for the paid format. A published slot says it reserves 50 minutes and the mentee picks 25 or 50. Duration is never a promise about waiting time."}</td><td>{"brief D03, D10; E02 MD1, Flow 4"}</td></tr>
+    <tr><td>{"USD amounts"}</td><td><code>{"$40"}</code>{" for whole dollars; "}<code>{"$1.40"}</code>{" when cents matter, using the specified "}<code>{"en-US"}</code>{" money formatter. Inputs accept whole dollars; storage uses integer cents. USD is explicit in price input labels."}</td><td>{"E02 MD2; P17 finalized money contract; UI/UX "}<code>{"formatMoney"}</code></td></tr>
+    <tr><td>{"Money integration"}</td><td><code>{"PriceList"}</code>{" currently accepts already formatted strings. The shared "}<code>{"formatMoney"}</code>{" implementation in core is still pending; do not import a nonexistent helper or invent per-screen rounding."}</td><td>{"POSTEP \u201cformatMoney in core\u201d; E02 P17"}</td></tr>
+    <tr><td>{"Other numbers"}</td><td><strong>{"Proposal P-DOC2, awaiting PO approval:"}</strong>{" group large non-money counts using English locale conventions (e.g. "}<code>{"1,000"}</code>{"), retain precision needed for the task and never abbreviate a meaningful exact count to "}<code>{"1k"}</code>{". No generic count formatter is approved."}</td><td>{"E01/E02 do not establish a global non-money number policy"}</td></tr>
+    <tr><td>{"Alignment"}</td><td>{"Use tabular digits for displayed prices and hours; reserve mono for code, files, paths and configuration."}</td><td>{"Q4; P-PP5; R01.2, Z3"}</td></tr>
+  </tbody>
+</table>
+
+P-DOC1 and P-DOC2 are proposals, not rules to silently implement. Record the PO's
+choice in POSTEP before making them system-wide (prompt rules 1 and 4).

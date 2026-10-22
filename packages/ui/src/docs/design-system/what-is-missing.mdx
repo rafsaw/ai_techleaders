@@ -1,0 +1,68 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/What is missing" />
+
+# What is missing
+
+“Available” below means a real UI component or Storybook composition exists. It does not mean the corresponding product feature has shipped. This inventory reflects source files on this branch, not live tracker status. Sources: `.ai/specs/backlog.md`, E01/E02 specifications, POSTEP scope decisions and remaining work.
+
+## Backlog coverage
+
+Priorities in this table describe sequencing from the approved scope and backlog dependencies, not new tracker labels: **current** = E01/E02 implementation; **next spec** = outside the approved UI scope; **later** = E06.
+
+<table tabIndex={0} aria-label="Backlog coverage" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Backlog item"}</th><th scope="col">{"Component or screen"}</th><th scope="col">{"Design-system status"}</th><th scope="col">{"Product work remaining"}</th><th scope="col">{"Priority / source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"E01 #28"}</td><td><a href="?path=/docs/design-system-epics-e01-accounts-and-access--docs">{"Accounts and access"}</a></td><td>{"Six screen state maps, five component families, public kit and forms available"}</td><td>{"Auth, sessions, delivery, routes, layouts and persistence"}</td><td>{"Current; E01 plan"}</td></tr>
+    <tr><td>{"E01-S01 #34"}</td><td>{"SignInOptions, SiteHeader, AccountSummary; Sign in, Account"}</td><td>{"Available, including provider/sign-out failure states"}</td><td>{"GitHub integration, account/session APIs and pages"}</td><td>{"Current; E01 Flow 1"}</td></tr>
+    <tr><td>{"E01-S02 #35"}</td><td>{"SchemaForm, PasswordField, ConfirmEmailPanel; Sign up, Check email, Confirm email"}</td><td>{"Available, with pending, validation, resend and failure examples"}</td><td>{"Production schemas, password/email confirmation flows; record approved show-password control in spec"}</td><td>{"Current; E01 Flow 2; POSTEP P-PF1"}</td></tr>
+    <tr><td>{"E01-S03 #36"}</td><td>{"InvitationPanel; Invitation"}</td><td>{"Available; matching/mismatched account and invalid-link states"}</td><td>{"Email-bound acceptance and actual return flow"}</td><td>{"Current; E01 Flow 3"}</td></tr>
+    <tr><td>{"E01-S03-T01 #46"}</td><td>{"No operator UI planned"}</td><td>{"Recipient UI available; operator task is API/manual"}</td><td>{"Create/manage invitations according to revised E01 Phase 3; no invitation dashboard"}</td><td>{"Current; E01 Phase 3"}</td></tr>
+    <tr><td>{"E02 #29"}</td><td><a href="?path=/docs/design-system-epics-e02-mentor-setup--docs">{"Mentor setup"}</a></td><td>{"Four screen state maps, nine component families"}</td><td>{"All three E02 application phases"}</td><td>{"Current; E02 plan"}</td></tr>
+    <tr><td>{"E02-S01 #37"}</td><td>{"Profile form, Public profile, PriceList and public-work components"}</td><td>{"Available; create/edit, errors, long content and 404 examples"}</td><td>{"Profile persistence/routes; core "}<code>{"formatMoney"}</code>{"; app "}<code>{"not-found.tsx"}</code></td><td>{"Current; E02 Flow 2/P17"}</td></tr>
+    <tr><td>{"E02-S02 #38"}</td><td>{"SetupChecklist, PayoutStatus, BookableStatusLine; Mentor setup"}</td><td>{"Available; locked, pending, incomplete, blocked, failed and ready"}</td><td>{"Stripe port/adapters, endpoints, reconciliation and real contact destination"}</td><td>{"Current; E02 Flow 3; POSTEP Q-SC1"}</td></tr>
+    <tr><td>{"E02-S03 #39"}</td><td>{"SlotList, SlotRow; Slots, Delete confirmation"}</td><td>{"Available; loading/empty/errors, conflicts and booked-slot protections"}</td><td>{"Availability persistence, concurrency, local-time rendering; reconcile Add a slot order in spec"}</td><td>{"Current; E02 Flow 4; P-SCR5"}</td></tr>
+    <tr><td>{"E02-S02-T01 #47"}</td><td>{"Stripe-state presentation"}</td><td>{"Research recorded in E02's dedicated #47 section; no separate UI required"}</td><td>{"Implement and validate runtime integration and release prerequisites; tracker closure not verified here"}</td><td>{"Current; E02 Research"}</td></tr>
+    <tr><td>{"E03 #30; E03-S01 #40"}</td><td>{"Listing with area filters"}</td><td>{"Deliberately absent; E02's direct public profile exists, listing does not"}</td><td>{"Write/review E03 spec before screens, filtered-list pattern or search field"}</td><td>{"Next spec; POSTEP scope/Q6"}</td></tr>
+    <tr><td>{"E04 #31; E04-S01 #41"}</td><td>{"Slot/duration selection and sign-in return"}</td><td>{"Booking screen absent; generic sign-in return pattern available"}</td><td>{"Write/review E04 spec; keep primary booking action visible on narrow profiles"}</td><td>{"Next spec; POSTEP scope/P-DV decisions"}</td></tr>
+    <tr><td>{"E04-S02 #42"}</td><td>{"Payment and confirmed booking"}</td><td>{"Deliberately absent"}</td><td>{"E04 spec and confirmed-payment workflow"}</td><td>{"Next spec; POSTEP scope; backlog"}</td></tr>
+    <tr><td>{"E04-S03 #43"}</td><td>{"Booking information and email"}</td><td>{"Deliberately absent"}</td><td>{"E04 spec, participant information and delivery"}</td><td>{"Next spec; POSTEP scope; D15"}</td></tr>
+    <tr><td>{"E05 #32; E05-S01 #44"}</td><td>{"Private session list"}</td><td>{"Deliberately absent"}</td><td>{"E05 spec and session-list states"}</td><td>{"Next spec; POSTEP scope"}</td></tr>
+    <tr><td>{"E05-S02 #45"}</td><td>{"Text-session screen"}</td><td>{"Deliberately absent"}</td><td>{"E05 spec; conversation, refresh and booked-window states"}</td><td>{"Next spec; POSTEP scope; D10"}</td></tr>
+    <tr><td>{"E06 #33"}</td><td>{"Later work"}</td><td>{"Outside this design-system release"}</td><td>{"Decide and specify later; no invented screens"}</td><td>{"Later; backlog/POSTEP scope"}</td></tr>
+  </tbody>
+</table>
+
+## Deliberately missing building blocks
+
+<table tabIndex={0} aria-label="Deliberately missing building blocks" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Item"}</th><th scope="col">{"Current alternative / status"}</th><th scope="col">{"When to revisit / source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Checkbox, RadioGroup, Switch"}</td><td>{"No approved E01/E02 screen needs them"}</td><td>{"A specified screen needs the interaction; POSTEP approved omissions"}</td></tr>
+    <tr><td>{"Avatar"}</td><td>{"Public profile identifies the person through text and public work"}</td><td>{"A specified screen needs an avatar; POSTEP approved omissions; N02"}</td></tr>
+    <tr><td>{"General Dialog, side panel, Popover, Tooltip"}</td><td>{"Separate page or inline information; AlertDialog exists specifically for confirmation"}</td><td>{"An approved flow needs an overlay; do not put essential guidance only in a tooltip. POSTEP omissions; prompt stage 4"}</td></tr>
+    <tr><td>{"Menu"}</td><td>{"SiteHeader uses inline links and temporarily truncates long names"}</td><td>{"Resolve Menu gap, then move full name into an account menu. POSTEP P-A4"}</td></tr>
+    <tr><td>{"Tabs"}</td><td>{"Separate routes in the current scope"}</td><td>{"An approved screen needs same-context panels; POSTEP omissions"}</td></tr>
+    <tr><td>{"Toast"}</td><td>{"No toast in version 1.0; inline errors, Notice or Alert instead"}</td><td>{"Requires a new approved need; actionable errors stay inline. POSTEP Q5; prompt stage 4"}</td></tr>
+    <tr><td>{"Search field and filtered-list pattern"}</td><td>{"NativeSelect covers current fixed choices; no approved filtered listing"}</td><td>{"With E03 spec; POSTEP Q6"}</td></tr>
+  </tbody>
+</table>
+
+## Decisions and integration gaps
+
+<table tabIndex={0} aria-label="Decisions and integration gaps" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Item"}</th><th scope="col">{"Status / next action"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Accent colour"}</td><td>{"Undecided; primary stays warm neutral. Purple/indigo action colours are excluded."}</td><td>{"POSTEP accent decision; A01"}</td></tr>
+    <tr><td>{"Final font family"}</td><td>{"Geist/Geist Mono are approved starting values, not final brand selection"}</td><td>{"POSTEP Q4"}</td></tr>
+    <tr><td>{"Icon library"}</td><td>{"Use the existing lucide set until a final set is chosen; GitHub button has no invented brand icon"}</td><td>{"POSTEP icon decision, stage 2 batch 4"}</td></tr>
+    <tr><td>{"Charts"}</td><td>{"Existing "}<code>{"chart-*"}</code>{" tokens retained; no E01/E02 consumer or chart system"}</td><td>{"POSTEP open gaps"}</td></tr>
+    <tr><td>{"App theme switch"}</td><td>{"Storybook supports both themes; product switch is not in backlog"}</td><td>{"POSTEP missing items; Foundations/Themes"}</td></tr>
+    <tr><td>{"Form reset after save"}</td><td><code>{"resetOnSuccess"}</code>{" remains app-enabling shared work; current CrudForm resets to initial values"}</td><td>{"E01 Phase 1; Form pattern"}</td></tr>
+    <tr><td>{"Link semantics in existing app"}</td><td>{"Separate PO change: "}<code>{"buttonVariants()"}</code>{" on links, corresponding AGENTS rule and existing link-role test"}</td><td>{"POSTEP external-work list"}</td></tr>
+    <tr><td>{"Real screen implementation"}</td><td>{"Layouts, auth/mentor routes and their data sources are absent; fixtures use substitute validators"}</td><td>{"POSTEP stage 3 limits; existing app source inventory"}</td></tr>
+    <tr><td>{"Agent build test"}</td><td>{"Reserved for a fresh session; scenario selected in stage 5"}</td><td>{"Prompt stage 5; POSTEP next steps"}</td></tr>
+  </tbody>
+</table>
+
+Do not fill these gaps by adding a dependency, component, variant or product rule while building a screen. Record the need and obtain approval through the specification workflow. Source: prompt rules 6 and 12; [Contributing](?path=/docs/design-system-contributing--docs).

@@ -1,0 +1,490 @@
+import { Meta, Story, Unstyled } from "@storybook/addon-docs/blocks";
+import * as C0 from "../../components/button.stories";
+import * as C1 from "../../components/input.stories";
+import * as C2 from "../../components/textarea.stories";
+import * as C3 from "../../components/native-select.stories";
+import * as C4 from "../../components/field.stories";
+import * as C5 from "../../components/label.stories";
+import * as C6 from "../../components/card.stories";
+import * as C7 from "../../components/badge.stories";
+import * as C8 from "../../components/alert.stories";
+import * as C9 from "../../components/alert-dialog.stories";
+import * as C10 from "../../components/skeleton.stories";
+import * as C11 from "../../components/spinner.stories";
+import * as C12 from "../../components/empty.stories";
+import * as C13 from "../../backend/feedback/error-state.stories";
+import * as C14 from "../../backend/feedback/loading-message.stories";
+import * as C15 from "../../components/separator.stories";
+import * as C16 from "../../components/table.stories";
+import * as C17 from "../../frontend/forms/schema-form.stories";
+import * as C18 from "../../frontend/forms/text-field.stories";
+import * as C19 from "../../frontend/forms/password-field.stories";
+import * as C20 from "../../frontend/forms/submit-button.stories";
+import * as C21 from "../../frontend/feedback/notice.stories";
+import * as C22 from "../../frontend/actions/link-button.stories";
+import * as C23 from "../../components/auth/sign-in-options.stories";
+import * as C24 from "../../components/auth/invitation-panel.stories";
+import * as C25 from "../../components/auth/confirm-email-panel.stories";
+import * as C26 from "../../components/auth/account-summary.stories";
+import * as C27 from "../../components/auth/site-header.stories";
+import * as C28 from "../../components/mentors/bookable-status-line.stories";
+import * as C29 from "../../components/mentors/setup-checklist.stories";
+import * as C30 from "../../components/payments/payout-status.stories";
+import * as C31 from "../../components/availability/slot-list.stories";
+import * as C32 from "../../components/mentors/mentor-profile-header.stories";
+import * as C33 from "../../components/mentors/public-work-links.stories";
+import * as C34 from "../../components/mentors/price-list.stories";
+import * as C35 from "../../components/mentors/text-only-note.stories";
+import * as C36 from "../../components/mentors/not-bookable-notice.stories";
+
+<Meta title="Design system/Components" />
+
+# Components
+
+Working examples from the package's existing stories, with inline previews that follow the documentation theme. Open each documentation link for all variants, states, API and usage rules. Sources: prompt stage 4, WCAG 4.1.2.
+
+The catalog groups compound parts with their parent: FieldShell in Text field, SlotRow in Slot list, SetupItem in Setup checklist, and EmptyState in Empty state. CrudForm has working examples in the [Form pattern](?path=/docs/patterns-form--docs); DataTable in [Table](?path=/docs/primitives-signed-in-table--docs). The [full import table](?path=/docs/design-system-start-here--docs) includes these composites and shared helpers. Source: current package exports.
+
+## Button
+
+**Group:** Primitives/Signed-in. Run an action; style a navigation anchor with buttonVariants. Source: R01.6, P-C1–C5.
+
+[Documentation and API](?path=/docs/primitives-signed-in-button--docs) · Import: `@devmentor/ui/components/button`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C0.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Input
+
+**Group:** Primitives/Signed-in. Single-line signed-in input. Source: B1, E02 Flow 2.
+
+[Documentation and API](?path=/docs/primitives-signed-in-input--docs) · Import: `@devmentor/ui/components/input`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C1.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Textarea
+
+**Group:** Primitives/Signed-in. Mentor description and public-work links. Source: E02 Flow 2.
+
+[Documentation and API](?path=/docs/primitives-signed-in-textarea--docs) · Import: `@devmentor/ui/components/textarea`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C2.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Native select
+
+**Group:** Primitives/Signed-in. Choose an area or Stripe country. Source: E02 Flow 2–3, P-C8.
+
+[Documentation and API](?path=/docs/primitives-signed-in-native-select--docs) · Import: `@devmentor/ui/components/native-select`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C3.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Field
+
+**Group:** Primitives/Signed-in. Compose a labelled control, hint and error. Source: WCAG 1.3.1, 3.3.1, 3.3.2, P-F1.
+
+[Documentation and API](?path=/docs/primitives-signed-in-field--docs) · Import: `@devmentor/ui/components/field`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C4.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Label
+
+**Group:** Primitives/Signed-in. Associate a signed-in label and input. Source: WCAG 3.3.2.
+
+[Documentation and API](?path=/docs/primitives-signed-in-label--docs) · Import: `@devmentor/ui/components/label`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C5.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Card
+
+**Group:** Primitives/Signed-in. Group related account or setup information. Source: B4, R01.3.
+
+[Documentation and API](?path=/docs/primitives-signed-in-card--docs) · Import: `@devmentor/ui/components/card`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C6.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Badge
+
+**Group:** Primitives/Signed-in. Name a short state or role. Source: P-C10, WCAG 1.4.1.
+
+[Documentation and API](?path=/docs/primitives-signed-in-badge--docs) · Import: `@devmentor/ui/components/badge`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C7.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Alert
+
+**Group:** Primitives/Signed-in. Persistent signed-in feedback. Source: E02 Flow 3, P-PS1.
+
+[Documentation and API](?path=/docs/primitives-signed-in-alert--docs) · Import: `@devmentor/ui/components/alert`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C8.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Alert dialog
+
+**Group:** Primitives/Signed-in. Confirm removing a named slot. Source: E02 Flow 4, WAI-ARIA APG Alert Dialog.
+
+[Documentation and API](?path=/docs/primitives-signed-in-alert-dialog--docs) · Import: `@devmentor/ui/components/alert-dialog`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C9.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Skeleton
+
+**Group:** Primitives/Signed-in. Show the shape of a loading list. Source: P-LD1.
+
+[Documentation and API](?path=/docs/primitives-signed-in-skeleton--docs) · Import: `@devmentor/ui/components/skeleton`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C10.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Spinner
+
+**Group:** Primitives/Signed-in. Indicate an operation with a text label. Source: P-C4, WCAG 4.1.3.
+
+[Documentation and API](?path=/docs/primitives-signed-in-spinner--docs) · Import: `@devmentor/ui/components/spinner`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C11.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Empty state
+
+**Group:** Primitives/Signed-in. Explain an empty collection and next action. Source: E02 UI/UX, prompt stage 3.
+
+[Documentation and API](?path=/docs/primitives-signed-in-empty-state--docs) · Import: `@devmentor/ui/components/empty`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C12.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Error state
+
+**Group:** Primitives/Signed-in. Load error with recovery. Source: P-M5, WCAG 4.1.3.
+
+[Documentation and API](?path=/docs/primitives-signed-in-error-state--docs) · Import: `@devmentor/ui/backend/feedback/ErrorMessage`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C13.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Loading message
+
+**Group:** Primitives/Signed-in. Announce loading once. Source: P-LD1, WCAG 4.1.3.
+
+[Documentation and API](?path=/docs/primitives-signed-in-loading-message--docs) · Import: `@devmentor/ui/backend/feedback/LoadingMessage`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C14.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Separator
+
+**Group:** Primitives/Signed-in. Separate dense rows or sections. Source: R01.3, Z4.
+
+[Documentation and API](?path=/docs/primitives-signed-in-separator--docs) · Import: `@devmentor/ui/components/separator`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C15.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Table
+
+**Group:** Primitives/Signed-in. Compare data in columns. Source: R01.1, WCAG 1.3.1.
+
+[Documentation and API](?path=/docs/primitives-signed-in-table--docs) · Import: `@devmentor/ui/components/table`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C16.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Schema form
+
+**Group:** Primitives/Public. Schema-driven public account form. Source: Q1(a), F3.
+
+[Documentation and API](?path=/docs/primitives-public-schema-form--docs) · Import: `@devmentor/ui/frontend/forms/SchemaForm`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C17.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Text field
+
+**Group:** Primitives/Public. Labelled public email or name input. Source: F3, WCAG 3.3.2.
+
+[Documentation and API](?path=/docs/primitives-public-text-field--docs) · Import: `@devmentor/ui/frontend/forms/TextField`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C18.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Password field
+
+**Group:** Primitives/Public. Password input with show/hide and hint. Source: P-PF1, E01 AD6.
+
+[Documentation and API](?path=/docs/primitives-public-password-field--docs) · Import: `@devmentor/ui/frontend/forms/PasswordField`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C19.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Submit button
+
+**Group:** Primitives/Public. Submit public form with pending text. Source: F3, P-C4.
+
+[Documentation and API](?path=/docs/primitives-public-submit-button--docs) · Import: `@devmentor/ui/frontend/forms/SubmitButton`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C20.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Notice
+
+**Group:** Primitives/Public. Persistent public info, success or error. Source: F3, E01 Flow 1–3.
+
+[Documentation and API](?path=/docs/primitives-public-notice--docs) · Import: `@devmentor/ui/frontend/feedback/Notice`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C21.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Link button
+
+**Group:** Primitives/Public. Public navigation, primary or text action. Source: F3, WCAG 4.1.2.
+
+[Documentation and API](?path=/docs/primitives-public-link-button--docs) · Import: `@devmentor/ui/frontend/actions/LinkButton`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C22.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Sign-in options
+
+**Group:** Product/E01 Accounts and access. GitHub first, email form, password-reset limitation. Source: E01 Flow 1, N03.
+
+[Documentation and API](?path=/docs/product-e01-accounts-and-access-sign-in-options--docs) · Import: `@devmentor/ui/components/auth/SignInOptions`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C23.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Invitation panel
+
+**Group:** Product/E01 Accounts and access. Explain and accept mentor invitation states. Source: E01 Flow 3, D14.
+
+[Documentation and API](?path=/docs/product-e01-accounts-and-access-invitation-panel--docs) · Import: `@devmentor/ui/components/auth/InvitationPanel`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C24.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Confirm email panel
+
+**Group:** Product/E01 Accounts and access. Confirm address and explain expired/used/invalid token. Source: E01 Flow 2, N03.
+
+[Documentation and API](?path=/docs/product-e01-accounts-and-access-confirm-email-panel--docs) · Import: `@devmentor/ui/components/auth/ConfirmEmailPanel`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C25.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Account summary
+
+**Group:** Product/E01 Accounts and access. Show email, roles and sign-in methods. Source: E01 UI/UX, D13–D14.
+
+[Documentation and API](?path=/docs/product-e01-accounts-and-access-account-summary--docs) · Import: `@devmentor/ui/components/auth/AccountSummary`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C26.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Site header
+
+**Group:** Product/E01 Accounts and access. Account navigation and sign-out on every screen. Source: E01 UI/UX, R02.6, P-A4.
+
+[Documentation and API](?path=/docs/product-e01-accounts-and-access-site-header--docs) · Import: `@devmentor/ui/components/auth/SiteHeader`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C27.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Bookable status line
+
+**Group:** Product/E02 Mentor setup. Explain whether a mentor can take bookings. Source: E02 Flow 1, MD3, MD4.
+
+[Documentation and API](?path=/docs/product-e02-mentor-setup-bookable-status-line--docs) · Import: `@devmentor/ui/components/mentors/BookableStatusLine`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C28.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Setup checklist
+
+**Group:** Product/E02 Mentor setup. Guide profile, payouts and availability setup. Source: E02 Flow 1, Q-SC1, A02.
+
+[Documentation and API](?path=/docs/product-e02-mentor-setup-setup-checklist--docs) · Import: `@devmentor/ui/components/mentors/SetupChecklist`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C29.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Payout status
+
+**Group:** Product/E02 Mentor setup. Render Stripe setup and payout state with next action. Source: E02 Flow 3, MD9.
+
+[Documentation and API](?path=/docs/product-e02-mentor-setup-payout-status--docs) · Import: `@devmentor/ui/components/payments/PayoutStatus`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C30.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Slot list
+
+**Group:** Product/E02 Mentor setup. Upcoming availability, loading, empty or error. Source: E02 Flow 4.
+
+[Documentation and API](?path=/docs/product-e02-mentor-setup-slot-list--docs) · Import: `@devmentor/ui/components/availability/SlotList`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C31.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Mentor profile header
+
+**Group:** Product/E02 Mentor setup. Public name, area and plain description. Source: E02 Flow 2, N02, P-PP1–2.
+
+[Documentation and API](?path=/docs/product-e02-mentor-setup-mentor-profile-header--docs) · Import: `@devmentor/ui/components/mentors/MentorProfileHeader`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C32.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Public work links
+
+**Group:** Product/E02 Mentor setup. Link to verifiable public work. Source: N02, P-PP3–4.
+
+[Documentation and API](?path=/docs/product-e02-mentor-setup-public-work-links--docs) · Import: `@devmentor/ui/components/mentors/PublicWorkLinks`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C33.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Price list
+
+**Group:** Product/E02 Mentor setup. Formatted prices for both session durations. Source: E02 MD2, P17, P-PP5.
+
+[Documentation and API](?path=/docs/product-e02-mentor-setup-price-list--docs) · Import: `@devmentor/ui/components/mentors/PriceList`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C34.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Text-only note
+
+**Group:** Product/E02 Mentor setup. Make the text-only format explicit. Source: N01, P-PP6.
+
+[Documentation and API](?path=/docs/product-e02-mentor-setup-text-only-note--docs) · Import: `@devmentor/ui/components/mentors/TextOnlyNote`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C35.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Not bookable notice
+
+**Group:** Product/E02 Mentor setup. Explain public profile cannot take bookings yet. Source: E02 MD4, P-PP7.
+
+[Documentation and API](?path=/docs/product-e02-mentor-setup-not-bookable-notice--docs) · Import: `@devmentor/ui/components/mentors/NotBookableNotice`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C36.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>

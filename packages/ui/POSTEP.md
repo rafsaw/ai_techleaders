@@ -11,11 +11,10 @@ czekamy na „dalej” od PO. W nowej sesji najpierw przeczytaj ten plik.
 | 1. Fundamenty | **zakończony**, propozycje P-* rozstrzygnięte i wpisane | 2026-10-21 |
 | 2. Komponenty bazowe | **zakończony**: partie 1–4 (1–3 w 766a227, d2073e8, 9739dab); decyzje po partii 4 wpisane | 2026-10-21 |
 | 3. Komponenty produktu, wzorce, ekrany | **zakończony**: partie 1–5 (1–4 w a45f031, 9fbecd9, 09081a1, e044136); decyzje po partii 5 wpisane; czeka na „dalej” do etapu 4 | 2026-10-21 |
-| 4. Strony, które uczą | nie zaczęty | — |
+| 4. Strony, które uczą | **wdrożony**, weryfikacja aplikacji zablokowana środowiskiem; P-DOC1–2 czekają na decyzję | 2026-10-21 |
 | 5. Sprawdzenie i raport | nie zaczęty | — |
 
-**Następny krok:** „dalej” do etapu 4 (strony, które uczą). Przed testem agentem zostają rzeczy z sekcji „Do zrobienia poza design
-systemem”.
+**Następny krok:** rozstrzygnąć P-DOC1–2 i domknąć bramki `build` / `test:integration` etapu 4 w środowisku pozwalającym Turbopackowi otworzyć port. Dopiero po tym i po „dalej” przejść do etapu 5. Przed testem agentem zostają rzeczy z sekcji „Do zrobienia poza design systemem”.
 
 ## Przeczytane materiały
 
@@ -1273,3 +1272,54 @@ Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 5 etapu 3
 ## Opis ekranu do testu agentem (etap 5)
 
 (do uzupełnienia w etapie 5; kandydat musi pochodzić z E01/E02 i nie mieć jeszcze story)
+
+
+## Etap 4: co wdrożono (2026-10-21)
+
+- 10 nowych stron `src/docs/design-system/`: Start here, Components, How to choose,
+  Usage and accessibility, Content, What to avoid, What is missing, Contributing oraz E01/E02.
+- Start here: charakter w trzech zdaniach, pięć kroków, tabela 37 rodzin komponentów oraz
+  współdzielonych kompozytów (CrudForm, DataTable, EmptyState, SlotRow, SetupItem), importy,
+  kiedy używać i alternatywy. Katalog: 37 działających podglądów prawdziwych stories,
+  grupa, opis, import i link do API. Części złożone opisane przy rodzinach.
+- Przewodniki wyboru obejmują również pominięte kontrolki, zawsze jako brak i z obecną
+  alternatywą. Zasady dostępności, treści, antywzorce oraz wkład w system mają źródła.
+- Strony epików: przepływy, linki do map stanów ekranów, źródła i praca pozostała w aplikacji.
+  What is missing pokrywa wszystkie pozycje backlogu #28–#47; E03–E06 pozostają poza zakresem.
+- Skrót dla agentów `packages/ui/docs/design-system.md`, odwołanie w nowym
+  `packages/ui/AGENTS.md` (lokalnie w design systemie, zgodnie z zasadą 11).
+- Brak nowych komponentów produktu, wariantów, zależności, zmian kodu aplikacji, publikacji
+  i wysyłania do remote. Dotychczasowe komponenty, stories, tokeny i strony zachowane.
+- Specyfikacją tej pracy pozostaje zatwierdzony prompt + plan i decyzje w POSTEP;
+  ten wpis aktualizuje wykonanie etapu 4. Korekty specyfikacji E01/E02 pozostają osobnym zadaniem.
+
+## Etap 4: weryfikacja
+
+- `build-storybook`, lint, typecheck i `check:tokens`: pass; zero naruszeń tokenów w ui.
+- `test:coverage`: 278 testów, 100% statements/branches/functions/lines; brak nowego kodu runtime.
+- `test:storybook`: 324/324 w jasnym + 324/324 w ciemnym, 53 pliki; a11y w stories jako error.
+- Chromium: komplet nowych stron przy 320/768/1440 px i obu motywach, linki zweryfikowane
+  względem zbudowanego index.json, brak surowych tabel i poziomego przewijania strony.
+- Katalog: sprawdzone widoczne podglądy, fokus solid 2 px, Enter otwiera AlertDialog,
+  Escape zamyka i przywraca fokus. Zrzuty oraz wyniki kontroli w `/tmp/devmentor-stage4-*`.
+- `npm run build`: **nie przechodzi**, Turbopack przy globals.css zgłasza
+  `creating new process → binding to a port → Operation not permitted`, także po ponowieniu
+  poza sandboxem. Nie zmieniano aplikacji ani konfiguracji w celu obejścia blokady.
+- Docker dostępny; `test:integration:install` pass. `test:integration`: **nie uruchomił scenariuszy**,
+  bo global setup wymaga `.next/BUILD_ID`, którego nie ma po nieudanym buildzie.
+- Nie wykonano testu świeżym agentem ani całego audytu etapu 5. Brak testu czytnikiem na żywo.
+- Wynik: dokumentacja wdrożona, lecz etapu nie oznaczamy jako całkowicie zakończonego,
+  dopóki obowiązkowe bramki aplikacji nie przejdą.
+
+- **Końcowa macierz po poprawkach:** 60/60 kontroli renderowania i axe (10 stron × 2 motywy
+  × 3 szerokości), zero zgłoszonych naruszeń i błędnych linków. W axe dla dokumentacji pominięto
+  regułę `region` (landmarki chromu Storybooka); konfiguracja a11y stories pozostała bez zmian.
+  Tabele nowych stron są przewijane klawiaturą (`tabIndex=0`, nazwa i tokenowy fokus).
+
+## Etap 4: propozycje do decyzji (oznaczone w Content)
+
+- **P-DOC1:** globalny zapis daty i godziny: angielskie nazwy dnia/miesiąca, rok oraz zegar
+  24-godzinny, np. `Wed, 4 Nov 2026, 18:30`, z nazwą strefy widza. Strefa wynika już z MD6;
+  dokładnego globalnego formatu dotąd nie zatwierdzono. Niczego nie zmieniono w komponentach.
+- **P-DOC2:** duże liczby poza kwotami: angielskie grupowanie, np. `1,000`, bez skracania
+  znaczącej dokładnej liczby do `1k`. To propozycja reguły dokumentacji, bez nowego formattera.

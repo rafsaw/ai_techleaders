@@ -1,0 +1,91 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/Start here" />
+
+# Build a DevMentor screen
+
+DevMentor is concrete, dense and readable: clear hierarchy helps a developer find a mentor or manage availability. Warm neutral surfaces and direct, conversational English keep the product human. One main action leads to the next step, with public work as the trust signal and no ratings, sales pressure or decorative AI imagery. Sources: R01.1–R01.7, A01–A08, Q5.
+
+**Character:** concrete · dense · readable · warm · conversational.
+**Avoid:** generic · showy · noisy · cold · sales-driven. Source: approved reference character words.
+
+## Five steps
+
+1. Find a [pattern](?path=/docs/patterns-form--docs) and the relevant [epic](?path=/docs/design-system-epics-e01-accounts-and-access--docs); follow its linked screen state map. Source: prompt stage 4.
+2. [Choose the component](?path=/docs/design-system-how-to-choose--docs). Public pages use the Tailwind-only public kit; signed-in and backend pages use the signed-in kit. Source: Q1(a), F3.
+3. Use [semantic tokens](?path=/docs/foundations-color--docs) for purpose, type roles for hierarchy and relation spacing for layout. Source: Z6, T1–T8, P-T1–3, P-L1–4.
+4. Design loading, empty, error, partial, many and long-content states. Forms also need API pending, field error, server error, network failure and confirmed success. Source: prompt stage 3.
+5. Check [what to avoid](?path=/docs/design-system-what-to-avoid--docs), keyboard focus, both themes and 320/768/1440 px. Source: prompt stages 4–5, WCAG 2.1.1, 2.4.7, 1.4.10.
+
+## Choose a starting point
+
+<table tabIndex={0} aria-label="Choose a starting point" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Task"}</th><th scope="col">{"Start with"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Public sign-up"}</td><td><a href="?path=/docs/screens-e01-sign-up--docs">{"Sign up screen"}</a>{", SchemaForm + SignInOptions"}</td><td>{"E01 Flow 1\u20132"}</td></tr>
+    <tr><td>{"Edit mentor profile"}</td><td><a href="?path=/docs/screens-e02-profile-form--docs">{"Profile form"}</a>{", CrudForm"}</td><td>{"E02 Flow 2"}</td></tr>
+    <tr><td>{"Explain next setup action"}</td><td><a href="?path=/docs/patterns-setup-checklist--docs">{"Setup checklist"}</a></td><td>{"E02 Flow 1, Q-SC1"}</td></tr>
+    <tr><td>{"Publish or remove a slot"}</td><td><a href="?path=/docs/screens-e02-slots--docs">{"Slots"}</a>{", Delete confirmation"}</td><td>{"E02 Flow 4"}</td></tr>
+    <tr><td>{"Public mentor details"}</td><td><a href="?path=/docs/patterns-detail-view--docs">{"Detail view"}</a></td><td>{"E02 Flow 2, MD4"}</td></tr>
+  </tbody>
+</table>
+
+## All components
+
+Imports name the module; select the named export shown in its API page. Compound families include their parts on that page. The [catalog](?path=/docs/design-system-components--docs) has working previews. Sources: package exports, component source files.
+
+<table tabIndex={0} aria-label="All components" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Component / exports"}</th><th scope="col">{"Import module"}</th><th scope="col">{"Use when"}</th><th scope="col">{"Do not use when / alternative"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td><a href="?path=/docs/primitives-signed-in-button--docs">{"Button, buttonVariants"}</a></td><td><code>{"@devmentor/ui/components/button"}</code></td><td>{"Run an action; style a navigation anchor with buttonVariants"}</td><td>{"Submitting a public form: SubmitButton"}</td><td>{"R01.6, P-C1\u2013C5"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-input--docs">{"Input"}</a></td><td><code>{"@devmentor/ui/components/input"}</code></td><td>{"Single-line signed-in input"}</td><td>{"Long description: Textarea"}</td><td>{"B1, E02 Flow 2"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-textarea--docs">{"Textarea"}</a></td><td><code>{"@devmentor/ui/components/textarea"}</code></td><td>{"Mentor description and public-work links"}</td><td>{"A single-line name: Input"}</td><td>{"E02 Flow 2"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-native-select--docs">{"NativeSelect, NativeSelectOption, NativeSelectOptGroup"}</a></td><td><code>{"@devmentor/ui/components/native-select"}</code></td><td>{"Choose an area or Stripe country"}</td><td>{"Searchable discovery: missing E03 pattern"}</td><td>{"E02 Flow 2\u20133, P-C8"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-field--docs">{"Field, FieldLabel, FieldDescription, FieldError, FieldGroup, FieldLegend, FieldSeparator, FieldSet, FieldContent, FieldTitle"}</a></td><td><code>{"@devmentor/ui/components/field"}</code></td><td>{"Compose a labelled control, hint and error"}</td><td>{"Standalone text: a paragraph"}</td><td>{"WCAG 1.3.1, 3.3.1, 3.3.2, P-F1"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-label--docs">{"Label"}</a></td><td><code>{"@devmentor/ui/components/label"}</code></td><td>{"Associate a signed-in label and input"}</td><td>{"Placeholder as a label"}</td><td>{"WCAG 3.3.2"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-card--docs">{"Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter"}</a></td><td><code>{"@devmentor/ui/components/card"}</code></td><td>{"Group related account or setup information"}</td><td>{"One card per list row: Separator"}</td><td>{"B4, R01.3"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-badge--docs">{"Badge, badgeVariants"}</a></td><td><code>{"@devmentor/ui/components/badge"}</code></td><td>{"Name a short state or role"}</td><td>{"Long explanation: body text"}</td><td>{"P-C10, WCAG 1.4.1"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-alert--docs">{"Alert, AlertTitle, AlertDescription, AlertAction"}</a></td><td><code>{"@devmentor/ui/components/alert"}</code></td><td>{"Persistent signed-in feedback"}</td><td>{"Field validation: FieldError"}</td><td>{"E02 Flow 3, P-PS1"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-alert-dialog--docs">{"AlertDialog family"}</a></td><td><code>{"@devmentor/ui/components/alert-dialog"}</code></td><td>{"Confirm removing a named slot"}</td><td>{"Ordinary editing: a page/form"}</td><td>{"E02 Flow 4, WAI-ARIA APG Alert Dialog"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-skeleton--docs">{"Skeleton"}</a></td><td><code>{"@devmentor/ui/components/skeleton"}</code></td><td>{"Show the shape of a loading list"}</td><td>{"Saving a button: Spinner"}</td><td>{"P-LD1"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-spinner--docs">{"Spinner"}</a></td><td><code>{"@devmentor/ui/components/spinner"}</code></td><td>{"Indicate an operation with a text label"}</td><td>{"Unknown content shape: Skeleton"}</td><td>{"P-C4, WCAG 4.1.3"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-empty-state--docs">{"Empty, EmptyHeader, EmptyTitle, EmptyDescription, EmptyContent, EmptyMedia"}</a></td><td><code>{"@devmentor/ui/components/empty"}</code></td><td>{"Explain an empty collection and next action"}</td><td>{"Request failed: ErrorMessage"}</td><td>{"E02 UI/UX, prompt stage 3"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-error-state--docs">{"ErrorMessage"}</a></td><td><code>{"@devmentor/ui/backend/feedback/ErrorMessage"}</code></td><td>{"Load error with recovery"}</td><td>{"Validation of one field: FieldError"}</td><td>{"P-M5, WCAG 4.1.3"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-loading-message--docs">{"LoadingMessage"}</a></td><td><code>{"@devmentor/ui/backend/feedback/LoadingMessage"}</code></td><td>{"Announce loading once"}</td><td>{"A confirmed empty list: EmptyState"}</td><td>{"P-LD1, WCAG 4.1.3"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-separator--docs">{"Separator"}</a></td><td><code>{"@devmentor/ui/components/separator"}</code></td><td>{"Separate dense rows or sections"}</td><td>{"Layout spacing alone: gap tokens"}</td><td>{"R01.3, Z4"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-table--docs">{"Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell, TableCaption"}</a></td><td><code>{"@devmentor/ui/components/table"}</code></td><td>{"Compare data in columns"}</td><td>{"Mentor availability: SlotList"}</td><td>{"R01.1, WCAG 1.3.1"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-public-schema-form--docs">{"SchemaForm"}</a></td><td><code>{"@devmentor/ui/frontend/forms/SchemaForm"}</code></td><td>{"Schema-driven public account form"}</td><td>{"Signed-in form: CrudForm"}</td><td>{"Q1(a), F3"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-public-text-field--docs">{"TextField, FieldShell"}</a></td><td><code>{"@devmentor/ui/frontend/forms/TextField"}</code></td><td>{"Labelled public email or name input"}</td><td>{"Password: PasswordField"}</td><td>{"F3, WCAG 3.3.2"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-public-password-field--docs">{"PasswordField"}</a></td><td><code>{"@devmentor/ui/frontend/forms/PasswordField"}</code></td><td>{"Password input with show/hide and hint"}</td><td>{"Ordinary input: TextField"}</td><td>{"P-PF1, E01 AD6"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-public-submit-button--docs">{"SubmitButton"}</a></td><td><code>{"@devmentor/ui/frontend/forms/SubmitButton"}</code></td><td>{"Submit public form with pending text"}</td><td>{"Navigation: LinkButton"}</td><td>{"F3, P-C4"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-public-notice--docs">{"Notice"}</a></td><td><code>{"@devmentor/ui/frontend/feedback/Notice"}</code></td><td>{"Persistent public info, success or error"}</td><td>{"Signed-in feedback: Alert"}</td><td>{"F3, E01 Flow 1\u20133"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-public-link-button--docs">{"LinkButton"}</a></td><td><code>{"@devmentor/ui/frontend/actions/LinkButton"}</code></td><td>{"Public navigation, primary or text action"}</td><td>{"Mutation: SubmitButton"}</td><td>{"F3, WCAG 4.1.2"}</td></tr>
+    <tr><td><a href="?path=/docs/product-e01-accounts-and-access-sign-in-options--docs">{"SignInOptions"}</a></td><td><code>{"@devmentor/ui/components/auth/SignInOptions"}</code></td><td>{"GitHub first, email form, password-reset limitation"}</td><td>{"Signed-in account: AccountSummary"}</td><td>{"E01 Flow 1, N03"}</td></tr>
+    <tr><td><a href="?path=/docs/product-e01-accounts-and-access-invitation-panel--docs">{"InvitationPanel"}</a></td><td><code>{"@devmentor/ui/components/auth/InvitationPanel"}</code></td><td>{"Explain and accept mentor invitation states"}</td><td>{"An invitation-creation UI: outside scope"}</td><td>{"E01 Flow 3, D14"}</td></tr>
+    <tr><td><a href="?path=/docs/product-e01-accounts-and-access-confirm-email-panel--docs">{"ConfirmEmailPanel"}</a></td><td><code>{"@devmentor/ui/components/auth/ConfirmEmailPanel"}</code></td><td>{"Confirm address and explain expired/used/invalid token"}</td><td>{"Password reset: excluded"}</td><td>{"E01 Flow 2, N03"}</td></tr>
+    <tr><td><a href="?path=/docs/product-e01-accounts-and-access-account-summary--docs">{"AccountSummary"}</a></td><td><code>{"@devmentor/ui/components/auth/AccountSummary"}</code></td><td>{"Show email, roles and sign-in methods"}</td><td>{"Editing display name: CrudForm"}</td><td>{"E01 UI/UX, D13\u2013D14"}</td></tr>
+    <tr><td><a href="?path=/docs/product-e01-accounts-and-access-site-header--docs">{"SiteHeader"}</a></td><td><code>{"@devmentor/ui/components/auth/SiteHeader"}</code></td><td>{"Account navigation and sign-out on every screen"}</td><td>{"Session sidebar: excluded"}</td><td>{"E01 UI/UX, R02.6, P-A4"}</td></tr>
+    <tr><td><a href="?path=/docs/product-e02-mentor-setup-bookable-status-line--docs">{"BookableStatusLine"}</a></td><td><code>{"@devmentor/ui/components/mentors/BookableStatusLine"}</code></td><td>{"Explain whether a mentor can take bookings"}</td><td>{"Treating a saved profile as bookable"}</td><td>{"E02 Flow 1, MD3, MD4"}</td></tr>
+    <tr><td><a href="?path=/docs/product-e02-mentor-setup-setup-checklist--docs">{"SetupChecklist"}</a></td><td><code>{"@devmentor/ui/components/mentors/SetupChecklist"}</code></td><td>{"Guide profile, payouts and availability setup"}</td><td>{"Course progress: excluded"}</td><td>{"E02 Flow 1, Q-SC1, A02"}</td></tr>
+    <tr><td><a href="?path=/docs/product-e02-mentor-setup-payout-status--docs">{"PayoutStatus"}</a></td><td><code>{"@devmentor/ui/components/payments/PayoutStatus"}</code></td><td>{"Render Stripe setup and payout state with next action"}</td><td>{"Assuming return from Stripe means ready"}</td><td>{"E02 Flow 3, MD9"}</td></tr>
+    <tr><td><a href="?path=/docs/product-e02-mentor-setup-slot-list--docs">{"SlotList"}</a></td><td><code>{"@devmentor/ui/components/availability/SlotList"}</code></td><td>{"Upcoming availability, loading, empty or error"}</td><td>{"Discovery filters: E03 missing"}</td><td>{"E02 Flow 4"}</td></tr>
+    <tr><td><a href="?path=/docs/product-e02-mentor-setup-mentor-profile-header--docs">{"MentorProfileHeader"}</a></td><td><code>{"@devmentor/ui/components/mentors/MentorProfileHeader"}</code></td><td>{"Public name, area and plain description"}</td><td>{"Ratings and employer prestige"}</td><td>{"E02 Flow 2, N02, P-PP1\u20132"}</td></tr>
+    <tr><td><a href="?path=/docs/product-e02-mentor-setup-public-work-links--docs">{"PublicWorkLinks"}</a></td><td><code>{"@devmentor/ui/components/mentors/PublicWorkLinks"}</code></td><td>{"Link to verifiable public work"}</td><td>{"Testimonials: excluded"}</td><td>{"N02, P-PP3\u20134"}</td></tr>
+    <tr><td><a href="?path=/docs/product-e02-mentor-setup-price-list--docs">{"PriceList"}</a></td><td><code>{"@devmentor/ui/components/mentors/PriceList"}</code></td><td>{"Formatted prices for both session durations"}</td><td>{"Money calculation: application/core"}</td><td>{"E02 MD2, P17, P-PP5"}</td></tr>
+    <tr><td><a href="?path=/docs/product-e02-mentor-setup-text-only-note--docs">{"TextOnlyNote"}</a></td><td><code>{"@devmentor/ui/components/mentors/TextOnlyNote"}</code></td><td>{"Make the text-only format explicit"}</td><td>{"Video or call actions: excluded"}</td><td>{"N01, P-PP6"}</td></tr>
+    <tr><td><a href="?path=/docs/product-e02-mentor-setup-not-bookable-notice--docs">{"NotBookableNotice"}</a></td><td><code>{"@devmentor/ui/components/mentors/NotBookableNotice"}</code></td><td>{"Explain public profile cannot take bookings yet"}</td><td>{"A booking action before eligibility"}</td><td>{"E02 MD4, P-PP7"}</td></tr>
+    <tr><td><a href="?path=/docs/patterns-form--docs">{"CrudForm"}</a></td><td><code>{"@devmentor/ui/backend/forms/CrudForm"}</code></td><td>{"Signed-in schema form including textarea/select"}</td><td>{"Public forms: SchemaForm"}</td><td>{"F2, Q-CF1, E02 Flow 2"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-table--docs">{"DataTable"}</a></td><td><code>{"@devmentor/ui/backend/tables/DataTable"}</code></td><td>{"Paginated admin data with row actions and feedback"}</td><td>{"Availability: SlotList"}</td><td>{"Reusable API/UI layer, Table docs"}</td></tr>
+    <tr><td><a href="?path=/docs/primitives-signed-in-empty-state--docs">{"EmptyState"}</a></td><td><code>{"@devmentor/ui/backend/feedback/EmptyState"}</code></td><td>{"Generic empty collection title and next action"}</td><td>{"Load failure: ErrorMessage"}</td><td>{"Reusable API/UI layer"}</td></tr>
+    <tr><td><a href="?path=/docs/product-e02-mentor-setup-slot-list--docs">{"SlotRow"}</a></td><td><code>{"@devmentor/ui/components/availability/SlotRow"}</code></td><td>{"Open/booked slot with named delete confirmation"}</td><td>{"Editable booked slot: excluded"}</td><td>{"E02 Flow 4, P-DC1"}</td></tr>
+    <tr><td><a href="?path=/docs/product-e02-mentor-setup-setup-checklist--docs">{"SetupItem"}</a></td><td><code>{"@devmentor/ui/components/mentors/SetupItem"}</code></td><td>{"One setup item inside SetupChecklist"}</td><td>{"Course progress or completion percentage"}</td><td>{"E02 Flow 1, A02"}</td></tr>
+  </tbody>
+</table>
+
+## Shared behavior and boundaries
+
+Use `useSchemaForm` from `@devmentor/ui/forms/useSchemaForm` for form behavior and `apiCall` / `apiCallOrThrow` from `@devmentor/ui/backend/api/apiCall` for `/api/*` (F2, reusable API/UI layer). Use `cn` from `@devmentor/ui/lib/utils` to preserve the custom token utilities (existing package contract). These are behavior helpers, not visual components.
+
+Stories use simulated API responses and replacement schemas; they do not implement application authentication, persistence, Stripe or routing. Read [What is missing](?path=/docs/design-system-what-is-missing--docs) before implementing. Source: POSTEP stage 3 limitations.
+
+Source key: R/A/K = `lekcja-06/referencje.md`; T/Z/C = `lekcja-06/tokeny.md`; D/N = `.ai/specs/product-brief.md`; E01/E02 = their specs; F/P17 = platform primitives; Q/B/P-* = approved decisions in `packages/ui/POSTEP.md`. WCAG and WAI-ARIA APG identify accessibility requirements. Proposed guidance is explicitly labelled.

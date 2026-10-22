@@ -334,3 +334,14 @@ after upgrading Next.
 **Context:** `pkill -f "http.server 6007"; npm run …` in one Bash call exited with 144 before the rest ran: the shell's own command line contained the pattern.
 **Lesson:** Stop helper servers in a separate command, or match on something only the target has (`pkill -f "^python3 -m http.server"`), and don't chain the real work after it.
 **Applies to:** local preview servers started from agent shells.
+
+
+### 2026-10-21 — A multi-story MDX catalog needs themed inline previews
+
+**Context:** 37 Canvas iframe previews reset the catalog's dark globals to light; inline
+Canvas added low-contrast Storybook toolbar controls. Plain Story previews needed the
+existing `.docs-story` boundary so documentation anchor/table overrides did not affect them.
+**Lesson:** for a catalog, render existing stories with `Story inline autoplay={false}` inside
+`Unstyled` and a `.docs-story` token-styled wrapper. Check the whole catalog with axe at 320 px
+and both themes; per-story passes do not validate the documentation composition.
+**Applies to:** `packages/ui/src/docs/design-system/components.mdx`.
