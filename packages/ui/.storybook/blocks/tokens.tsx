@@ -13,8 +13,13 @@ function useMounted() {
 
 export function Table({ head, children }: { head: string[]; children: ReactNode }) {
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-left text-body text-foreground">
+    <div>
+      {/* P-AUD1, proposal approved by Rafał; WCAG 2.1.1. See preview.css: tables scroll. */}
+      <table
+        tabIndex={0}
+        aria-label={head.join(", ")}
+        className="w-full border-collapse text-left text-body text-foreground focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
+      >
         <thead>
           <tr className="border-b border-border">
             {head.map((cell) => (

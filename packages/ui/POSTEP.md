@@ -11,10 +11,10 @@ czekamy na „dalej” od PO. W nowej sesji najpierw przeczytaj ten plik.
 | 1. Fundamenty | **zakończony**, propozycje P-* rozstrzygnięte i wpisane | 2026-10-21 |
 | 2. Komponenty bazowe | **zakończony**: partie 1–4 (1–3 w 766a227, d2073e8, 9739dab); decyzje po partii 4 wpisane | 2026-10-21 |
 | 3. Komponenty produktu, wzorce, ekrany | **zakończony**: partie 1–5 (1–4 w a45f031, 9fbecd9, 09081a1, e044136); decyzje po partii 5 wpisane; czeka na „dalej” do etapu 4 | 2026-10-21 |
-| 4. Strony, które uczą | **wdrożony**, weryfikacja aplikacji zablokowana środowiskiem; P-DOC1–2 czekają na decyzję | 2026-10-21 |
-| 5. Sprawdzenie i raport | nie zaczęty | — |
+| 4. Strony, które uczą | **zakończony**, bramki aplikacji domknięte; P-DOC1–2 zatwierdzone | 2026-10-21 |
+| 5. Sprawdzenie i raport | **audyt i poprawki wykonane**, jawne wyjątki docs EX-AUD1–2; test świeżym agentem przygotowany | 2026-10-21 |
 
-**Następny krok:** rozstrzygnąć P-DOC1–2 i domknąć bramki `build` / `test:integration` etapu 4 w środowisku pozwalającym Turbopackowi otworzyć port. Dopiero po tym i po „dalej” przejść do etapu 5. Przed testem agentem zostają rzeczy z sekcji „Do zrobienia poza design systemem”.
+**Następny krok:** poprawki P-AUD1–3 wykonane; pozostałe zgłoszenia docs zapisane jako EX-AUD1–2 poniżej. W osobnej sesji wykonać przygotowany test świeżym agentem `/error`, po rozpatrzeniu listy „Do zrobienia poza design systemem”. Rozważyć ręczny test czytnikiem dla wyjątków ramek. Niczego nie commitowano.
 
 ## Przeczytane materiały
 
@@ -1271,7 +1271,34 @@ Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 5 etapu 3
 
 ## Opis ekranu do testu agentem (etap 5)
 
-(do uzupełnienia w etapie 5; kandydat musi pochodzić z E01/E02 i nie mieć jeszcze story)
+**Przygotowany, niewykonany. Uruchomić w nowej sesji, bez historii tej rozmowy.**
+
+**Kandydat:** E01 #28 / E01-S01 #34, publiczna strona `/error?code=internal_error`.
+Nie ma jej w Storybooku (sprawdzono indeks 70 stron / 324 stories).
+Źródło: `.ai/specs/2026-10-17-accounts-and-roles.md`, „Auth navigation and error
+fallback”, UI/UX (wiersz `/error`) i Phase 1 krok 4.
+
+**Prompt do osobnej sesji:**
+
+> Przeczytaj `packages/ui/AGENTS.md` i wskazany tam skrót design systemu,
+> następnie potrzebne strony Storybooka i specyfikację E01. Zbuduj lokalny prototyp
+> minimalnej publicznej strony `/error?code=internal_error`, której nie ma jeszcze
+> w Storybooku. Użyj istniejących komponentów i tokenów zgodnie z dokumentacją.
+> Strona i jej nagłówek muszą działać, gdy odczyt sesji lub DB zawodzi: bez principal,
+> request scope, odczytu DB i spersonalizowanej nawigacji. Sprawdź najpierw, czy
+> gotowy nagłówek nadaje się do tego kontekstu. Nie dodawaj komponentów, wariantów,
+> zależności ani nowych reguł produktu. Nieustalone teksty i akcję odzyskania
+> zgłoś jako brak albo jawne założenie, zamiast przedstawiać je jako zatwierdzone.
+> Sprawdź klawiaturę, oba motywy i szerokości 320, 768 i 1440 px. Nie publikuj
+> ani nie wysyłaj do remote. Oddaj listę użytych źródeł i każdego miejsca, w którym
+> musiałeś zgadywać; przy każdym podaj, jakiej informacji zabrakło i gdzie jej szukałeś.
+
+**Ocena po teście:** niezależna sesja ma zapisać importy i wybory komponentów,
+zgodność z tokenami, obsługę stanów, klawiaturę, motywy i szerokości oraz listę
+zgadywanych decyzji. Każdy brak później uzupełnić w dokumentacji albo wpisać do
+What is missing. Prototyp tylko w osobnej sesji/gałęzi; w bieżącym audycie niczego
+nie zbudowano. Wcześniej rozpatrzyć listę „Do zrobienia poza design systemem”;
+nie wykonywać tych zmian aplikacji automatycznie w ramach audytu.
 
 
 ## Etap 4: co wdrożono (2026-10-21)
@@ -1323,3 +1350,199 @@ Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 5 etapu 3
   dokładnego globalnego formatu dotąd nie zatwierdzono. Niczego nie zmieniono w komponentach.
 - **P-DOC2:** duże liczby poza kwotami: angielskie grupowanie, np. `1,000`, bez skracania
   znaczącej dokładnej liczby do `1k`. To propozycja reguły dokumentacji, bez nowego formattera.
+
+## Etap 4: domknięcie bramek aplikacji przy wznowieniu (2026-10-21)
+
+- `npm run build`: pass (Turbopack); wcześniejsza blokada portu nie wystąpiła.
+  Nie zmieniono kodu aplikacji, zależności ani konfiguracji.
+- `npm run test:integration:install`: pass, Chromium już zainstalowany.
+- `npm run test:integration`: **4/4 pass**, produkcyjna aplikacja z izolowanym
+  PostgreSQL Testcontainers i migracjami; testy obejmują strony, walidację,
+  trwałość danych, duplikat emaila i idempotentne seedowanie.
+  Dowody: `test-results/integration/junit.xml` i katalog
+  `test-results/integration/devmentor-integration-420e509d-c6fc-49a5-9e16-bfd875a3c5ab/`.
+- Ponowione `lint`, `typecheck`: pass; `test:coverage`: 278/278, 100% wszystkich
+  metryk. `check:tokens`: zero naruszeń w ui; 7 znanych wartości w aplikacji
+  nadal informacyjnie poza zakresem (Z-5).
+- Nie powtarzano builda/testów Storybooka ani macierzy przeglądarkowej: pliki
+  implementacji etapu 4 pozostają bez zmian, wcześniejsze wyniki zapisano wyżej.
+- P-DOC1–2 nadal propozycjami do decyzji; wysłano pytanie PO. Etap 5 nie rozpoczęty.
+- Dziennik wznowienia: `.ai/runs/2026-10-21-storybook-stage4-gates.md`.
+
+## Decyzje PO po etapie 4 (2026-10-21)
+
+- **P-DOC1: proposal approved by Rafał.** Daty z dniem tygodnia, angielską nazwą miesiąca, rokiem, zegarem 24-godzinnym i nazwą strefy widza, np. `Wed, 4 Nov 2026, 18:30` plus strefa. Zapisano w Content; bez zmiany formatterów komponentów.
+- **P-DOC2: proposal approved by Rafał.** Liczby poza kwotami w pełnej formie z angielskim grupowaniem, np. `1,000`, bez skracania dokładnych liczb do `1k`. Zapisano w Content; bez nowego formattera.
+- PO zatwierdził rozpoczęcie etapu 5; test świeżym agentem wyłącznie przygotować. Etap 4 jest w commicie `47260dd`; bieżące decyzje należą do kolejnego commita.
+
+## Etap 5: sprawdzenie i raport (2026-10-21)
+
+**Wynik:** audyt wykonany, design system nie jest jeszcze w pełni gotowy. Osobne
+stories przechodzą a11y, lecz szersza kontrola dokumentacji wykryła problemy.
+Test świeżym agentem wyłącznie przygotowany, zgodnie z poleceniem PO.
+
+### Wdrożono i sprawdzono
+
+- P-DOC1 i P-DOC2 zapisane w Content jako **proposal approved by Rafał**.
+  Nie zmieniono istniejących formatterów ani przykładów dat w komponentach.
+- `build-storybook`, `lint`, `typecheck`, `build`: pass.
+- `test:coverage`: **278/278**, 100% statements, branches, functions, lines.
+- `test:integration`: **4/4 pass**, produkcyjna aplikacja, nowy izolowany PostgreSQL,
+  migracje i agent-browser; dowody w `test-results/integration/`.
+- `test:storybook`: **324/324 × 2 motywy**, 53 pliki; a11y jako `error`, zero naruszeń
+  zgłoszonych w osobnych stories. Testy uruchamiają także play functions.
+- `check:tokens`: zero naruszeń w `packages/ui`. Siedem znanych wartości w aplikacji
+  pozostaje poza zakresem (Z-5); pełna lista plików i linii w dzienniku etapu 5.
+- Chromium: **2364 kombinacje** (70 docs + 324 stories × 2 motywy × 320/768/1440),
+  zero poziomego przewijania całej strony, surowych tabel Markdown, błędnych linków
+  dokumentacji i błędów runtime. Przewijanie tabel wewnątrz kontenera jest celowe.
+- Osobna kontrola klawiatury AlertDialog w katalogu: **6/6**; Enter otwiera, Cancel
+  dostaje fokus, Tab pozostaje w dialogu, Escape zamyka i przywraca fokus; obrys
+  solid 2 px. Portal poza story dziedziczy prawidłowy motyw w każdej szerokości.
+- Obejrzano zrzuty dialogu, długich pól, przewijanej tabeli, checklisty, wypłat
+  i wąskiego Sign up. Automatyczna macierz nie oznacza ręcznego obejrzenia każdego
+  ze wszystkich 2364 stanów.
+- Inwentarz: **70 stron docs** = 10 Design system + 7 Foundations + 23 Primitives
+  + 14 Product + 6 Patterns + 10 Screens; **37 rodzin komponentów**, dodatkowo
+  5 współdzielonych kompozytów; **324 stories**; **202 stories z własnym `play`**.
+  Wszystkie 37 stron komponentów mają sekcje 1–13. E03–E06 świadomie poza zakresem.
+
+### Znalezione problemy i propozycje do decyzji
+
+Reguła 12 promptu zabrania samodzielnego przepisywania istniejących stron; poniżej
+konkretny zakres proponowanych poprawek. Nie wprowadzono ich przy samym audycie.
+
+- **P-AUD1 — klawiatura i kontrast dokumentacji.** Dodać nazwany, fokusowalny kontener
+  do przewijanych tabel (również blok `Table` w `.storybook/blocks/tokens.tsx`) oraz
+  tokenowy fokus; uzupełnić `.storybook/preview.css` o kontrast kontrolek Canvas,
+  Controls i ArgsTable w ciemnym motywie, bez nadpisywania komponentów stories.
+  Źródło: WCAG 2.1.1 i 1.4.3. Przykłady: Foundations/Color przy 320 px;
+  Error state docs w ciemnym motywie (wykryty kontrast 3.34:1 i 1.55:1).
+- **P-AUD2 — motyw osadzonych przykładów.** Naprawić synchronizację motywu docs z
+  osadzonymi przykładami bez wymuszania jasnego motywu. **38/420 kontroli docs,
+  13 stron** żąda ciemnego motywu, lecz kończy z jasnym. Przykłady: Alert dialog,
+  Slot list, Delete confirmation i wszystkie 10 stron Screens. Potwierdzone także
+  po 2 sekundach w osobnej kontroli pięciu reprezentatywnych stron. W katalogu
+  z etapu 4 i w osobnych stories motywy działają. Źródło: zasada 9 promptu.
+- **P-AUD3 — semantyka kompozycji docs.** Odizolować pełne podglądy, aby nie dublowały
+  `main` i nazw regionów; naprawić/zastąpić docs-only inspektor obiektów ArgsTable,
+  który emituje `li` bez rodzica listy. Źródło: WCAG 1.3.1. Dotyczy m.in.
+  Detail view, Sign in options, Account summary i Bookable status line.
+- Łącznie axe w **197/420 kontrolach dokumentacji, na 53 stronach** zgłasza pięć
+  reguł: `color-contrast` (135 wystąpień na kombinację), `scrollable-region-focusable`
+  (96), `listitem` (12), `landmark-unique` (12), `landmark-no-duplicate-main` (6).
+  To liczby reguł na stronę/motyw/szerokość, nie liczba niezależnych błędów produktu.
+  Każda dotknięta strona i reguła jest wymieniona w dzienniku, selektory w JSON.
+  W docs sprawdzano `.sbdocs-content`, wyłączając wyłącznie `region` dla chromu;
+  konfiguracja a11y stories bez zmian. Nie uznano tych naruszeń za zaakceptowane wyjątki.
+
+### Ograniczenia i dowody
+
+- Nie wykonano testu świeżym agentem, testu żywym czytnikiem ekranu ani testów
+  aplikacyjnych tras E01/E02, których nie ma jeszcze w aplikacji. Nie dodawano
+  pominiętych kontrolek, E03–E06, zależności, wariantów ani nowego ekranu `/error`.
+- Nie ujednolicano dawnych przykładów dat bez roku po nowej decyzji P-DOC1;
+  reguła Content jest zatwierdzona, lecz starsze fixtures wymagają osobnego przeglądu.
+  Natywny `datetime-local` nadal wyświetla format przeglądarki/systemu użytkownika.
+- Dzisiejszy audyt rozszerza zakres kontroli dokumentacji poza 10 nowych stron etapu 4;
+  wcześniejszych wyników nie usuwamy, ale nie są dowodem poprawności wszystkich docs.
+- Pełny raport: `.ai/runs/2026-10-21-storybook-final-audit.md`.
+  Dane, selektory, skrypty kontroli, logi i reprezentatywne zrzuty:
+  `test-results/design-system-stage5/` (artefakty lokalne, ignorowane przez git).
+- Brak commita, push i publikacji. Zmiany decyzji i audytu pozostają po commicie `47260dd`.
+
+## Decyzje PO: poprawki audytu (2026-10-21)
+
+- **P-AUD1, P-AUD2, P-AUD3: proposal approved by Rafał.** Źródła: WCAG 2.1.1,
+  1.4.3, 1.3.1 i zasada 9 promptu. Zgoda obejmuje zakres napraw opisany w raporcie
+  etapu 5, w tym istniejące strony dokumentacji (zasada 12).
+- **Warunki:** P-AUD3 bez nowej zależności; sprawdzić `package.json` po zmianach.
+  Powtórzyć axe/motywy na tych samych stronach i podać wyniki przed/po. Każde
+  pozostałe zgłoszenie zapisać jako jawny wyjątek ze źródłem, bez cichego pomijania.
+  Niczego nie commitować. Test świeżym agentem nie jest częścią tej sesji.
+
+## P-AUD1–3: wykonanie i powtórna weryfikacja (2026-10-21)
+
+**P-AUD1–3: proposal approved by Rafał; wdrożone z jawnymi wyjątkami EX-AUD1–2.**
+Źródła: WCAG 2.1.1, 1.4.3, 1.3.1 i zasada 9 promptu. Historyczny raport audytu
+powyżej zachowany; bieżące wyniki i następny krok wynikają z tej sekcji.
+
+- Nazwane, fokusowalne tabele Markdown i Foundations oraz kontenery Controls/ArgTypes;
+  sprawdzone przewijanie klawiaturą i tokenowy obrys solid 2 px.
+- DocsContainer dobiera motyw kontrolek do klasy na `html`; etykiety True/False
+  korzystają z tokenu foreground. Style ciemnej dokumentacji nie nadpisują już
+  kolorów prawdziwych komponentów w podglądach Unstyled.
+- Osadzone ramki dostają `globals=theme:…`; zmiana motywu aktualizuje także ich
+  dokumenty. Przyczyna wcześniejszego resetu: ramki bez globals startowały jasne
+  i rozsyłały jasny stan do nadrzędnego dokumentu. Nie blokowano zdarzeń kanału.
+- Pełne podglądy Detail view i Sign-in options odizolowane w podpisanych ramkach;
+  obiektowe/array props w docs Account summary i Public work links jako read-only
+  ArgTypes zamiast wadliwego inspektora list. Wszystkie sekcje i API zachowane.
+- **Brak nowych zależności.** `package.json` wszystkich workspace'ów, root i lockfile
+  sprawdzone po P-AUD3 oraz na koniec: identyczne SHA256 jak przed zmianami.
+  Zmiana `optimizeDeps.include` jedynie prebundluje istniejące importy docs/theming,
+  aby Vite nie przeładowywał testów w trakcie.
+
+### Te same 70 stron × 2 motywy × 320/768/1440 = 420 kontroli
+
+| Pomiar | Przed | Po |
+|---|---:|---:|
+| Kontrole z axe findings | 197/420 | 18/420 (jawne wyjątki poniżej) |
+| Strony z axe findings | 53/70 | 3/70 |
+| Kontrole z błędnym motywem | 38/420 | 0/420 |
+| Strony z błędnym motywem | 13/70 | 0/70 |
+| `color-contrast` | 135 | 0 |
+| `scrollable-region-focusable` | 96 | 0 |
+| `listitem` | 12 | 0 |
+| `landmark-no-duplicate-main` | 6 | 0 |
+| `landmark-unique` | 12 | 18 |
+| `landmark-one-main` | 0 | 12 |
+| `page-has-heading-one` | 0 | 12 |
+
+Liczby reguł dotyczą wystąpień na kombinację, nie niezależnych usterek. Zestaw
+identyfikatorów stron/motywów/szerokości porównany automatycznie z bazą — identyczny.
+Nie wyłączono dodatkowych reguł axe; nadal wyłączone tylko wcześniejsze `region`
+dla chromu dokumentacji. Po zmianie oczekiwanie na osadzone ramki 700 ms zamiast
+180 ms w bazie ujawnia też zgłoszenia ich dokumentów. Surowy audyt **zwraca exit 1**
+z powodu poniższych wyjątków; nie opisujemy go jako bezwarunkowo zielonego.
+
+### Jawne wyjątki pozostałe po poprawkach
+
+- **EX-AUD1 — `landmark-unique`, 18 kontroli, 3 strony.** Sign-in options, Slot list
+  i Detail view: po dwa niezależne, unikalnie podpisane iframe. Wewnątrz przykładów
+  powtarzają się nazwy regionów lub nienazwany main. Każda ramka ma najwyżej jeden
+  main i jedną instancję danego regionu; skan całej dokumentacji nadal zgłasza
+  powtórzenia między ramkami. To jawne ograniczenie dokumentacji, **nie** twierdzenie,
+  że axe się myli. Zachowano semantykę prawdziwych komponentów. Wymaga weryfikacji
+  czytnikiem, czy dodatkowe etykiety instancji wyłącznie w docs są potrzebne.
+  Źródła: [Deque landmark-unique](https://dequeuniversity.com/rules/axe/4.11/landmark-unique),
+  [WAI-ARIA APG Landmark Regions](https://www.w3.org/WAI/ARIA/apg/practices/landmark-regions/).
+- **EX-AUD2 — `landmark-one-main` i `page-has-heading-one`, po 12 kontroli, 2 strony.**
+  Sign-in options i Slot list są fragmentami komponentów, nie pełnymi ekranami;
+  ramki nie dodają do nich sztucznego main ani h1. Zewnętrzna dokumentacja ma
+  nagłówek strony, a pełny Detail view ma po jednym widocznym h1 i main w ramce.
+  Źródła: [Deque main](https://dequeuniversity.com/rules/axe/4.14/landmark-one-main)
+  (ramka może mieć zero lub jeden main),
+  [Deque h1](https://dequeuniversity.com/rules/axe/4.11/page-has-heading-one)
+  (hierarchia nagłówków dokumentu nadrzędnego i ramek).
+- Wszystkie trzy pozostałe reguły mają tag **best-practice** w zainstalowanym axe-core
+  4.14, co zapisano w `exception-rules.json`. 42 wystąpienia reguł nakładają się na
+  **18 kontroli na 3 stronach**. Nie pominięto ich w JSON ani nie uznano za formalne
+  zwolnienie z WCAG. Reguły/selektory/motywy/szerokości są w pełnym raporcie i danych.
+
+### Pozostałe bramki i ograniczenia
+
+- Pass: build-storybook, lint, typecheck, build; unit 278/278 i 100% wszystkich metryk;
+  integration 4/4; stories 324/324 w każdym motywie, a11y jako error; check:tokens
+  zero w ui (7 dawnych, informacyjnych wartości w aplikacji poza zakresem Z-5).
+- Klikanie rzeczywistego przełącznika motywu w managerze: 3/3 zmiany, docs i ramka
+  zgodne. Dialog i portal: 6/6 kombinacji klawiatury i motywu. Przewijanie tabel
+  Foundations i Controls klawiaturą przy 320 px: 2/2, scrollLeft rośnie o 40 px.
+- Brak przewijania całej strony, błędów runtime, błędnych linków i surowych tabel
+  w macierzy 420 kontroli. Każdy URL ramki niesie właściwy motyw.
+- **Test świeżym agentem nadal tylko przygotowany, niewykonany.** Brak testu żywym
+  czytnikiem ekranu; stare fixtures dat, prace aplikacji i pozostałe luki poza zakresem
+  pozostają opisane wcześniej. Design system nie ma jeszcze końcowego dowodu testu agentem.
+- Dziennik: `.ai/runs/2026-10-21-storybook-docs-remediation.md`.
+  Artefakty lokalne: `test-results/design-system-remediation/` — before/after/comparison,
+  wyjątki, metadane reguł, logi, skrypty i zrzuty. Nie commitowano ani nie publikowano.

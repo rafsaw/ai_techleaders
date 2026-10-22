@@ -1,4 +1,4 @@
-import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+import { ArgTypes, Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
 
 import * as Stories from "./account-summary.stories";
 
@@ -81,7 +81,13 @@ Labels *Email*, *Roles*, *Sign-in methods*; methods *GitHub*, *Email and passwor
 | `welcome` | `boolean` | `?welcome=1` |
 | `children` | `ReactNode` | the name form |
 
-<Controls of={Stories.Playground} />
+<Controls of={Stories.Playground} exclude={["roles", "signInMethods"]} />
+
+Object and array props are documented read-only here; edit them in the standalone Playground
+Controls panel. This avoids the documentation object inspector's invalid list markup
+(P-AUD3, proposal approved by Rafał; WCAG 1.3.1).
+
+<ArgTypes of={Stories.Playground} include={["roles", "signInMethods"]} />
 
 ## 11. Code
 

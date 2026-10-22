@@ -25,7 +25,9 @@ export default defineConfig({
       "@base-ui/react/separator",
       "zod",
       "@storybook/addon-docs",
+      "@storybook/addon-docs/blocks",
       "@storybook/react-dom-shim",
+      "storybook/theming",
     ],
   },
   test: {

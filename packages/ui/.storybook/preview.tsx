@@ -4,6 +4,8 @@ import { mswLoader } from "msw-storybook-addon/csf3";
 import { GLOBALS_UPDATED, SET_GLOBALS } from "storybook/internal/core-events";
 import { addons } from "storybook/preview-api";
 
+import { DocumentationArgTypes, DocumentationContainer, DocumentationControls, DocumentationStory, DocumentationTable } from "./blocks/documentation";
+
 import "./preview.css";
 
 // Self-hosted Geist (Q4). The class sets --font-sans on <html>; see globals.css.
@@ -32,6 +34,12 @@ const preview: Preview = {
   loaders: [mswLoader()],
   initialGlobals: { theme: initialTheme },
   parameters: {
+    // P-AUD1–3, proposal approved by Rafał: accessible tables, themed docs
+    // controls and isolated story frames carrying the selected document theme.
+    docs: {
+      container: DocumentationContainer,
+      components: { table: DocumentationTable, Story: DocumentationStory, Controls: DocumentationControls, ArgTypes: DocumentationArgTypes },
+    },
     layout: "padded",
     // Every component and screen is checked at these widths (Foundations/Spacing and layout).
     viewport: {

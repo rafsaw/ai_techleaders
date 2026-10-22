@@ -62,12 +62,13 @@ them plainly why a previous attempt failed.
 | Long content, 320 px | *Long content, narrow* | — |
 | Empty, many | not applicable: no list | — |
 
-<Canvas of={Stories.EmailNotConfirmed} />
+<Canvas of={Stories.EmailNotConfirmed} story={{ inline: false, height: "800px" }} />
 
 ## 7. Behaviour and accessibility
 
 - Tab order: GitHub, email, password (and its toggle), **Sign in**, **Create an account** (story *Playground* tests GitHub first).
 - Banners: failures `role="alert"`, the cancel note `role="status"`.
+- Documentation previews use separate frames so repeated email sections belong to separate documents (P-AUD3, proposal approved by Rafał; WCAG 1.3.1).
 - After `email_not_confirmed`, **Resend confirmation** re-posts the same email and password (E01: only the person who knows the password can trigger a link). A later successful or different failure removes it.
 - No password-reset link (N03).
 
@@ -85,7 +86,7 @@ address is already confirmed — sign in.*).
 | 320 px | one column; GitHub and **Sign in** full width |
 | 768 px, 1440 px | within `max-w-text`, centred by the page |
 
-<Canvas of={Stories.LongContentNarrow} />
+<Canvas of={Stories.LongContentNarrow} story={{ inline: false, height: "800px" }} />
 
 ## 10. API
 

@@ -345,3 +345,26 @@ existing `.docs-story` boundary so documentation anchor/table overrides did not 
 `Unstyled` and a `.docs-story` token-styled wrapper. Check the whole catalog with axe at 320 px
 and both themes; per-story passes do not validate the documentation composition.
 **Applies to:** `packages/ui/src/docs/design-system/components.mdx`.
+
+### 2026-10-21 — Story a11y passes do not validate documentation controls
+
+**Context:** the final Storybook audit passed 324 stories in both themes, while
+full MDX pages exposed nonfocusable scrolling tables, dark Canvas/ArgsTable contrast,
+object-inspector list semantics, repeated landmarks and docs theme resets.
+**Lesson:** audit built MDX as well as stories at narrow widths and both themes;
+assert the actual class on html after embedded examples settle. For browser probes,
+ignore hidden `.sb-errordisplay` boilerplate and allow portal-only stories whose root
+is empty. Keep documentation findings separate from story-test results.
+**Applies to:** `packages/ui/.storybook/`, full Storybook audits.
+
+### 2026-10-21 — Storybook iframe previews must carry theme globals
+
+**Context:** P-AUD2 docs frames booted light and broadcast SET_GLOBALS/GLOBALS_UPDATED,
+resetting dark docs. A class-on-html decorator alone could not prevent it.
+**Lesson:** use the supported MDX Story override to pass the selected theme in every
+iframe URL and reload frames on toolbar changes; verify both docs and frame roots.
+Theme DocsContainer too: Canvas/ArgsTable controls need their matching base theme.
+Keep prose CSS out of Unstyled component previews; overriding anchor colours there
+broke the primary LinkButton contrast. Record cross-frame axe best-practice findings
+explicitly instead of disabling rules.
+**Applies to:** `packages/ui/.storybook/blocks/documentation.tsx`, `preview.css`.
