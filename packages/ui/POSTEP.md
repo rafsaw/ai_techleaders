@@ -10,12 +10,11 @@ czekamy na „dalej” od PO. W nowej sesji najpierw przeczytaj ten plik.
 | 0. Inwentaryzacja i plan | **zakończony**, wszystkie pytania rozstrzygnięte | 2026-10-20 – 2026-10-21 |
 | 1. Fundamenty | **zakończony**, propozycje P-* rozstrzygnięte i wpisane | 2026-10-21 |
 | 2. Komponenty bazowe | **zakończony**: partie 1–4 (1–3 w 766a227, d2073e8, 9739dab); decyzje po partii 4 wpisane | 2026-10-21 |
-| 3. Komponenty produktu, wzorce, ekrany | **w toku**: partie 1–2 z 5 zrobione, decyzje po partii 2 wpisane; czeka na decyzję o krótkich etykietach P-S1a/b i „dalej” do partii 3 | 2026-10-21 |
+| 3. Komponenty produktu, wzorce, ekrany | **w toku**: partie 1–3 z 5 zrobione (1–2 w a45f031, 9fbecd9); decyzje po partii 3 wpisane; czeka na „dalej” do partii 4 | 2026-10-21 |
 | 4. Strony, które uczą | nie zaczęty | — |
 | 5. Sprawdzenie i raport | nie zaczęty | — |
 
-**Następny krok:** decyzja PO o krótkich etykietach P-S1a/b, potem „dalej” do partii 3 etapu 3
-(publiczne komponenty E02). Przed testem agentem zostają rzeczy z sekcji „Do zrobienia poza design
+**Następny krok:** „dalej” do partii 4 etapu 3 (wzorce). Przed testem agentem zostają rzeczy z sekcji „Do zrobienia poza design
 systemem”.
 
 ## Przeczytane materiały
@@ -184,6 +183,9 @@ Wszystkie jako „proposal approved by Rafał” (w dokumentacji i tokenach).
 
 ## Do zrobienia poza design systemem (przed testem agentem, etap 5)
 
+- **`formatMoney` w core (E02, P17):** nie istnieje jeszcze w `core`
+  (`core/src/validators/money/money.schema.ts`). Dodać go przy stronie `/mentors/[id]`; do tego
+  czasu `PriceList` przyjmuje gotowe kwoty (decyzja PO 2026-10-21).
 - **Adres „Contact the DevMentor team” (E02):** ustalić prawdziwy adres kontaktu przy stronach
   `/mentor` i dopisać go do specyfikacji E02 (`2026-10-18-mentor-setup.md`). Do tego czasu
   `PayoutStatus` przyjmuje go w propsie `contactHref` (decyzja PO 2026-10-21).
@@ -202,8 +204,8 @@ Wszystkie jako „proposal approved by Rafał” (w dokumentacji i tokenach).
 - **CrudForm a P-C2:** sprawdzone 2026-10-21 w `packages/ui/src/backend/forms/CrudForm.tsx`
   l. 145–153: kolejność już jest zgodna z P-C2 (Cancel, potem submit, `justify-end`, ta sama
   kolejność w kodzie i na ekranie). Do zmiany zostaje tylko odstęp `gap-2` → `gap-in-group`
-  (ta sama wartość 8 px, nazwa tokenu); zrobię to w partii 3 przy komponentach `backend/`,
-  chyba że PO zdecyduje inaczej.
+  (ta sama wartość 8 px, nazwa tokenu). **Zrobione:** przy partii 3 etapu 3 sprawdziłem, że
+  `CrudForm.tsx` ma już `gap-in-group` (l. 85), więc nic tu nie zostało.
 
 ## Otwarte pytania
 
@@ -985,10 +987,74 @@ Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 2 etapu 3
     proposal** (nazwa statusu `pending` z Flow 3 krok 6; w UI spec jej nie pokazuje);
   - pozostałe stany mieszczą się w P-C10 bez zmian (*Starting Stripe setup*, *No upcoming slots*,
     *N upcoming (M booked)* do ok. 30 znaków).
+  - **P-S1a i P-S1b zatwierdzone** przez PO 2026-10-21 (po commicie 9fbecd9); w docs oznaczone
+    „proposal approved by Rafał” (`badge.mdx`, `payout-status.mdx`, `setup-checklist.mdx`).
   - Przy okazji: story `Badge` „Status with icon” (partia 2 etapu 2) miało plakietkę „Stripe is
     checking your details” wbrew P-C10; teraz *Pending*. Mapowanie w `badge.mdx` poprawione.
   - Lekcja w `.ai/lessons.md` (2026-10-21, „A no-horizontal-scroll check misses clipped text”)
     poprawiona: nie zawijać plakietki, tylko krótka etykieta + zdanie w tekście.
+
+## Etap 3, partia 3: co zrobione (2026-10-21)
+
+Publiczne komponenty E02 dla `/mentors/[id]` (E02 Flow 2 krok 4), tylko zestaw publiczny F3
+(bez shadcn i Base UI), w `ui/src/components/mentors/`:
+
+- **`MentorProfileHeader`:** nazwa wyświetlana jako `h1`, plakietka obszaru (wygląd plakietki
+  `outline` w czystym Tailwindzie), opis jako zwykły tekst z zachowanymi łamaniami linii
+  (`whitespace-pre-line`; Markdown i HTML widać dosłownie). Opis dołożyłem do nagłówka, bo plan
+  przewidywał tylko nazwę i obszar, a spec wymaga opisu na stronie i nie miał innego miejsca.
+  Eksportuje `Area`, `AREA_LABELS`.
+- **`PublicWorkLinks`:** `h2` „Public work”, wiersze z cienką linią (R01.3), etykieta host +
+  ścieżka w kroju mono (R01.2), `target="_blank"`, `rel="nofollow noopener ugc"`, ikona
+  `ExternalLink` i „(opens in a new tab)” dla czytników (E02 UI/UX). Eksportuje `linkLabel()`.
+- **`PriceList`:** „25 min · $40”, „50 min · $70”, zawsze w tej kolejności; kwoty formatuje strona
+  przez `formatMoney` z core (P17), bo ui nie importuje core.
+- **`TextOnlyNote`:** „Text sessions only” (N01), bez ikony.
+- **`NotBookableNotice`:** `Notice` `info` z tytułem „Not taking bookings yet” (MD4), bez akcji.
+- **Znalezione przez test a11y i poprawione:** nagłówek profilu jako `<header>` poza `<main>` to
+  drugi landmark „banner” obok `SiteHeader` (axe: `landmark-no-duplicate-banner`) → `<div>`;
+  `h1` i tak nazywa stronę.
+- **Stories (17 nowych, razem 199):** stany danych; pusty stan, ładowanie i błąd opisane w docs
+  jako „nie dotyczy” z powodem (pola wymagane, strona renderowana na serwerze, brak profilu = 404).
+- **Strony dokumentacji:** 5 stron po 13 sekcji.
+- **Testy jednostkowe:** `components/mentors/public-profile.test.tsx`.
+
+## Etap 3, partia 3: co sprawdzone
+
+- lint 0, typecheck 0, check:tokens (0 w ui), test:coverage (271 testów, 100%),
+  build-storybook 0, test:storybook w obu motywach 199/199 × 2, build Next.js 0,
+  test:integration 4/4. `package.json` bez zmian.
+- Chromium: 5 stron × 2 motywy × 320/1440 px bez przewijania w bok, surowych tabel i błędów
+  konsoli; zrzuty: nagłówek z długą nazwą (320, ciemny), długi link (320), pięć linków (1440).
+
+## Etap 3, partia 3: czego nie sprawdzono
+
+- Komponentów na prawdziwej stronie: `/mentors/[id]` nie istnieje w tej gałęzi.
+- `formatMoney` jeszcze nie ma w core; stories podają gotowe kwoty.
+- Czytnik ekranu na żywo.
+
+## Etap 3, partia 3: do decyzji (oznaczone w docs jako proposal)
+
+Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 3 etapu 3)”.
+
+- **P-PP1** Plakietka obszaru: wygląd `outline` (ramka, bez koloru), w zestawie publicznym jako
+  zwykły `span` (spec mówi tylko „an area badge”).
+- **P-PP2** Układ nagłówka: nazwa i plakietka w jednej linii (plakietka schodzi pod nazwę, gdy
+  brak miejsca), opis pod spodem w `max-w-text`.
+- **P-PP3** Nagłówek sekcji linków: „Public work” (`h2`); termin z briefu „public work link”.
+- **P-PP4** Etykieta linku: bez query i fragmentu; sam host, gdy ścieżka to „/”.
+- **P-PP5** Lista cen: nazwa „Prices” (`aria-label`), kwota pogrubiona, cyfry tabelaryczne.
+- **P-PP6** „Text sessions only” bez ikony, `text-label` w kolorze tekstu.
+- **P-PP7** „Not taking bookings yet” jako `Notice` `info` bez treści i bez akcji (luka
+  w referencjach: „Ekrany bez referencji”).
+
+## Decyzje PO z 2026-10-21 (po partii 3 etapu 3)
+
+- **P-PP1–P-PP7:** przyjęte tak, jak zaproponowane; w docs oznaczone „proposal approved by Rafał”.
+- **Opis w `MentorProfileHeader`:** różnica względem planu przyjęta (uzasadniona specyfikacją E02
+  Flow 2 krok 4).
+- **Kody P-S1a i P-S1b** zostają bez zmian (mimo podobieństwa do P-S1, reguły cienia).
+- **`formatMoney`:** wpis w „Do zrobienia poza design systemem”.
 
 ## Opis ekranu do testu agentem (etap 5)
 

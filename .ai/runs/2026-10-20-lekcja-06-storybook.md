@@ -116,3 +116,15 @@
 - Decyzje po partii 2 etapu 3: P-M1–P-M7 przyjęte, P-M8 odrzucone (P-C10). Krótkie etykiety
   *Setup interrupted* i *Pending* (P-S1a/b, proposal), pełne zdania ze spec pod tytułem; story
   Badge z długą plakietką poprawione; adres kontaktu do spec E02 (poza DS).
+- P-S1a i P-S1b zatwierdzone przez PO („proposal approved by Rafał”).
+
+## 2026-10-21: etap 3, partia 3
+
+- `mentors/` MentorProfileHeader, PublicWorkLinks, PriceList, TextOnlyNote, NotBookableNotice
+  (tylko zestaw publiczny F3); 17 stories, 5 stron docs, testy jednostkowe.
+- Znalezione i poprawione: `<header>` nagłówka profilu jako drugi landmark „banner” (axe) → `<div>`.
+- Sprawdzone: lint, typecheck, check:tokens, test:coverage (271, 100%), build-storybook,
+  test:storybook 199/199 × 2, build, test:integration (4/4), Chromium 5 stron × 2 motywy × 2 szerokości.
+- Wynik: partia 3 zakończona, czeka na decyzje P-PP1–P-PP7 i „dalej”.
+- Decyzje po partii 3 etapu 3: P-PP1–P-PP7 przyjęte (z opisem w MentorProfileHeader); kody
+  P-S1a/b bez zmian; `formatMoney` w core do zrobienia przy `/mentors/[id]` (poza DS).

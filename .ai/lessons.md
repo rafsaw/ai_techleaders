@@ -27,6 +27,15 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-21 — A `<header>` for a page section is a second banner landmark
+
+**Context:** `MentorProfileHeader` (name, area, description at the top of `/mentors/[id]`) was a
+`<header>`. axe in the Storybook a11y test failed with `landmark-no-duplicate-banner`.
+**Lesson:** use `<header>` only for the site header (`SiteHeader`). A `<header>` that is not inside
+`<main>`, `<article>` or `<section>` becomes a banner landmark, so a page-top block next to the site
+header gives two banners. Use a `<div>` and let the `h1` name the page.
+**Applies to:** product components in `packages/ui/src/components/<concept>/` that open a page.
+
 ### 2026-10-21 — A no-horizontal-scroll check misses clipped text
 
 **Context:** Lesson 06 design system, `SetupItem` at 320 px. A long state in a `Badge` (`overflow-hidden whitespace-nowrap`) beside the card title covered the title and was cut off, yet `scrollWidth <= clientWidth` passed.
