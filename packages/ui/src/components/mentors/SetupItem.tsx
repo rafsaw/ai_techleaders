@@ -8,6 +8,9 @@ import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle }
 // three words and never wraps (P-C10); a longer state from the spec goes in the note. A small card in a short
 // list of panels (card.mdx, P-C9). Docs: setup-checklist.mdx.
 
+/** The note on a locked item (E02 Flow 1). Shared by the checklist and PayoutStatus. */
+export const LOCKED_NOTE = "Save your profile first.";
+
 export type SetupStateVariant = "secondary" | "success" | "warning" | "destructive";
 
 export interface SetupItemProps {
@@ -27,7 +30,7 @@ export function SetupItem({ title, state, variant = "secondary", note, children 
     <li data-slot="setup-item">
       <Card size="sm">
         <CardHeader>
-          <CardTitle role="heading" aria-level={3}>
+          <CardTitle role="heading" aria-level={2}>
             {title}
           </CardTitle>
           <CardAction>

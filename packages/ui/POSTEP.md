@@ -10,11 +10,11 @@ czekamy na „dalej” od PO. W nowej sesji najpierw przeczytaj ten plik.
 | 0. Inwentaryzacja i plan | **zakończony**, wszystkie pytania rozstrzygnięte | 2026-10-20 – 2026-10-21 |
 | 1. Fundamenty | **zakończony**, propozycje P-* rozstrzygnięte i wpisane | 2026-10-21 |
 | 2. Komponenty bazowe | **zakończony**: partie 1–4 (1–3 w 766a227, d2073e8, 9739dab); decyzje po partii 4 wpisane | 2026-10-21 |
-| 3. Komponenty produktu, wzorce, ekrany | **w toku**: partie 1–3 z 5 zrobione (1–2 w a45f031, 9fbecd9); decyzje po partii 3 wpisane; czeka na „dalej” do partii 4 | 2026-10-21 |
+| 3. Komponenty produktu, wzorce, ekrany | **w toku**: partie 1–4 z 5 zrobione (1–3 w a45f031, 9fbecd9, 09081a1); decyzje po partii 4 wpisane; czeka na „dalej” do partii 5 | 2026-10-21 |
 | 4. Strony, które uczą | nie zaczęty | — |
 | 5. Sprawdzenie i raport | nie zaczęty | — |
 
-**Następny krok:** „dalej” do partii 4 etapu 3 (wzorce). Przed testem agentem zostają rzeczy z sekcji „Do zrobienia poza design
+**Następny krok:** „dalej” do partii 5 etapu 3 (ekrany E01 i E02). Przed testem agentem zostają rzeczy z sekcji „Do zrobienia poza design
 systemem”.
 
 ## Przeczytane materiały
@@ -183,6 +183,9 @@ Wszystkie jako „proposal approved by Rafał” (w dokumentacji i tokenach).
 
 ## Do zrobienia poza design systemem (przed testem agentem, etap 5)
 
+- **Strona 404 w aplikacji:** `packages/app` nie ma `not-found.tsx`, więc 404 z `/mentors/[id]`
+  (brak profilu albo brak roli) pokazuje domyślną stronę Next. Wzorzec Detail view proponuje treść
+  (P-DV3); dodać `not-found.tsx` przy stronie `/mentors/[id]`.
 - **`formatMoney` w core (E02, P17):** nie istnieje jeszcze w `core`
   (`core/src/validators/money/money.schema.ts`). Dodać go przy stronie `/mentors/[id]`; do tego
   czasu `PriceList` przyjmuje gotowe kwoty (decyzja PO 2026-10-21).
@@ -1055,6 +1058,116 @@ Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 3 etapu 3
   Flow 2 krok 4).
 - **Kody P-S1a i P-S1b** zostają bez zmian (mimo podobieństwa do P-S1, reguły cienia).
 - **`formatMoney`:** wpis w „Do zrobienia poza design systemem”.
+
+## Etap 3, partia 4: co zrobione (2026-10-21)
+
+Wzorce w `ui/src/patterns/` (story + strona docs każdy, menu „Patterns”), złożone wyłącznie
+z komponentów pakietu i `apiCall`; odpowiedzi API symuluje MSW (`parameters.msw`):
+
+- **Form:** zestaw publiczny (`SchemaForm`, `/sign-up`) i zalogowany (`CrudForm`, `/account`).
+  MSW: sukces, oczekiwanie (z blokadą podwójnego wysłania: liczba żądań = 1), błąd pola, błąd
+  serwera 500 (dokładna treść z `apiHandler`), brak sieci; do tego walidacja po opuszczeniu pola,
+  fokus na pierwszym błędzie, długie treści przy 320 px.
+- **Detail view:** `/mentors/[id]`: stan „Not taking bookings yet” na górze, od 1024 px ceny
+  w bocznej kolumnie, 404 „nie istnieje albo brak dostępu”; test, że status i `h1` są widoczne
+  bez przewijania (1440 i 320 px z opisem 2000 znaków).
+- **Delete confirmation:** `/mentor/slots` z prawdziwym `DELETE` przez MSW: pytanie z datą,
+  Cancel pierwszy, Escape i powrót fokusu, oczekiwanie, 409, ponowienie po braku sieci, pusta
+  lista po ostatnim slocie.
+- **Setup checklist:** `/mentor` (linia statusu + checklista): test liczy przyciski w stylu
+  głównym na każdym etapie.
+- **Sign-in and return:** zaproszenie → `/sign-in?returnTo=…` → powrót do zaproszenia (MSW
+  `POST /api/auth/sign-in`), zły hasło z zachowanym `returnTo`, powrót do nieważnego zaproszenia.
+- **Provider status:** banery `?stripe=returned` / `check_failed` z tekstami ze spec + stan
+  pozycji Payouts; start nieudany u dostawcy (502) z **Retry setup**.
+- **Znalezione przez złożenie wzorców i poprawione w komponentach:**
+  - `SetupItem` miał nagłówek poziomu 3 pod `h1` strony (axe `heading-order`) → poziom 2;
+  - `SlotRow` po błędzie przejściowym (brak sieci, 500) zostawiał tylko **Close**, więc nie dało
+    się ponowić → **Remove slot** zostaje; tylko 409 i 404 kończą (P-DC1);
+  - baner „check failed” powtarzał „Try checking again” jako zdanie i jako przycisk → zostaje
+    przycisk.
+- **Stories:** 44 nowe (razem 243). **Strony docs:** 6 (struktura 9 sekcji, P-PT1).
+- **Testy jednostkowe:** nowy test ponawiania w `mentor-setup.test.tsx`; poziom nagłówka 2.
+
+## Etap 3, partia 4: co sprawdzone
+
+- lint 0, typecheck 0, check:tokens (0 w ui), test:coverage (272 testy, 100%), build-storybook 0,
+  test:storybook w obu motywach 243/243 × 2, build Next.js 0, test:integration 4/4.
+  `package.json` bez zmian (MSW był w planie i jest zainstalowany od etapu 1).
+- Chromium: 6 stron × 2 motywy × 320/1440 px bez przewijania w bok i surowych tabel. Jedyny
+  komunikat konsoli to symulowana odpowiedź 409 w osadzonej story *Booked meanwhile* (zamierzona).
+- Zrzuty: Detail view (1440 jasny, 320 ciemny), Provider status *Check failed* (1440 ciemny),
+  Delete confirmation *Booked meanwhile* (1440).
+
+## Etap 3, partia 4: czego nie sprawdzono
+
+- Wzorców na prawdziwych stronach (strony E01 Phase 2 i E02 nie istnieją w tej gałęzi).
+- Schematy `signUpSchema`, `signInSchema`, `accountUpdateSchema` to zastępniki w stories.
+- `CrudForm` nie ma `resetOnSuccess` (E01 Phase 1), więc po zapisie wraca do wartości
+  początkowych; opisane w docs wzorca Form.
+- Treść 502 `provider_unavailable` w *Start failed* to przykład; spec jej nie ustala.
+- Wzorzec „lista z filtrami”: zgodnie z Q6 = (a) idzie z E03 (What is missing).
+- Czytnik ekranu na żywo.
+
+## Etap 3, partia 4: do decyzji (oznaczone w docs jako proposal)
+
+Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 4 etapu 3)”.
+
+- **Q-SC1 (pytanie):** na `/mentor` po zapisaniu profilu są dwie główne akcje naraz
+  (**Continue to Stripe** i **Publish slots**): E02 Flow 1 daje każdej pozycji jedną następną
+  akcję, R01.6 chce jednej akcji głównej na ekranie. (a) styl główny ma tylko pierwsza
+  niezakończona pozycja, reszta `outline` (zmiana w `SetupChecklist`: musi wiedzieć, czy Payouts
+  jest zakończone); (b) zostawić dwie.
+- **P-PT1** Strona wzorca ma 9 sekcji: problem, gdzie, z czego, reguły (ze źródłem), stany,
+  zachowanie, kod, dobrze/źle, powiązane (prompt podaje 13 sekcji tylko dla komponentów).
+- **P-FM1** Formularz, który zostaje na stronie, po zapisie pokazuje status „Your display name
+  is saved.” (`Alert` `success`, `role="status"`).
+- **P-DV1** Status zmieniający to, co gość może zrobić („Not taking bookings yet”), jest nad nazwą.
+- **P-DV2** Od 1024 px ceny w bocznej kolumnie (tam E04 doda **Book**); węziej po opisie. Przy
+  320 px i długim opisie ceny są pod opisem; E04 musi trzymać **Book** nad zgięciem (What is missing).
+- **P-DV3** Strona 404: „Page not found”, „This page doesn't exist, or you don't have access to
+  it.”, **Go to the home page**.
+- **P-DC1** Błąd przejściowy przy usuwaniu zostawia **Remove slot** (ponowienie); 409 i 404
+  zostawiają tylko **Close**.
+- **P-PS1** Warianty banerów Stripe wg mapowania statusów (ready `success`, pending `default`,
+  incomplete `warning`, blocked i check failed `destructive`), wiadomość `role="status"`,
+  problem `role="alert"`; „Try checking again” jako przycisk zamiast powtórzonego zdania.
+
+## Decyzje PO z 2026-10-21 (po partii 4 etapu 3)
+
+- **Q-SC1: opcja (a).** Styl główny ma tylko akcja pierwszej niezakończonej pozycji; pozostałe są
+  `outline` (źródło: R01.6, P-M4). Wpisane:
+  - `SetupChecklist` sam wyznacza pierwszą niezakończoną pozycję (`firstUnfinished`: profil nie
+    zapisany → wypłaty nie `ready` → brak slotów). Prop `payouts` przyjmuje teraz propsy
+    `PayoutStatus` (zamiast gotowego elementu), a checklista renderuje `PayoutStatus` z `next`;
+  - `PayoutStatus` dostał prop `next` (domyślnie `true`); `false` → przycisk `outline`;
+  - u nas po zapisaniu profilu główna jest tylko **Continue to Stripe**; **Publish slots** jest
+    `outline`, dopóki wypłaty nie są gotowe (także gdy Stripe sprawdza dane);
+  - story komponentu *Profile saved* i wzorca *Step payouts* / *Waiting* sprawdzają liczbę akcji
+    głównych; testy jednostkowe `firstUnfinished` i `next={false}`; docs komponentu, `PayoutStatus`
+    i wzorca zaktualizowane.
+- **Q-SC1, doprecyzowanie (PO 2026-10-21): opcja (2).** Przycisk główny ma **pierwsza niezakończona
+  pozycja z akcją**. Pozycja, która tylko czeka (wypłaty, gdy Stripe sprawdza dane: samo **Check
+  status**), jest pomijana, więc główny przechodzi np. na **Publish slots**; wszystko inne `outline`.
+  Jeden przycisk główny, a zero tylko wtedy, gdy żadna pozycja nie ma akcji. Wpisane:
+  - `firstUnfinished` → `firstWithAction` (profil niezapisany → wypłaty z krokiem konfiguracji →
+    brak slotów); `payoutHasAction()` w `PayoutStatus`;
+  - akcja w wypłatach = krok konfiguracji, który robi mentor: *Not started*, *Starting Stripe setup*,
+    *Setup interrupted*, *Incomplete*. Nie liczą się: *Pending* (oczekiwanie), *Setup failed* i
+    *Blocked* (kontakt z zespołem zostaje `outline`, P-M4), *Locked*, *Confirmed* — interpretacja
+    zmieniona po potwierdzeniu PO, zob. niżej;
+  - story wzorca *Waiting* (główny = Publish slots) i nowe *Waiting nothing to do* (zero);
+    testy jednostkowe; docs `SetupChecklist`, `PayoutStatus`, wzorca.
+- **Q-SC1, potwierdzenie (PO 2026-10-21): opcja (b).** W *Setup failed* i *Blocked* akcją wypłat jest
+  **Contact the DevMentor team** (akcja ze spec E02 dla tych stanów); jest przyciskiem głównym, gdy to
+  pierwsza niezakończona pozycja z akcją, inaczej `outline`. Link zostaje prawdziwym `<a>`
+  z `buttonVariants()` (bez `role="button"`; `ui` nie importuje Next, a `mailto:` i tak jest `<a>`),
+  adres w `contactHref`. `failed` i `blocked` dodane do `payoutHasAction()`; stories (*Blocked* w
+  komponencie i wzorcu, *Setup failed*, *Blocked not primary*), testy i docs zaktualizowane.
+  - przy okazji: import cykliczny `SetupChecklist` ↔ `PayoutStatus` (przez `LOCKED_NOTE`) wywracał
+    ładowanie stories w przeglądarce (testy jsdom go nie złapały) → `LOCKED_NOTE` przeniesiony do
+    `SetupItem`; `SetupChecklist` dalej go eksportuje.
+- **P-PT1, P-FM1, P-DV1–P-DV3, P-DC1, P-PS1:** przyjęte; w docs oznaczone „proposal approved by Rafał”.
 
 ## Opis ekranu do testu agentem (etap 5)
 

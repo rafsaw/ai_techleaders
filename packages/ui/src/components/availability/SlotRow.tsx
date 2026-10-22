@@ -36,10 +36,15 @@ export interface SlotRowProps {
   remove?: () => Promise<ApiResult<unknown>>;
 }
 
+const FINAL_CODES = new Set(["conflict", "not_found"]);
+
 function RemoveSlot({ when, remove }: { when: ReactNode; remove: () => Promise<ApiResult<unknown>> }) {
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<{ code: string; message: string }>();
+  // 409 (booked meanwhile) and 404 (already gone) are final: only Close. Anything else (no network,
+  // a 500) can be retried, so Remove slot stays (Patterns/Delete confirmation).
+  const final = error ? FINAL_CODES.has(error.code) : false;
   return (
     <AlertDialog
       open={open}
@@ -57,12 +62,12 @@ function RemoveSlot({ when, remove }: { when: ReactNode; remove: () => Promise<A
         {error ? (
           <Alert variant="destructive">
             <OctagonXIcon aria-hidden />
-            <AlertTitle>{error}</AlertTitle>
+            <AlertTitle>{error.message}</AlertTitle>
           </Alert>
         ) : null}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>{error ? "Close" : "Cancel"}</AlertDialogCancel>
-          {error ? null : (
+          <AlertDialogCancel disabled={pending}>{final ? "Close" : "Cancel"}</AlertDialogCancel>
+          {final ? null : (
             <AlertDialogAction
               variant="destructive"
               disabled={pending}
@@ -71,7 +76,7 @@ function RemoveSlot({ when, remove }: { when: ReactNode; remove: () => Promise<A
                 const result = await remove();
                 setPending(false);
                 if (result.ok) setOpen(false);
-                else setError(result.error.message);
+                else setError(result.error);
               }}
             >
               {pending ? (

@@ -36,10 +36,10 @@ action per step.
 | Part | Notes |
 |---|---|
 | `ol` named *Mentor setup* | one `li` per shipped phase (G5) |
-| `SetupItem` | `Card size="sm"`; title (heading level 3), state badge beside it, optional note, actions |
+| `SetupItem` | `Card size="sm"`; title (heading level 2, under the page's `h1`; found by axe `heading-order` in Patterns/Setup checklist), state badge beside it, optional note, actions |
 | State badge | text, never colour alone (E02 UI/UX accessibility); variants per the approved mapping (badge.mdx); one to three words, never wraps (P-C10): a longer state from the spec is the note, with a short label in the badge (*Setup interrupted*, *Pending*: P-S1a, P-S1b, proposal approved by Rafał) |
 | Note | *Save your profile first.* on locked items (E02 Flow 1), or the spec's full state sentence |
-| Action | the one next action is `default`; actions on finished items are `outline` or a link (P-M4, proposal approved by Rafał) |
+| Action | the primary button goes to the **first unfinished item with an action**: the first step, from the top, that is not done and that the mentor can do something about right now. Contacting the team counts as an action (*Setup failed*, *Blocked*). An item that is only waiting (Stripe is checking the details, with just **Check status**) is skipped, so the primary moves on, e.g. to **Publish slots**. Every other action is `outline` or a link (**Check status** stays `secondary`). So the screen has one primary button, or none when no item has an action. The checklist works this out itself (`firstWithAction`: profile not saved → payouts with an action → no slots); R01.6, P-M4 (proposal approved by Rafał), Q-SC1 option (2), decided by Rafał 2026-10-21 |
 
 ## 5. Variants
 
@@ -57,7 +57,7 @@ action per step.
 | Partial: profile saved | *Profile saved* |
 | Waiting: Stripe checking | *Stripe checking* |
 | Done, many slots | *Complete* |
-| Error: blocked | *Blocked* |
+| Error: blocked, contact is the primary | *Blocked* |
 | Phase 1 | *Phase one* |
 | Long state text, 320 px | *Long content, narrow* |
 | Loading | not applicable: rendered on the server (E02 Flow 1, step 3) |
@@ -66,7 +66,7 @@ action per step.
 
 ## 7. Behaviour and accessibility
 
-- An ordered list with a name; each item's title is a level-3 heading, so screen reader users can jump between steps.
+- An ordered list with a name; each item's title is a level-2 heading, so screen reader users can jump between steps.
 - Locked items have no disabled button: the note says why (P-C6, B2).
 
 ## 8. Content
@@ -87,7 +87,7 @@ States and actions from E02 Flow 1. Counts use digits (*3 upcoming (1 booked)*).
 | Prop | Type | Description |
 |---|---|---|
 | `profile` | `not-started { createHref } \| saved { editHref, publicHref }` | |
-| `payouts` | `ReactNode` | `<PayoutStatus …/>` from Phase 2 |
+| `payouts` | `Omit<PayoutStatusProps, "next">` | the Payout status props from Phase 2; the checklist renders `PayoutStatus` and sets `next` |
 | `slots` | `locked \| none { manageHref } \| some { upcoming, booked, manageHref }` | from Phase 3 |
 | `SetupItem` | `title`, `state`, `variant?`, `note?`, `children?` | one step |
 
@@ -98,7 +98,7 @@ States and actions from E02 Flow 1. Counts use digits (*3 upcoming (1 booked)*).
 ```tsx
 <SetupChecklist
   profile={{ status: "saved", editHref: "/mentor/profile", publicHref: `/mentors/${id}` }}
-  payouts={<PayoutStatus payout={payout} startOnboarding={start} onOnboardingUrl={go} contactHref={contact} />}
+  payouts={{ payout, startOnboarding: start, onOnboardingUrl: go, contactHref: contact }}
   slots={{ status: "some", upcoming: 3, booked: 1, manageHref: "/mentor/slots" }}
 />
 ```

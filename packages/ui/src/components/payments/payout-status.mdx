@@ -61,7 +61,8 @@ many: not applicable.
 - While a POST runs, the button is disabled with an *-ing* label: *Starting Stripe setup…*, *Retrying setup…*, *Opening Stripe…* (P-C4; wording P-M7, proposal approved by Rafał).
 - A failure keeps the server's message in a destructive `Alert` and leaves the action available (E02 Flow 3 step 6).
 - Country: visible label *Country*, instruction option *Choose a country*, alphabetical, the spec's hint linked with `aria-describedby`; submitting without one shows *Choose a country.* (P-C8; wording P-M6, proposal approved by Rafał).
-- **Check status** and **Contact the DevMentor team** are links, not buttons.
+- **Check status** and **Contact the DevMentor team** are real links styled with `buttonVariants()` on `<a>`, never `<Button render={…}>`, which would give them `role="button"`. The contact address comes in `contactHref`.
+- **Contact the DevMentor team** is the action of *Setup failed* and *Blocked* (E02 Flow 1), so it is the primary button when this is the first unfinished item with an action, and `outline` otherwise (Q-SC1).
 
 ## 8. Content
 
@@ -85,6 +86,7 @@ DevMentor team* leads is not in the spec yet: the page passes it as `contactHref
 | `startOnboarding` | `(body: { country? }) => Promise<ApiResult<{ url }>>` | `POST /api/payments/onboarding` |
 | `onOnboardingUrl` | `(url) => void` | `window.location.assign` |
 | `contactHref` | `string` | where the contact action goes |
+| `next` | `boolean`, default `true` | whether this item holds the page's one primary button, i.e. it is the first unfinished item with an action; `false` turns its action `outline` (R01.6, Q-SC1). `SetupChecklist` sets it. `payoutHasAction(payout)` says whether a status has a setup step: *Not started*, *Starting Stripe setup*, *Setup interrupted*, *Incomplete* (a setup step) and *Setup failed*, *Blocked* (contact the team) do; *Pending* (waiting for Stripe), *Locked* and *Confirmed* do not |
 
 <Controls of={Stories.Playground} />
 

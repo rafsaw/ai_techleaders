@@ -1,0 +1,85 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./delete-confirmation.stories";
+
+<Meta of={Stories} />
+
+# Delete confirmation
+
+How DevMentor asks before removing something that cannot be undone. Today that is one place:
+**Remove** on an open slot on `/mentor/slots` (E02 Flow 4).
+
+## 1. Problem it solves
+
+A click by mistake should not remove a time mentees could book, and the person must know which
+item they are removing.
+
+## 2. Where in the product
+
+| Screen | Object | Component |
+|---|---|---|
+| `/mentor/slots` | an open slot | `SlotRow` (Remove + alert dialog) |
+
+## 3. Built from
+
+**Alert dialog**, **Button** (`destructive`), **Spinner**, **Alert**, inside **Slot list**.
+
+## 4. Rules
+
+| Rule | Source |
+|---|---|
+| The question names the object: *Remove the slot on Wed, 4 Nov, 18:30?* | prompt (Delete confirmation), E02 UI/UX |
+| One sentence says what happens: *Mentees will no longer see this time.* | E02 Flow 4 |
+| **Cancel** comes first and is the outline button; the action is `destructive` and says what it does: **Remove slot**, never *OK* or *Yes*. | prompt, P-C2 |
+| Escape and Cancel close the dialog and focus returns to the **Remove** that opened it. | WCAG 2.4.3, Base UI alert dialog |
+| The row leaves the list only after the server confirms. | Q4 |
+| While removing, both buttons are disabled and the action reads *Removing slot…*. | P-C4 |
+| A final error (409 booked meanwhile, 404 already gone) shows the reason and leaves only **Close**. | E02 Flow 4 |
+| An error that can be retried (no network, 500) shows the reason and keeps **Remove slot**. | P-DC1, proposal approved by Rafał |
+| A booked slot has no **Remove**; a sentence says who to contact instead. | E02 Flow 4, D12 |
+
+## 5. States
+
+| State | Story |
+|---|---|
+| Asking | *Playground* |
+| Cancelled with the keyboard | *Cancel with keyboard* |
+| Removed | *Removed* |
+| Pending | *Pending* |
+| Final error: booked meanwhile (409) | *Booked meanwhile* |
+| Error with retry: no network | *Retry after network error* |
+| The last slot removed: empty list | *Last slot removed* |
+| 320 px | *Narrow* |
+
+<Canvas of={Stories.BookedMeanwhile} />
+
+## 6. Behaviour and accessibility
+
+- `role="alertdialog"`, named by the question and described by the sentence.
+- Focus is trapped in the dialog; the page behind is hidden from assistive technology.
+- The error inside the dialog is `role="alert"`.
+
+## 7. Code
+
+```tsx
+<SlotRow
+  timeZone={zone}
+  booked={slot.booked}
+  remove={() => apiCall(`/api/availability/slots?id=${slot.id}`, { method: "DELETE" })}
+>
+  <LocalTime iso={slot.startsAt} />
+</SlotRow>
+```
+
+## 8. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| *Remove the slot on Wed, 4 Nov, 18:30?* | *Are you sure?* | the person sees which slot (prompt) |
+| **Remove slot** | **OK** | the button says what happens (prompt) |
+| Keep **Remove slot** after a network error | leave only **Close** | the person can try again at once (P-DC1) |
+
+## 9. Related
+
+- Components: **Alert dialog**, **Slot list**.
+- Patterns: **Form** (the same pending and error rules).

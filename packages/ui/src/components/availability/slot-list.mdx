@@ -62,7 +62,9 @@ Rows: open (with Remove) and booked (with the sentence).
 
 - A `section` named by its heading; rows are a list; lines between rows (`divide-y`).
 - Remove follows the Delete confirmation pattern: the question names the slot, focus starts on **Cancel**, Escape closes (Alert dialog).
-- The row disappears only after the server confirms (Q4); a 409 keeps the dialog open with the reason.
+- The row disappears only after the server confirms (Q4); a 409 or 404 keeps the dialog open with the
+  reason and only **Close**; any other error (no network, 500) keeps **Remove slot** for a retry (P-DC1,
+  proposal approved by Rafał; Patterns/Delete confirmation).
 - Loading is announced once (`role="status"`, `aria-busy`).
 
 ## 8. Content

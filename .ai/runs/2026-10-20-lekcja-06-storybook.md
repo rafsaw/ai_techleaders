@@ -128,3 +128,23 @@
 - Wynik: partia 3 zakończona, czeka na decyzje P-PP1–P-PP7 i „dalej”.
 - Decyzje po partii 3 etapu 3: P-PP1–P-PP7 przyjęte (z opisem w MentorProfileHeader); kody
   P-S1a/b bez zmian; `formatMoney` w core do zrobienia przy `/mentors/[id]` (poza DS).
+
+## 2026-10-21: etap 3, partia 4
+
+- Wzorce w `ui/src/patterns/`: Form, Detail view, Delete confirmation, Setup checklist,
+  Sign-in and return, Provider status; 44 stories (MSW przez `parameters.msw` z prawdziwym
+  `apiCall`), 6 stron docs.
+- Znalezione przez złożenie wzorców i poprawione: poziom nagłówka `SetupItem` (axe
+  `heading-order`), brak ponowienia w `SlotRow` po błędzie przejściowym, powtórzony tekst w banerze.
+- Sprawdzone: lint, typecheck, check:tokens, test:coverage (272, 100%), build-storybook,
+  test:storybook 243/243 × 2, build, test:integration (4/4), Chromium 6 stron × 2 motywy × 2 szerokości.
+- Wynik: partia 4 zakończona, czeka na pytanie Q-SC1, decyzje P-PT1, P-FM1, P-DV1–3, P-DC1, P-PS1
+  i „dalej”.
+- Decyzje po partii 4 etapu 3: Q-SC1 = (a) — `SetupChecklist` sam wyznacza pierwszą
+  niezakończoną pozycję (`firstUnfinished`), tylko ona ma styl główny; `payouts` przyjmuje propsy
+  `PayoutStatus`, `PayoutStatus` dostał `next`. P-PT1, P-FM1, P-DV1–3, P-DC1, P-PS1 przyjęte.
+- Q-SC1 doprecyzowane (opcja 2): główny ma pierwsza niezakończona pozycja z akcją
+  (`firstWithAction`, `payoutHasAction`); oczekiwanie na Stripe pomijane; failed/blocked
+  potraktowane jako bez akcji (do potwierdzenia przez PO).
+- Q-SC1 potwierdzone (b): w failed/blocked kontakt z zespołem jest akcją i przyciskiem głównym,
+  gdy to pierwsza niezakończona pozycja z akcją; `payoutHasAction` obejmuje failed i blocked.

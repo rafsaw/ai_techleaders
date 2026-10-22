@@ -3,7 +3,7 @@ import { expect, fn } from "storybook/test";
 
 import type { ApiResult } from "@devmentor/ui/backend/api/types";
 import { SetupChecklist } from "@devmentor/ui/components/mentors/SetupChecklist";
-import { PayoutStatus, type PayoutSetup } from "@devmentor/ui/components/payments/PayoutStatus";
+import type { PayoutSetup } from "@devmentor/ui/components/payments/PayoutStatus";
 
 // MD8: US, UK, EEA, Canada or Switzerland (a few shown).
 const countries = [
@@ -15,14 +15,12 @@ const countries = [
   { code: "CH", name: "Switzerland" },
 ];
 
-const payouts = (payout: PayoutSetup) => (
-  <PayoutStatus
-    payout={payout}
-    startOnboarding={fn(async (): Promise<ApiResult<{ url: string }>> => ({ ok: true, data: { url: "https://connect.stripe.com/setup/e/acct_1" } }))}
-    onOnboardingUrl={fn()}
-    contactHref="mailto:team@devmentor.example"
-  />
-);
+const payouts = (payout: PayoutSetup) => ({
+  payout,
+  startOnboarding: fn(async (): Promise<ApiResult<{ url: string }>> => ({ ok: true, data: { url: "https://connect.stripe.com/setup/e/acct_1" } })),
+  onOnboardingUrl: fn(),
+  contactHref: "mailto:team@devmentor.example",
+});
 
 const saved = { status: "saved", editHref: "/mentor/profile", publicHref: "/mentors/7f3c9b2e" } as const;
 
@@ -46,9 +44,16 @@ export const Playground: Story = {
   },
 };
 
-/** Partial: profile saved; payouts need a country; no slots yet. */
+/**
+ * Partial: profile saved; payouts need a country; no slots yet. The first unfinished item with
+ * an action holds the primary button (Continue to Stripe); Publish slots is outline (R01.6, Q-SC1).
+ */
 export const ProfileSaved: Story = {
   args: { profile: saved, payouts: payouts({ status: "no-row", countries }), slots: { status: "none", manageHref: "/mentor/slots" } },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("button", { name: "Continue to Stripe" })).toHaveClass("bg-primary");
+    await expect(canvas.getByRole("link", { name: "Publish slots" })).not.toHaveClass("bg-primary");
+  },
 };
 
 /** Waiting: Stripe is checking; slots published. */
@@ -65,9 +70,18 @@ export const Complete: Story = {
   args: { profile: saved, payouts: payouts({ status: "ready" }), slots: { status: "some", upcoming: 24, booked: 9, manageHref: "/mentor/slots" } },
 };
 
-/** Error: Stripe blocked the account; the one action is to contact the team. */
+/**
+ * Error: Stripe blocked the account. Contact the DevMentor team is payouts' action and the first
+ * unfinished item with an action, so it is the primary; Publish slots is outline (Q-SC1).
+ */
 export const Blocked: Story = {
-  args: { profile: saved, payouts: payouts({ status: "blocked" }), slots: { status: "some", upcoming: 2, booked: 0, manageHref: "/mentor/slots" } },
+  args: { profile: saved, payouts: payouts({ status: "blocked" }), slots: { status: "none", manageHref: "/mentor/slots" } },
+  play: async ({ canvas }) => {
+    const contact = canvas.getByRole("link", { name: "Contact the DevMentor team" });
+    await expect(contact).toHaveClass("bg-primary");
+    await expect(contact).toHaveAttribute("href", "mailto:team@devmentor.example");
+    await expect(canvas.getByRole("link", { name: "Publish slots" })).not.toHaveClass("bg-primary");
+  },
 };
 
 /** Phase 1: only the profile item exists. */

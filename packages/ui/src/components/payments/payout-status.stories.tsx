@@ -42,10 +42,24 @@ export const Playground: Story = {
 export const Locked: Story = { args: { payout: { status: "locked" } } };
 export const StartingSetup: Story = { args: { payout: { status: "provisioning-pending" } } };
 export const ReconciliationRequired: Story = { args: { payout: { status: "reconciliation-required" } } };
-export const SetupFailed: Story = { args: { payout: { status: "failed" } } };
+/** Setup failed: the action is Contact the DevMentor team, a real link styled as a button. */
+export const SetupFailed: Story = {
+  args: { payout: { status: "failed" } },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("link", { name: "Contact the DevMentor team" })).toHaveClass("bg-primary");
+    await expect(canvas.queryByRole("button")).toBeNull();
+  },
+};
 export const Incomplete: Story = { args: { payout: { status: "incomplete" } } };
 export const StripeChecking: Story = { args: { payout: { status: "pending", checkStatusHref: "/api/payments/onboarding/return" } } };
+/** Blocked: the same contact action; in a checklist it is outline when it is not the primary (`next={false}`). */
 export const Blocked: Story = { args: { payout: { status: "blocked" } } };
+export const BlockedNotPrimary: Story = {
+  args: { payout: { status: "blocked" }, next: false },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("link", { name: "Contact the DevMentor team" })).not.toHaveClass("bg-primary");
+  },
+};
 export const Confirmed: Story = { args: { payout: { status: "ready" } } };
 
 /** Loading: the POST runs; the button is disabled with an -ing label. */

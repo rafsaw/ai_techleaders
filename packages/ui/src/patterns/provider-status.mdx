@@ -1,0 +1,82 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./provider-status.stories";
+
+<Meta of={Stories} />
+
+# Provider status
+
+How DevMentor shows a state that an outside provider decides. Today that is Stripe onboarding on
+`/mentor` (E02 Flow 3).
+
+## 1. Problem it solves
+
+The mentor comes back from Stripe and needs to know what Stripe decided, not what the browser
+assumed, and what to do next.
+
+## 2. Where in the product
+
+| Screen | Provider |
+|---|---|
+| `/mentor?stripe=returned`, `/mentor?stripe=check_failed` | Stripe Connect |
+
+## 3. Built from
+
+**Alert** (the banner), **Payout status** inside **Setup checklist**, **Button** styles on links.
+
+## 4. Rules
+
+| Rule | Source |
+|---|---|
+| Returning from the provider proves nothing: the return route fetches the account again before the page shows a state. | E02 Flow 3 step 6 |
+| The banner uses the spec's sentence for the fetched state. When the spec's last sentence names the action (*Try checking again.*), it becomes the link instead of repeating as text. | E02 Flow 3 step 6; P-PS1, proposal approved by Rafał |
+| Banner variants follow the status mapping: ready `success`, pending `default`, incomplete `warning`, blocked and check failed `destructive`. News is `role="status"`, a problem `role="alert"`. | P-PS1, proposal approved by Rafał; badge.mdx mapping |
+| **Check status** and **Try checking again** are links to the return route, so a new fetch happens. | E02 Flow 3 step 6 |
+| When the provider cannot be reached, say so, keep the last known state and offer **Try checking again**. | E02 Flow 3 step 6 |
+| A failed start keeps the server's message and offers recovery from the stored state (**Retry setup**). | E02 Flow 3 step 6 |
+
+## 5. States
+
+| State | Story |
+|---|---|
+| Stripe is checking | *Playground* |
+| Confirmed | *Confirmed* |
+| Not finished at Stripe | *Incomplete* |
+| Blocked | *Blocked* |
+| Stripe unreachable when checking | *Check failed* |
+| Start failed at the provider (502) | *Start failed* |
+| 320 px | *Narrow* |
+
+The 502 message in *Start failed* is example data: the route's `provider_unavailable` message is
+not fixed in the spec.
+
+<Canvas of={Stories.CheckFailed} />
+
+## 6. Behaviour and accessibility
+
+- The banner sits above the checklist and is read on arrival (`role="status"` or `role="alert"`).
+- Icons are `aria-hidden`; the title carries the meaning (WCAG 1.4.1).
+
+## 7. Code
+
+```tsx
+<Alert variant="destructive" role="alert">
+  <OctagonXIcon aria-hidden />
+  <AlertTitle>We couldn't reach Stripe to check your status.</AlertTitle>
+  <AlertDescription>
+    <a href="/api/payments/onboarding/return" className={buttonVariants({ variant: "secondary", size: "sm" })}>Try checking again</a>
+  </AlertDescription>
+</Alert>
+```
+
+## 8. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| Re-fetch on **Check status** | read `?stripe=returned` as success | the query string proves nothing (E02 Flow 3) |
+| Say how long the provider may take | spin a loader on the page | Stripe can take days (E02 Flow 3) |
+
+## 9. Related
+
+- Patterns: **Setup checklist**.
+- Components: **Payout status**, **Alert**.

@@ -4,9 +4,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { ApiResult } from "../../backend/api/types";
 import { SlotList } from "../availability/SlotList";
 import { BOOKED_SENTENCE, SlotRow } from "../availability/SlotRow";
-import { PayoutStatus, type PayoutSetup } from "../payments/PayoutStatus";
+import { payoutHasAction, PayoutStatus, type PayoutSetup } from "../payments/PayoutStatus";
 import { BookableStatusLine, bookableSentence } from "./BookableStatusLine";
-import { SetupChecklist } from "./SetupChecklist";
+import { firstWithAction, SetupChecklist } from "./SetupChecklist";
 
 const fail = (code: string, message: string): ApiResult<never> => ({ ok: false, error: { code, message } });
 
@@ -48,20 +48,20 @@ describe("SetupChecklist", () => {
     const { rerender } = render(<SetupChecklist profile={{ status: "not-started", createHref: "/mentor/profile" }} />);
     const list = screen.getByRole("list", { name: "Mentor setup" });
     expect(within(list).getAllByRole("listitem")).toHaveLength(1);
-    expect(screen.getByRole("heading", { level: 3, name: "Profile" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Profile" })).toBeVisible();
     expect(screen.getByText("Not started")).toBeVisible();
     expect(screen.getByRole("link", { name: "Create your profile" })).toHaveAttribute("href", "/mentor/profile");
 
     rerender(
       <SetupChecklist
         profile={{ status: "saved", editHref: "/mentor/profile", publicHref: "/mentors/1" }}
-        payouts={<li>payouts</li>}
+        payouts={{ payout: { status: "ready" }, startOnboarding: vi.fn(), onOnboardingUrl: vi.fn(), contactHref: "mailto:team@devmentor.example" }}
         slots={{ status: "locked" }}
       />
     );
     expect(screen.getByText("Saved")).toHaveAttribute("data-slot", "badge");
     expect(screen.getByRole("link", { name: "View public page" })).toHaveAttribute("href", "/mentors/1");
-    expect(screen.getByText("payouts")).toBeVisible();
+    expect(screen.getByRole("heading", { level: 2, name: "Payouts with Stripe" })).toBeVisible();
     expect(screen.getByText("Save your profile first.")).toBeVisible();
 
     rerender(<SetupChecklist profile={{ status: "saved", editHref: "/e", publicHref: "/p" }} slots={{ status: "none", manageHref: "/mentor/slots" }} />);
@@ -71,6 +71,62 @@ describe("SetupChecklist", () => {
     rerender(<SetupChecklist profile={{ status: "saved", editHref: "/e", publicHref: "/p" }} slots={{ status: "some", upcoming: 3, booked: 1, manageHref: "/mentor/slots" }} />);
     expect(screen.getByText("3 upcoming (1 booked)")).toBeVisible();
     expect(screen.getByRole("link", { name: "Manage slots" })).toBeVisible();
+  });
+
+  it("gives the one primary button to the first unfinished item with an action (R01.6, Q-SC1)", () => {
+    const saved = { status: "saved", editHref: "/e", publicHref: "/p" } as const;
+    const payouts = (payout: PayoutSetup) => ({ payout, startOnboarding: vi.fn(), onOnboardingUrl: vi.fn(), contactHref: "mailto:team@devmentor.example" });
+    const none = { status: "none", manageHref: "/mentor/slots" } as const;
+    const some = { status: "some", upcoming: 1, booked: 0, manageHref: "/s" } as const;
+    const primary = () => [...document.querySelectorAll("a, button")].filter((element) => element.classList.contains("bg-primary"));
+
+    const { rerender } = render(<SetupChecklist profile={saved} payouts={payouts({ status: "incomplete" })} slots={none} />);
+    expect(primary().map((element) => element.textContent)).toEqual(["Continue with Stripe"]);
+    expect(screen.getByRole("link", { name: "Publish slots" })).toHaveClass("border-input");
+
+    // Waiting for Stripe: payouts has no action, so Publish slots takes the primary style.
+    rerender(<SetupChecklist profile={saved} payouts={payouts({ status: "pending", checkStatusHref: "/r" })} slots={none} />);
+    expect(primary().map((element) => element.textContent)).toEqual(["Publish slots"]);
+    expect(screen.getByRole("link", { name: "Check status" })).not.toHaveClass("bg-primary");
+
+    // Setup failed or Blocked: the action is Contact the DevMentor team, and it is the primary.
+    for (const status of ["failed", "blocked"] as const) {
+      rerender(<SetupChecklist profile={saved} payouts={payouts({ status })} slots={none} />);
+      const contact = screen.getByRole("link", { name: "Contact the DevMentor team" });
+      expect(primary()).toEqual([contact]);
+      expect(contact).toHaveAttribute("href", "mailto:team@devmentor.example");
+      expect(screen.getByRole("link", { name: "Publish slots" })).toHaveClass("border-input");
+    }
+
+    // No item has an action: no primary button.
+    rerender(<SetupChecklist profile={saved} payouts={payouts({ status: "pending", checkStatusHref: "/r" })} slots={some} />);
+    expect(primary()).toHaveLength(0);
+
+    expect(firstWithAction({ profile: { status: "not-started", createHref: "/c" }, payouts: payouts({ status: "locked" }), slots: { status: "locked" } })).toBe("profile");
+    expect(firstWithAction({ profile: saved, payouts: payouts({ status: "no-row", countries: [] }), slots: none })).toBe("payouts");
+    expect(firstWithAction({ profile: saved, payouts: payouts({ status: "pending", checkStatusHref: "/r" }), slots: none })).toBe("slots");
+    expect(firstWithAction({ profile: saved, payouts: payouts({ status: "blocked" }), slots: none })).toBe("payouts");
+    expect(firstWithAction({ profile: saved, payouts: payouts({ status: "ready" }), slots: none })).toBe("slots");
+    expect(firstWithAction({ profile: saved, slots: none })).toBe("slots");
+    expect(firstWithAction({ profile: saved, payouts: payouts({ status: "ready" }), slots: some })).toBeUndefined();
+    expect(firstWithAction({ profile: saved })).toBeUndefined();
+  });
+
+  it("knows which payout statuses have an action to take", () => {
+    expect((["no-row", "provisioning-pending", "reconciliation-required", "incomplete"] as const).every((status) =>
+      payoutHasAction(status === "no-row" ? { status, countries: [] } : { status }))).toBe(true);
+    expect(payoutHasAction({ status: "pending", checkStatusHref: "/r" })).toBe(false);
+    expect(payoutHasAction({ status: "blocked" })).toBe(true);
+    expect(payoutHasAction({ status: "failed" })).toBe(true);
+    expect(payoutHasAction({ status: "ready" })).toBe(false);
+    expect(payoutHasAction({ status: "locked" })).toBe(false);
+  });
+
+  it("renders the payout setup button in outline when it does not hold the primary action", () => {
+    render(<PayoutStatus payout={{ status: "incomplete" }} startOnboarding={vi.fn()} onOnboardingUrl={vi.fn()} contactHref="mailto:x" next={false} />);
+    expect(screen.getByRole("button", { name: "Continue with Stripe" })).not.toHaveClass("bg-primary");
+    render(<PayoutStatus payout={{ status: "blocked" }} startOnboarding={vi.fn()} onOnboardingUrl={vi.fn()} contactHref="mailto:x" next={false} />);
+    expect(screen.getByRole("link", { name: "Contact the DevMentor team" })).toHaveClass("border-input");
   });
 });
 
@@ -191,6 +247,22 @@ describe("SlotList and SlotRow", () => {
     fireEvent.click(within(again).getByRole("button", { name: "Remove slot" }));
     await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
     expect(remove).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps Remove slot for a retry after a network or server error, and Close only for a removed slot", async () => {
+    const remove = vi.fn()
+      .mockResolvedValueOnce(fail("network_error", "Could not reach the server. Check your connection and try again."))
+      .mockResolvedValueOnce(fail("not_found", "This slot no longer exists."));
+    render(<ul><SlotRow timeZone="Europe/Warsaw" booked={false} remove={remove}>Wed, 4 Nov, 18:30</SlotRow></ul>);
+    fireEvent.click(screen.getByRole("button", { name: "Remove" }));
+    const dialog = await screen.findByRole("alertdialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Remove slot" }));
+    expect(await within(dialog).findByText(/Could not reach the server/)).toBeVisible();
+    expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeVisible();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Remove slot" }));
+    expect(await within(dialog).findByText("This slot no longer exists.")).toBeVisible();
+    expect(within(dialog).getByRole("button", { name: "Close" })).toBeVisible();
+    expect(within(dialog).queryByRole("button", { name: "Remove slot" })).not.toBeInTheDocument();
   });
 
   it("shows no Remove on an open row without a remove call", () => {

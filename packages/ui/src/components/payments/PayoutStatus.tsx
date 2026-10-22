@@ -7,8 +7,7 @@ import type { ApiResult } from "@devmentor/ui/backend/api/types";
 import { Alert, AlertTitle } from "@devmentor/ui/components/alert";
 import { Button, buttonVariants } from "@devmentor/ui/components/button";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@devmentor/ui/components/field";
-import { LOCKED_NOTE } from "@devmentor/ui/components/mentors/SetupChecklist";
-import { SetupItem, type SetupStateVariant } from "@devmentor/ui/components/mentors/SetupItem";
+import { LOCKED_NOTE, SetupItem, type SetupStateVariant } from "@devmentor/ui/components/mentors/SetupItem";
 import { NativeSelect, NativeSelectOption } from "@devmentor/ui/components/native-select";
 import { Spinner } from "@devmentor/ui/components/spinner";
 
@@ -35,6 +34,30 @@ export interface PayoutStatusProps {
   onOnboardingUrl: (url: string) => void;
   /** Where "Contact the DevMentor team" goes (not set by the spec). */
   contactHref: string;
+  /**
+   * Whether this item holds the page's one primary action: the first unfinished item with an
+   * action to take (R01.6, P-M4, Q-SC1). `false` turns its action outline. SetupChecklist
+   * sets it; default true for the item on its own.
+   */
+  next?: boolean;
+}
+
+/**
+ * Statuses where the mentor has an action to take: a setup step (Continue to Stripe, Retry setup,
+ * Continue with Stripe) or, for `failed` and `blocked`, Contact the DevMentor team (E02 Flow 1).
+ * Waiting for Stripe (`pending`: Check status only), `locked` and `ready` have none.
+ */
+const ACTION_STATUSES = new Set<PayoutSetup["status"]>([
+  "no-row",
+  "provisioning-pending",
+  "reconciliation-required",
+  "incomplete",
+  "failed",
+  "blocked",
+]);
+
+export function payoutHasAction(payout: PayoutSetup): boolean {
+  return ACTION_STATUSES.has(payout.status);
 }
 
 export const COUNTRY_HINT =
@@ -65,7 +88,9 @@ function OnboardingForm({
   run,
   onUrl,
   countries,
+  next,
 }: {
+  next: boolean;
   label: string;
   pendingLabel: string;
   run: (body: { country?: string }) => Promise<ApiResult<{ url: string }>>;
@@ -122,7 +147,7 @@ function OnboardingForm({
           <AlertTitle>{error}</AlertTitle>
         </Alert>
       ) : null}
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" variant={next ? "default" : "outline"} disabled={pending}>
         {pending ? (
           <>
             <Spinner aria-hidden />
@@ -138,15 +163,16 @@ function OnboardingForm({
 
 function nextAction(
   payout: PayoutSetup,
-  { startOnboarding, onOnboardingUrl, contactHref }: Omit<PayoutStatusProps, "payout">
+  { startOnboarding, onOnboardingUrl, contactHref, next = true }: Omit<PayoutStatusProps, "payout">
 ) {
   const onboarding = (label: string, pendingLabel: string) => (
-    <OnboardingForm label={label} pendingLabel={pendingLabel} run={startOnboarding} onUrl={onOnboardingUrl} />
+    <OnboardingForm next={next} label={label} pendingLabel={pendingLabel} run={startOnboarding} onUrl={onOnboardingUrl} />
   );
   switch (payout.status) {
     case "no-row":
       return (
         <OnboardingForm
+          next={next}
           label="Continue to Stripe"
           pendingLabel="Starting Stripe setup…"
           run={startOnboarding}
@@ -163,7 +189,8 @@ function nextAction(
       return <a href={payout.checkStatusHref} className={buttonVariants({ variant: "secondary" })}>Check status</a>;
     case "failed":
     case "blocked":
-      return <a href={contactHref} className={buttonVariants({ variant: "outline" })}>Contact the DevMentor team</a>;
+      // A real link styled as a button (buttonVariants on <a>), never role="button".
+      return <a href={contactHref} className={buttonVariants({ variant: next ? "default" : "outline" })}>Contact the DevMentor team</a>;
     case "locked":
     case "ready":
       return null;

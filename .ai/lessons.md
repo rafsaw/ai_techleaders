@@ -27,6 +27,15 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-21 — Compose components into a page before trusting their a11y checks
+
+**Context:** every `SetupItem` story passed axe, but the Setup checklist pattern (the item under a
+page `h1`) failed `heading-order`: the item title was hard-coded to level 3.
+**Lesson:** a component story checks the component alone; heading levels, landmarks and
+duplicate names only show up in context. Build at least one pattern or screen story that puts the
+component under a real page heading, and pick heading levels for the page it lives on.
+**Applies to:** `packages/ui/src/patterns/`, `packages/ui/src/screens/`, product components with headings.
+
 ### 2026-10-21 — A `<header>` for a page section is a second banner landmark
 
 **Context:** `MentorProfileHeader` (name, area, description at the top of `/mentors/[id]`) was a
