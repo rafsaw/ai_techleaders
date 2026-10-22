@@ -4,8 +4,9 @@
 //   - Tailwind palette classes (bg-zinc-900, text-white, …),
 //   - Tailwind arbitrary values (p-[13px], rounded-[min(…)], p-(--x), [prop:value]).
 //     Bracketed variants (has-[…]:, data-[…]:, [&_svg]:) are selectors, not values, and are allowed.
-// Scope: packages/ui/src and packages/ui/.storybook, except the token file.
-// packages/app/src is reported for information only (POSTEP.md, Z-5) and never fails the run.
+// Scope: packages/ui/src, packages/ui/.storybook and packages/app/src, except the token file.
+// A finding in any of them fails the run (POSTEP.md, Z-5, changed by Rafał).
+// Known gap: colours encoded inside data: URLs (%23 instead of #) are not detected.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -118,18 +119,14 @@ export function run({ root, log = console.log }) {
   const errors = scan([
     ...listFiles(path.join(ui, "src"), (file) => file === tokenFile),
     ...listFiles(path.join(ui, ".storybook")),
+    ...listFiles(path.join(root, "packages/app/src")),
   ]);
-  const appDir = path.join(root, "packages/app/src");
-  const info = scan(listFiles(appDir));
 
-  if (info.length > 0) {
-    log(`Info, not failing (packages/app, see POSTEP.md Z-5): ${info.length} value(s) outside tokens\n${format(info, root)}\n`);
-  }
   if (errors.length > 0) {
-    log(`Error: ${errors.length} value(s) outside tokens in packages/ui\n${format(errors, root)}`);
+    log(`Error: ${errors.length} value(s) outside tokens in packages/ui and packages/app\n${format(errors, root)}`);
     return 1;
   }
-  log("OK: no values outside tokens in packages/ui.");
+  log("OK: no values outside tokens in packages/ui and packages/app.");
   return 0;
 }
 

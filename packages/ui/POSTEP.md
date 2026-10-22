@@ -75,6 +75,11 @@ czekamy na „dalej” od PO. W nowej sesji najpierw przeczytaj ten plik.
   Etap 1 ich nie rusza (zmienią wygląd tylko przez nowe wartości tokenów).
 - **Z-4 tak:** usuwamy fioletowy `--sidebar-primary` w `.dark`.
 - **Z-5 tak:** nie ruszamy `(frontend)/page.tsx` ani fontu w `layout.tsx`.
+- **Z-5 zmienione przez Rafała:** `check:tokens` kończy się błędem (exit 1) także dla
+  wartości spoza tokenów w `packages/app/src`, nie tylko informacyjnie (po commicie
+  `337204c` aplikacja nie ma takich wartości). **Znana luka:** kolory zakodowane w adresie
+  `data:` (np. `%231B1B1B` w faviconie w `layout.tsx`) skrypt nie wykrywa, bo szuka
+  literalnego `#`.
 - **Q6 = (a):** wzorzec „lista z filtrami” trafia do „What is missing” razem z E03.
 - **Z-6 zmienione przez PO:** stories (`*.stories.tsx`) i strony dokumentacji komponentów
   (`*.mdx`) leżą obok komponentów w `src`; `**/*.stories.tsx` dodajemy do `exclude`

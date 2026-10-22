@@ -102,7 +102,7 @@ describe("run", () => {
     for (const [file, text] of Object.entries(files)) writeFileSync(path.join(root, file), text);
   };
 
-  it("passes when only the token file holds raw values and reports the app without failing", () => {
+  it("passes when only the token file holds raw values", () => {
     setup({
       "packages/ui/src/styles/globals.css": ":root { --a: oklch(0.5 0 0); }",
       "packages/ui/src/ok.tsx": 'export const c = "bg-primary";',
@@ -111,12 +111,25 @@ describe("run", () => {
       "packages/ui/src/notes.txt": "#fff",
       "packages/ui/src/node_modules/x.ts": "#fff",
       "packages/ui/.storybook/public/worker.js": "#fff",
-      "packages/app/src/page.tsx": 'const c = "text-white";',
+      "packages/app/src/page.tsx": 'const c = "bg-primary";',
     });
     const lines: string[] = [];
     expect(run({ root, log: (line: string) => lines.push(line) })).toBe(0);
+    expect(lines).toEqual(["OK: no values outside tokens in packages/ui and packages/app."]);
+  });
+
+  it("fails when a value outside tokens is in packages/app/src", () => {
+    setup({
+      "packages/ui/src/styles/globals.css": "",
+      "packages/app/src/page.tsx": 'const c = "text-white";',
+    });
+    const lines: string[] = [];
+    expect(run({ root, log: (line: string) => lines.push(line) })).toBe(1);
     expect(lines.join("\n")).toContain("packages/app/src/page.tsx:1:12  Tailwind palette class  text-white");
-    expect(lines.at(-1)).toBe("OK: no values outside tokens in packages/ui.");
+  });
+
+  it("does not detect colours encoded in data: URLs (known gap)", () => {
+    expect(kinds(`icons: { icon: "data:image/svg+xml,%3Csvg%20fill%3D'%231B1B1B'%2F%3E" }`)).toEqual([]);
   });
 
   it("fails with file and line for values outside tokens", () => {
