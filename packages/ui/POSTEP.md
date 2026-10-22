@@ -12,9 +12,12 @@ czekamy na „dalej” od PO. W nowej sesji najpierw przeczytaj ten plik.
 | 2. Komponenty bazowe | **zakończony**: partie 1–4 (1–3 w 766a227, d2073e8, 9739dab); decyzje po partii 4 wpisane | 2026-10-21 |
 | 3. Komponenty produktu, wzorce, ekrany | **zakończony**: partie 1–5 (1–4 w a45f031, 9fbecd9, 09081a1, e044136); decyzje po partii 5 wpisane; czeka na „dalej” do etapu 4 | 2026-10-21 |
 | 4. Strony, które uczą | **zakończony**, bramki aplikacji domknięte; P-DOC1–2 zatwierdzone | 2026-10-21 |
-| 5. Sprawdzenie i raport | **audyt i poprawki wykonane**, jawne wyjątki docs EX-AUD1–2; test świeżym agentem przygotowany | 2026-10-21 |
+| 5. Sprawdzenie i raport | **audyt i poprawki wykonane**, jawne wyjątki docs EX-AUD1–2; test świeżym agentem wykonany, luki i decyzje P-ERR1–5 zapisane | 2026-10-21 – 2026-10-22 |
 
-**Następny krok:** poprawki P-AUD1–3 wykonane; pozostałe zgłoszenia docs zapisane jako EX-AUD1–2 poniżej. W osobnej sesji wykonać przygotowany test świeżym agentem `/error`, po rozpatrzeniu listy „Do zrobienia poza design systemem”. Rozważyć ręczny test czytnikiem dla wyjątków ramek. Niczego nie commitowano.
+**Następny krok:** decyzje P-ERR1–5 zapisane w dokumentacji. Uzupełnić zadania poza design
+systemem w specyfikacji E01 i głównym `AGENTS.md`; implementacja `/error` pozostaje poza tą
+pracą. Nie powtarzać testu, nie budować `/error`, nie scalać gałęzi testowych i niczego nie
+commitować.
 
 ## Przeczytane materiały
 
@@ -185,7 +188,7 @@ Wszystkie jako „proposal approved by Rafał” (w dokumentacji i tokenach).
   `pending` → `default`, `incomplete` → `warning`, `blocked` i `check_failed` → `destructive`.
 - **Tabela:** kontener zawsze w kolejności Tab (`tabIndex={0}`), także bez przewijania.
 
-## Do zrobienia poza design systemem (przed testem agentem, etap 5)
+## Do zrobienia poza design systemem (po teście agentem, etap 5)
 
 - **Kolejność na ekranie Slots w specyfikacji E02:** `2026-10-18-mentor-setup.md` Flow 4 krok 1
   wymienia najpierw „Upcoming slots”, potem „Add a slot”. Design system stawia „Add a slot” nad listą
@@ -233,6 +236,43 @@ Wszystkie jako „proposal approved by Rafał” (w dokumentacji i tokenach).
   kolejność w kodzie i na ekranie). Do zmiany zostaje tylko odstęp `gap-2` → `gap-in-group`
   (ta sama wartość 8 px, nazwa tokenu). **Zrobione:** przy partii 3 etapu 3 sprawdziłem, że
   `CrudForm.tsx` ma już `gap-in-group` (l. 85), więc nic tu nie zostało.
+- **Kontrakt kodów `/error` (E01):** zadać autorowi specyfikacji pytanie o zamkniętą listę
+  dozwolonych kodów błędu, mapowanie kodów na stany/komunikaty oraz zachowanie dla kodu
+  nieznanego, pustego i brakującego. Test świeżym agentem znalazł tylko `internal_error`;
+  nie dopisywać mapy samodzielnie. Źródło: E01 „Auth navigation and error fallback”,
+  E01-S01/P7 oraz wynik testu świeżym agentem.
+- **Język interfejsu:** dodać jedną linię o tym, że język interfejsu i treści UI jest
+  angielski, do głównego `/home/rafal/projects/ai_techleaders/AGENTS.md`. Nie zmieniać
+  głównego `AGENTS.md` w ramach tej pracy. Źródło: `lekcja-06/prompt-storybook.md`,
+  „Język interfejsu produktu: angielski”.
+
+## Decyzje PO po teście `/error` (2026-10-22)
+
+Wszystkie poniższe zasady są zapisane w dokumentacji jako **proposal approved by Rafał**.
+
+- **P-ERR1 — komunikat 5xx:** na stronie błędu użyć tytułu **Something went wrong**,
+  komunikatu **We couldn't complete your request. Please try again in a moment.** oraz
+  akcji **Go to the home page**. Nie pokazywać użytkownikowi technicznego kodu
+  `internal_error`; bezpieczny identyfikator wsparcia wymaga osobnej decyzji. Źródło:
+  lekcja 06, strona „Content”, zasada „Errors: what happened and what to do” oraz E01 P7.
+- **P-ERR2 — pełna strona a Notice:** `Notice` służy do błędu całego formularza lub
+  zadania pozostającego w kontekście strony. Błąd, który uniemożliwia wyrenderowanie
+  całej strony, używa osobnej kompozycji pełnoekranowej: `h1`, akapit i jedna akcja
+  odzyskania; nie jest opakowany w `Notice`. Źródło: lekcja 06, „How to choose” i
+  „Content”; E01 P7.
+- **P-ERR3 — `h1`:** każdy pełny ekran aplikacji ma dokładnie jeden widoczny `h1`;
+  fragmenty komponentów i stories nie muszą go dodawać. Źródło: prompt etap 3 (mapa
+  stanów pełnych ekranów), P-SCR2 oraz WCAG 2.4.6.
+- **P-ERR4 — tytuł i fokus:** strona ustawia metadane `title: "Something went wrong"`;
+  istniejący layout renderuje kartę jako **Something went wrong · DevMentor** przez
+  `title.template`. Fokus pozostaje widoczny zgodnie z istniejącym tokenowym obrysem;
+  nie przenosimy go programowo na `main`, ponieważ `/error` ładuje się zwykłym
+  przejściem, a przeglądarka ustawia początek strony. Źródło: `packages/app/src/app/layout.tsx`,
+  B3 oraz decyzja PO z 2026-10-22.
+- **P-ERR5 — link-logo w `ui`:** komponent `ui` używa wstrzykiwanego `linkComponent`,
+  domyślnie zwykłego `<a>`, a aplikacja przekazuje Next `Link`. `ui` nie importuje
+  `next/link` i nie dostaje wyjątku ESLint. Źródło: P-A6, `SiteHeader.tsx` i granica
+  pakietu `ui` w `AGENTS.md`.
 
 ## Otwarte pytania
 
@@ -369,6 +409,15 @@ zostają w specyfikacji E01 Phase 2; design system ich nie dodaje.
 - Zestaw ikon: luka do decyzji PO; do tego czasu tylko `lucide-react` (2026-10-21). lucide nie
   ma ikon marek, więc przycisk GitHub nie ma logo (partia 4).
 - Przełącznik motywu w aplikacji: nie ma go w backlogu (Foundations/Themes).
+- **`/error` — brakujący zestaw fundamentów (priorytet P0, E01 #28 / E01-S01 #34):**
+  brak nagłówka bez tożsamości (istniejący `SiteHeader` explicite odsyła do takiego
+  przypadku, ale komponent nie istnieje), brak publicznego szkieletu strony bez layoutu
+  odczytującego tożsamość w `(frontend)`, brak mapy stanów Storybooka dla `/error` oraz
+  brak jawnego wpisu tej strony w pokryciu E01. Wynik testu świeżym agentem potwierdził,
+  że `account={null}` nie jest bezpiecznym zamiennikiem: oznacza „wylogowany” i pokazuje
+  `Sign in`, gdy na `/error` tożsamość jest nieznana. Źródła: E01 UI/UX i P4/P7,
+  komentarz w `SiteHeader.tsx`, prompt etap 3 oraz testowe gałęzie
+  `test/agent-error-screen` i `test/agent-error-app`.
 
 ## Drzewo menu Storybooka (plan)
 
@@ -1283,7 +1332,7 @@ Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 5 etapu 3
 
 ## Opis ekranu do testu agentem (etap 5)
 
-**Przygotowany, niewykonany. Uruchomić w nowej sesji, bez historii tej rozmowy.**
+**Wykonany 2026-10-21 w dwóch osobnych sesjach, bez historii wcześniejszej pracy.**
 
 **Kandydat:** E01 #28 / E01-S01 #34, publiczna strona `/error?code=internal_error`.
 Nie ma jej w Storybooku (sprawdzono indeks 70 stron / 324 stories).
@@ -1305,12 +1354,29 @@ fallback”, UI/UX (wiersz `/error`) i Phase 1 krok 4.
 > ani nie wysyłaj do remote. Oddaj listę użytych źródeł i każdego miejsca, w którym
 > musiałeś zgadywać; przy każdym podaj, jakiej informacji zabrakło i gdzie jej szukałeś.
 
-**Ocena po teście:** niezależna sesja ma zapisać importy i wybory komponentów,
-zgodność z tokenami, obsługę stanów, klawiaturę, motywy i szerokości oraz listę
-zgadywanych decyzji. Każdy brak później uzupełnić w dokumentacji albo wpisać do
-What is missing. Prototyp tylko w osobnej sesji/gałęzi; w bieżącym audycie niczego
-nie zbudowano. Wcześniej rozpatrzyć listę „Do zrobienia poza design systemem”;
-nie wykonywać tych zmian aplikacji automatycznie w ramach audytu.
+**Ocena po teście:** obie niezależne sesje zapisały importy i wybory komponentów,
+zgodność z tokenami, obsługę stanów, klawiaturę, motywy, szerokości oraz listę
+zgadywanych decyzji. Prototypy powstały wyłącznie w gałęziach
+`test/agent-error-screen` i `test/agent-error-app`; nie są częścią tej gałęzi i nie
+podlegają scaleniu.
+
+### Wynik testu świeżym agentem (2026-10-21)
+
+- Obie sesje odrzuciły gotowy `SiteHeader`: `account={null}` oznacza użytkownika
+  wylogowanego i pokazuje **Sign in**, a podczas awarii rozpoznanie tożsamości jest
+  nieznane. Potrzebny jest brand-only, identity-free header bez nawigacji konta.
+- `/error` musi pozostać poza layoutem, który odczytuje principal, tworzy request scope
+  albo dotyka DB. W repozytorium nie ma jeszcze publicznego szkieletu strony bez takiego
+  layoutu dla `(frontend)`.
+- Nie ma zatwierdzonej mapy stanów `/error` ani Storybookowej story ekranu. Spec wymienia
+  `internal_error` i „known codes”, ale nie definiuje pełnej listy, kodu nieznanego,
+  braku `code` ani dokładnej treści i akcji odzyskania.
+- Sesje użyły statycznej treści i linku do `/` wyłącznie jako założeń prototypu. Nie są
+  one regułą produktu; pytania wpisano do „Do zrobienia poza design systemem”, a propozycje
+  do decyzji przedstawiono osobno w odpowiedzi PO.
+- Weryfikacja w gałęziach testowych obejmowała lint, typecheck, build, coverage,
+  integrację, klawiaturę, oba motywy i szerokości 320/768/1440 px. W tej sesji testu
+  nie powtarzano i nie budowano `/error`.
 
 
 ## Etap 4: co wdrożono (2026-10-21)
@@ -1391,7 +1457,8 @@ nie wykonywać tych zmian aplikacji automatycznie w ramach audytu.
 
 **Wynik:** audyt wykonany, design system nie jest jeszcze w pełni gotowy. Osobne
 stories przechodzą a11y, lecz szersza kontrola dokumentacji wykryła problemy.
-Test świeżym agentem wyłącznie przygotowany, zgodnie z poleceniem PO.
+Test świeżym agentem wykonano później w osobnych gałęziach; wynik i luki zapisano w sekcji
+„Wynik testu świeżym agentem”.
 
 ### Wdrożono i sprawdzono
 
@@ -1450,8 +1517,9 @@ konkretny zakres proponowanych poprawek. Nie wprowadzono ich przy samym audycie.
 
 ### Ograniczenia i dowody
 
-- Nie wykonano testu świeżym agentem, testu żywym czytnikiem ekranu ani testów
-  aplikacyjnych tras E01/E02, których nie ma jeszcze w aplikacji. Nie dodawano
+- Pierwotny audyt nie obejmował testu świeżym agentem, testu żywym czytnikiem ekranu ani
+  testów aplikacyjnych tras E01/E02, których nie ma jeszcze w aplikacji. Test świeżym
+  agentem wykonano później w osobnych gałęziach i nie scalono prototypów. Nie dodawano
   pominiętych kontrolek, E03–E06, zależności, wariantów ani nowego ekranu `/error`.
 - Nie ujednolicano dawnych przykładów dat bez roku po nowej decyzji P-DOC1;
   reguła Content jest zatwierdzona, lecz starsze fixtures wymagają osobnego przeglądu.
@@ -1552,9 +1620,9 @@ z powodu poniższych wyjątków; nie opisujemy go jako bezwarunkowo zielonego.
   Foundations i Controls klawiaturą przy 320 px: 2/2, scrollLeft rośnie o 40 px.
 - Brak przewijania całej strony, błędów runtime, błędnych linków i surowych tabel
   w macierzy 420 kontroli. Każdy URL ramki niesie właściwy motyw.
-- **Test świeżym agentem nadal tylko przygotowany, niewykonany.** Brak testu żywym
-  czytnikiem ekranu; stare fixtures dat, prace aplikacji i pozostałe luki poza zakresem
-  pozostają opisane wcześniej. Design system nie ma jeszcze końcowego dowodu testu agentem.
+- **Test świeżym agentem wykonany osobno, bez scalania prototypów.** Nadal brak testu
+  żywym czytnikiem ekranu; stare fixtures dat, prace aplikacji i pozostałe luki poza
+  zakresem pozostają opisane wcześniej.
 - Dziennik: `.ai/runs/2026-10-21-storybook-docs-remediation.md`.
   Artefakty lokalne: `test-results/design-system-remediation/` — before/after/comparison,
   wyjątki, metadane reguł, logi, skrypty i zrzuty. Nie commitowano ani nie publikowano.

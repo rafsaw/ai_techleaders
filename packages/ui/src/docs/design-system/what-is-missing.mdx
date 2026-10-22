@@ -6,6 +6,21 @@ import { Meta } from "@storybook/addon-docs/blocks";
 
 “Available” below means a real UI component or Storybook composition exists. It does not mean the corresponding product feature has shipped. This inventory reflects source files on this branch, not live tracker status. Sources: `.ai/specs/backlog.md`, E01/E02 specifications, POSTEP scope decisions and remaining work.
 
+## Missing screen foundations
+
+These are the highest-priority gaps exposed by the fresh-agent `/error` test. They are
+documentation and product-contract tasks, not permission to add a component, variant or
+application screen in this release.
+
+<table tabIndex={0} aria-label="Missing screen foundations" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Gap"}</th><th scope="col">{"Current status"}</th><th scope="col">{"Next task"}</th><th scope="col">{"Priority / source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Identity-free error header"}</td><td>{"SiteHeader explicitly excludes /error; no brand-only header exists. Passing account={null} would present the unknown identity as signed out and show Sign in."}</td><td>{"Define the dependency-free header contract and its approved home; keep it free of principal, request scope, DB and personalized navigation."}</td><td>{"P0; E01 UI/UX, platform P4/P7, SiteHeader.tsx; fresh-agent test"}</td></tr>
+    <tr><td>{"Public frontend page shell without an identity-reading layout"}</td><td>{"The (frontend) area has no documented/implemented shell that can host public pages while preserving the /error exception."}</td><td>{"Define the public shell/layout boundary and ensure /error stays outside identity/activity resolution."}</td><td>{"P0; E01 Phase 1, platform P4, P-SCR1; fresh-agent test"}</td></tr>
+    <tr><td>{"/error state map"}</td><td>{"No Storybook screen or map covers internal_error, other known codes, an unknown code, a missing code, and recovery states."}</td><td>{"Add the state matrix only after E01 specifies the allowed codes, unknown-code behavior, copy and recovery action."}</td><td>{"P0; E01 P7, prompt stage 3; fresh-agent test"}</td></tr>
+  </tbody>
+</table>
+
 ## Backlog coverage
 
 Priorities in this table describe sequencing from the approved scope and backlog dependencies, not new tracker labels: **current** = E01/E02 implementation; **next spec** = outside the approved UI scope; **later** = E06.
@@ -13,8 +28,8 @@ Priorities in this table describe sequencing from the approved scope and backlog
 <table tabIndex={0} aria-label="Backlog coverage" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
   <thead><tr><th scope="col">{"Backlog item"}</th><th scope="col">{"Component or screen"}</th><th scope="col">{"Design-system status"}</th><th scope="col">{"Product work remaining"}</th><th scope="col">{"Priority / source"}</th></tr></thead>
   <tbody>
-    <tr><td>{"E01 #28"}</td><td><a href="?path=/docs/design-system-epics-e01-accounts-and-access--docs">{"Accounts and access"}</a></td><td>{"Six screen state maps, five component families, public kit and forms available"}</td><td>{"Auth, sessions, delivery, routes, layouts and persistence"}</td><td>{"Current; E01 plan"}</td></tr>
-    <tr><td>{"E01-S01 #34"}</td><td>{"SignInOptions, SiteHeader, AccountSummary; Sign in, Account"}</td><td>{"Available, including provider/sign-out failure states"}</td><td>{"GitHub integration, account/session APIs and pages"}</td><td>{"Current; E01 Flow 1"}</td></tr>
+    <tr><td>{"E01 #28"}</td><td><a href="?path=/docs/design-system-epics-e01-accounts-and-access--docs">{"Accounts and access; /error fallback"}</a></td><td>{"Six screen state maps, five component families, public kit and forms available; /error foundations and state map are missing"}</td><td>{"Auth, sessions, delivery, routes, public shell/layout boundary and dependency-free /error header/page"}</td><td>{"P0 for /error foundations; current E01 plan, platform P4/P7, fresh-agent test"}</td></tr>
+    <tr><td>{"E01-S01 #34"}</td><td>{"SignInOptions, SiteHeader, AccountSummary; Sign in, Account; /error fallback"}</td><td>{"Personalized header and auth states available; identity-free header, public shell boundary and /error state map are missing"}</td><td>{"GitHub integration, account/session APIs, pages and the dependency-free /error route"}</td><td>{"P0 for /error; E01 Flow 1, Phase 1 step 4, P4/P7, fresh-agent test"}</td></tr>
     <tr><td>{"E01-S02 #35"}</td><td>{"SchemaForm, PasswordField, ConfirmEmailPanel; Sign up, Check email, Confirm email"}</td><td>{"Available, with pending, validation, resend and failure examples"}</td><td>{"Production schemas, password/email confirmation flows; record approved show-password control in spec"}</td><td>{"Current; E01 Flow 2; POSTEP P-PF1"}</td></tr>
     <tr><td>{"E01-S03 #36"}</td><td>{"InvitationPanel; Invitation"}</td><td>{"Available; matching/mismatched account and invalid-link states"}</td><td>{"Email-bound acceptance and actual return flow"}</td><td>{"Current; E01 Flow 3"}</td></tr>
     <tr><td>{"E01-S03-T01 #46"}</td><td>{"No operator UI planned"}</td><td>{"Recipient UI available; operator task is API/manual"}</td><td>{"Create/manage invitations according to revised E01 Phase 3; no invitation dashboard"}</td><td>{"Current; E01 Phase 3"}</td></tr>

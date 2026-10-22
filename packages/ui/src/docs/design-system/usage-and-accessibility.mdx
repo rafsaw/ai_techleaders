@@ -29,6 +29,18 @@ E01/E02 are `.ai/specs/2026-10-17-accounts-and-roles.md` and
   </tbody>
 </table>
 
+## Full-page error screen
+
+<table tabIndex={0} aria-label="Full-page error screen" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Rule"}</th><th scope="col">{"Check in the product"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td><strong>{"P-ERR3, proposal approved by Rafał:"}</strong>{" every full application screen has exactly one visible "}<code>{"h1"}</code>{"; component fragments and stories are exempt."}</td><td>{"The /error screen has one h1, Something went wrong."}</td><td>{"P-ERR3; prompt stage 3, P-SCR2; WCAG 2.4.6"}</td></tr>
+    <tr><td><strong>{"P-ERR4, proposal approved by Rafał:"}</strong>{" use the page metadata title "}<code>{"Something went wrong"}</code>{"; the application layout adds its existing "}<code>{" · DevMentor"}</code>{" suffix."}</td><td>{"The browser tab reads Something went wrong · DevMentor, matching layout.tsx's title.template."}</td><td>{"P-ERR4; packages/app/src/app/layout.tsx"}</td></tr>
+    <tr><td><strong>{"P-ERR4, proposal approved by Rafał:"}</strong>{" keep the existing solid, token-based visible focus outline on the recovery link and other interactive elements."}</td><td>{"Tab shows the approved 2 px outline with offset in both themes."}</td><td>{"P-ERR4; B3; WCAG 2.4.7"}</td></tr>
+    <tr><td><strong>{"P-ERR4, proposal approved by Rafał:"}</strong>{" do not move focus programmatically to "}<code>{"main"}</code>{" on /error; ordinary navigation starts at the top of the page."}</td><td>{"The first keyboard interaction follows the normal document order; no scripted focus announcement is added."}</td><td>{"P-ERR4; PO decision 2026-10-22"}</td></tr>
+  </tbody>
+</table>
+
 ## Forms and announcements
 
 <table tabIndex={0} aria-label="Forms and announcements" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
