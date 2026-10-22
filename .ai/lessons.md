@@ -27,6 +27,27 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-21 — An error removed on blur can swallow the submit click
+
+**Context:** `CrudForm` started validating on blur. On `/backend/users`, after an empty submit the
+person fixed the fields and clicked **Create user**: mousedown blurred the field, the error under it
+disappeared, the button moved up, mouseup landed elsewhere and no click fired (integration tests
+failed; unit and story tests passed).
+**Lesson:** never change layout on blur in a form. Re-check a field that already shows an error
+while the user types (`useSchemaForm.setValue`), so it clears before they leave the field; blur may
+only add errors. Run `npm run test:integration` after any change to shared form behaviour.
+**Applies to:** `packages/ui/src/forms/useSchemaForm.ts`, `CrudForm`, `SchemaForm`.
+
+### 2026-10-21 — Circular imports between ui components fail only in the browser
+
+**Context:** `SetupChecklist` started importing `PayoutStatus`, which already imported
+`LOCKED_NOTE` from `SetupChecklist`. Unit tests (jsdom) passed; three story files failed to load
+in Chromium with `Cannot access 'LOCKED_NOTE' before initialization`.
+**Lesson:** when one component starts rendering another, check the reverse import first. Put
+shared constants in the lower-level module (`SetupItem`), never in the composite, and run the
+story tests, not only unit tests, after such a change.
+**Applies to:** `packages/ui/src/components/<concept>/` modules that import each other.
+
 ### 2026-10-21 — Compose components into a page before trusting their a11y checks
 
 **Context:** every `SetupItem` story passed axe, but the Setup checklist pattern (the item under a

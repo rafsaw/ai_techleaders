@@ -1,64 +1,22 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect } from "storybook/test";
 
-import { MentorProfileHeader, type Area } from "@devmentor/ui/components/mentors/MentorProfileHeader";
-import { NotBookableNotice } from "@devmentor/ui/components/mentors/NotBookableNotice";
-import { PriceList } from "@devmentor/ui/components/mentors/PriceList";
-import { PublicWorkLinks } from "@devmentor/ui/components/mentors/PublicWorkLinks";
-import { TextOnlyNote } from "@devmentor/ui/components/mentors/TextOnlyNote";
 import { LinkButton } from "@devmentor/ui/frontend/actions/LinkButton";
 
-// PublicMentorProfileDto (E02 API), with prices already formatted by the page (formatMoney, P17).
-interface Profile {
-  displayName: string;
-  area: Area;
-  description: string;
-  publicWorkLinks: string[];
-  prices: { 25: string; 50: string };
-  bookable: boolean;
-}
+import { ADA_PROFILE, PublicProfile, type Profile } from "../../.storybook/blocks/public-profile";
 
-const ada: Profile = {
-  displayName: "Ada Nowak",
-  area: "typescript",
-  description:
-    "I maintain the type definitions of an open-source form library.\nAsk me about generics, strict mode migrations and type errors you can't read.",
-  publicWorkLinks: ["https://github.com/adanowak/strict-migration", "https://ada.dev/notes/typescript-generics-in-forms"],
-  prices: { 25: "$40", 50: "$70" },
-  bookable: true,
-};
-
-/**
- * /mentors/[id]. Status first, then who; at ≥ 1024 px the prices sit in a side column next to
- * the description (E04 puts Book there); below that they follow the description.
- */
-function PublicProfile({ profile }: { profile: Profile }) {
-  return (
-    <main className="mx-auto flex w-full max-w-content flex-col gap-component">
-      {profile.bookable ? null : <NotBookableNotice />}
-      <div className="grid gap-component lg:grid-cols-3">
-        <MentorProfileHeader
-          className="lg:col-span-2"
-          displayName={profile.displayName}
-          area={profile.area}
-          description={profile.description}
-        />
-        <aside aria-label="Sessions" className="flex flex-col gap-in-group lg:col-start-3 lg:row-span-2 lg:row-start-1">
-          <PriceList prices={profile.prices} />
-          <TextOnlyNote />
-        </aside>
-        <PublicWorkLinks className="lg:col-span-2" links={profile.publicWorkLinks} />
-      </div>
-    </main>
-  );
-}
+const ada = ADA_PROFILE;
 
 const meta = {
   title: "Patterns/Detail view",
   tags: ["!autodocs"],
   parameters: { layout: "padded" },
   args: { profile: ada },
-  render: (args: { profile: Profile }) => <PublicProfile profile={args.profile} />,
+  render: (args: { profile: Profile }) => (
+    <main className="mx-auto w-full max-w-content">
+      <PublicProfile profile={args.profile} />
+    </main>
+  ),
 } satisfies Meta<{ profile: Profile }>;
 
 export default meta;

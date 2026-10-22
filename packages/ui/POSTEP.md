@@ -10,11 +10,11 @@ czekamy na „dalej” od PO. W nowej sesji najpierw przeczytaj ten plik.
 | 0. Inwentaryzacja i plan | **zakończony**, wszystkie pytania rozstrzygnięte | 2026-10-20 – 2026-10-21 |
 | 1. Fundamenty | **zakończony**, propozycje P-* rozstrzygnięte i wpisane | 2026-10-21 |
 | 2. Komponenty bazowe | **zakończony**: partie 1–4 (1–3 w 766a227, d2073e8, 9739dab); decyzje po partii 4 wpisane | 2026-10-21 |
-| 3. Komponenty produktu, wzorce, ekrany | **w toku**: partie 1–4 z 5 zrobione (1–3 w a45f031, 9fbecd9, 09081a1); decyzje po partii 4 wpisane; czeka na „dalej” do partii 5 | 2026-10-21 |
+| 3. Komponenty produktu, wzorce, ekrany | **zakończony**: partie 1–5 (1–4 w a45f031, 9fbecd9, 09081a1, e044136); decyzje po partii 5 wpisane; czeka na „dalej” do etapu 4 | 2026-10-21 |
 | 4. Strony, które uczą | nie zaczęty | — |
 | 5. Sprawdzenie i raport | nie zaczęty | — |
 
-**Następny krok:** „dalej” do partii 5 etapu 3 (ekrany E01 i E02). Przed testem agentem zostają rzeczy z sekcji „Do zrobienia poza design
+**Następny krok:** „dalej” do etapu 4 (strony, które uczą). Przed testem agentem zostają rzeczy z sekcji „Do zrobienia poza design
 systemem”.
 
 ## Przeczytane materiały
@@ -183,6 +183,19 @@ Wszystkie jako „proposal approved by Rafał” (w dokumentacji i tokenach).
 
 ## Do zrobienia poza design systemem (przed testem agentem, etap 5)
 
+- **Kolejność na ekranie Slots w specyfikacji E02:** `2026-10-18-mentor-setup.md` Flow 4 krok 1
+  wymienia najpierw „Upcoming slots”, potem „Add a slot”. Design system stawia „Add a slot” nad listą
+  (P-SCR5, decyzja PO 2026-10-21: akcja przed listą, widoczna bez przewijania). Zmienić kolejność
+  w specyfikacji.
+- **`CrudForm` ma już pola `textarea` i `select` (E02 Phase 1):** dodane w partii 5 etapu 3
+  (2026-10-21, proposal approved by Rafał, źródło: spec E02 Flow 2 i zgoda PO wg zasady 12).
+  Przy implementacji E02 Phase 1 **nie dodawać ich drugi raz**: krok „`CrudForm`/`useSchemaForm`
+  gain `textarea` and `select` kinds” w `2026-10-18-mentor-setup.md` jest już zrobiony w `ui`;
+  zostaje `npm run ui:add -- textarea native-select` tylko jeśli prymitywów by brakowało (są).
+  `select` bierze `options` i opcję-instrukcję z `placeholder`.
+- **Layouty aplikacji:** `(frontend)` i `(app)` nie mają layoutów; ekrany w Storybooku używają ramy
+  P-SCR1 (nagłówek `SiteHeader` + `main` na siatce nagłówka). Przy stronach E01 Phase 2 i E02
+  zbudować layouty tak samo.
 - **Strona 404 w aplikacji:** `packages/app` nie ma `not-found.tsx`, więc 404 z `/mentors/[id]`
   (brak profilu albo brak roli) pokazuje domyślną stronę Next. Wzorzec Detail view proponuje treść
   (P-DV3); dodać `not-found.tsx` przy stronie `/mentors/[id]`.
@@ -1168,6 +1181,94 @@ Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 4 etapu 3
     ładowanie stories w przeglądarce (testy jsdom go nie złapały) → `LOCKED_NOTE` przeniesiony do
     `SetupItem`; `SetupChecklist` dalej go eksportuje.
 - **P-PT1, P-FM1, P-DV1–P-DV3, P-DC1, P-PS1:** przyjęte; w docs oznaczone „proposal approved by Rafał”.
+
+## Etap 3, partia 5: co zrobione (2026-10-21)
+
+Ekrany E01 i E02 jako stories na pełny ekran (`src/screens/e01`, `src/screens/e02`, menu
+„Screens/E01”, „Screens/E02”), każdy ze stroną docs z **mapą stanów** (stan ekranu → story → źródło):
+
+| Ekran | Trasa | Stories |
+|---|---|---|
+| Sign in | `/sign-in` | 9 |
+| Sign up | `/sign-up` | 8 |
+| Check email | `/sign-up/check-email` | 3 |
+| Confirm email | `/confirm-email` | 7 |
+| Invitation | `/invite/[token]` | 8 |
+| Account | `/account` | 7 |
+| Mentor setup | `/mentor` | 11 |
+| Profile form | `/mentor/profile` | 7 |
+| Slots | `/mentor/slots` | 11 |
+| Public profile | `/mentors/[id]` | 6 |
+
+- Złożone wyłącznie z komponentów pakietu; API przez prawdziwe `apiCall` + MSW (sukces,
+  oczekiwanie, błąd pola, błąd serwera, 401/403/409/429/502 tam, gdzie spec je wymienia).
+- **`CrudForm`: pola `textarea` i `select`** (decyzja PO: opcja 1, ściśle addytywnie wg E02 Flow 2;
+  istniejące testy bez zmian, nowy test dopisany, 100%). Ekran Profile form używa `CrudForm`.
+- **Bloki pomocnicze (tylko Storybook, `.storybook/blocks/`):** `screen.tsx` (rama ekranu
+  z prawdziwym `SiteHeader`), `fixtures.ts` (zastępniki schematów i odpowiedzi API),
+  `stripe-banner.tsx` (banery Stripe, wspólne dla wzorca Provider status i ekranu Mentor setup),
+  `public-profile.tsx` (kompozycja `/mentors/[id]`, wspólna dla wzorca Detail view i ekranu).
+- Formularz slotów odtworzony w story z `useSchemaForm` + prymitywów, bo spec trzyma go
+  w aplikacji (`mentor/slots/slot-form.tsx`).
+- Teksty 429 wg spec: „Too many attempts. Try again later”.
+
+## Etap 3, partia 5: co sprawdzone
+
+- lint 0, typecheck 0, check:tokens (0 w ui), test:coverage (276 testów, 100%), build-storybook 0,
+  test:storybook w obu motywach 323/323 × 2, build Next.js 0, test:integration 4/4.
+  `package.json` bez zmian.
+- Chromium: 10 stron ekranów × 2 motywy × 320/1440 px bez przewijania w bok i surowych tabel;
+  jedyne komunikaty konsoli to symulowane 400/409 w osadzonych stories (zamierzone).
+- Zrzuty: Mentor setup „Back from Stripe checking” (1440 jasny), Slots „Overlap” (320 ciemny),
+  Profile form „Edit” (1440 ciemny), Sign up „From invitation” (320 jasny).
+
+## Etap 3, partia 5: czego nie sprawdzono
+
+- Ekranów w aplikacji: strony E01 Phase 2 i E02 nie istnieją w tej gałęzi.
+- Schematy w `fixtures.ts` to zastępniki; komunikaty walidacji ustali core.
+- `LocalTime` zostaje w aplikacji; stories podają sformatowane czasy.
+- Czytnik ekranu na żywo.
+
+## Etap 3, partia 5: do decyzji
+
+Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 5 etapu 3)”.
+
+- **Q-CF1 (pytanie):** `CrudForm` nie podpina `handleBlur` (brak walidacji po opuszczeniu pola,
+  którą wzorzec Form deklaruje dla obu zestawów) ani `aria-describedby` do komunikatu błędu
+  (błąd jest ogłaszany przez `role="alert"`, ale nie jest powiązany z polem). Nie poprawiłem tego,
+  bo zmienia zachowanie istniejących pól (decyzja: ściśle addytywnie). (a) poprawić w `CrudForm`
+  (dwie linie + testy); (b) zostawić i opisać w docs wzorca Form jako lukę.
+- **P-SCR1** Rama ekranu: `SiteHeader` + `main` na siatce nagłówka (`max-w-content`,
+  `px-page-gutter`, `py-section`), formularze i komunikaty w `max-w-text`.
+- **P-SCR2** Tytuły stron (`h1`): Sign in, Create an account, Check your email, Confirm your email,
+  Mentor invitation, Account, Mentor setup, Create your profile / Edit profile, Slots. Część
+  z etykiet linków w spec (Create an account, Mentor setup, Create your profile, Edit profile).
+- **P-SCR3** Sign up: przy zaproszeniu „Use the email address that received your invitation.”;
+  link „Sign in instead”.
+- **P-SCR4** Check email, nie wysłano: „Sign in with your email and password to resend the
+  confirmation.” i **Sign in** jako główna akcja.
+- **P-SCR5** Slots: „Add a slot” nad „Upcoming slots” (główna akcja widoczna bez przewijania przy
+  wielu slotach; spec wymienia listę pierwszą).
+- **P-SCR6** Profile form: opcja-instrukcja „Choose an area”, przykład w polu linków
+  „https://github.com/you/project”.
+
+## Decyzje PO z 2026-10-21 (po partii 5 etapu 3)
+
+- **Q-CF1: opcja (a).** `CrudForm` sprawdza pole po jego opuszczeniu (`handleBlur` z F2, gdy pole
+  ma wartość albo błąd) i wiąże komunikat błędu z polem przez `aria-describedby` (+ `id` na
+  `FieldError`). Źródło: wzorzec formularza z promptu (etap 3), WCAG 1.3.1 i 3.3.1, zgoda PO wg
+  zasady 12. Istniejące testy bez zmian; nowy test i nowa story *Signed in validate on blur*;
+  docs wzorca Form i komentarz `CrudForm` opisują stan faktyczny.
+  - **Znalezione przez test integracyjny `/backend/users` i poprawione w `useSchemaForm` (F2):** po
+    pustym wysłaniu pod polami są błędy; walidacja przy opuszczeniu pola usuwała je dopiero, gdy
+    użytkownik klikał przycisk, więc przycisk przesuwał się między wciśnięciem a puszczeniem myszy
+    i klik ginął (2 z 4 testów integracyjnych). Teraz pole z widocznym błędem jest sprawdzane przy
+    wpisywaniu i błąd znika od razu po poprawce; przy opuszczeniu pola nic się nie przesuwa.
+    Dotyczy obu zestawów (`CrudForm`, `SchemaForm`). Istniejące testy bez zmian, nowy test w
+    `useSchemaForm.test.tsx`, reguła w docs wzorca Form.
+- **P-SCR1, P-SCR2, P-SCR3, P-SCR4, P-SCR6:** przyjęte; w docs „proposal approved by Rafał”.
+- **P-SCR5: opcja (a).** „Add a slot” nad listą; przyjęte i oznaczone. Zmiana kolejności
+  w specyfikacji E02 w „Do zrobienia poza design systemem”.
 
 ## Opis ekranu do testu agentem (etap 5)
 

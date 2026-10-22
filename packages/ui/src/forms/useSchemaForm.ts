@@ -39,7 +39,7 @@ function focusFirstInvalid(form: HTMLFormElement, fields: readonly { name: strin
 
 /**
  * Form state shared by `CrudForm` (signed-in) and `SchemaForm` (public): client validation with
- * the shared schema, server `fieldErrors` on their fields, a form-level error, no double submit,
+ * the shared schema (on leaving a field, live while a shown error is being fixed, and on submit), server `fieldErrors` on their fields, a form-level error, no double submit,
  * focus on the first invalid field, Cmd/Ctrl+Enter to submit and Escape to cancel.
  */
 export function useSchemaForm<TSchema extends z.ZodType, TData = unknown>({
@@ -56,8 +56,28 @@ export function useSchemaForm<TSchema extends z.ZodType, TData = unknown>({
   const [formError, setFormError] = useState<string>();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  /** Re-checks one field against the shared schema and updates only its errors. */
+  function validateField(name: FieldName<TSchema>, nextValues: Record<string, string>) {
+    const parsed = schema.safeParse(nextValues);
+    const errors = parsed.success ? undefined : toFieldErrors(parsed.error.issues).fieldErrors[name];
+    setFieldErrors((current) => {
+      const next = { ...current };
+      if (errors) next[name] = errors;
+      else delete next[name];
+      return next;
+    });
+  }
+
+  /**
+   * A field that already shows an error is re-checked as the user types, so the error goes away
+   * as soon as the value is fixed. Clearing it here, not on blur, keeps the layout still while
+   * the user clicks the submit button: a message removed on blur would move the button between
+   * mousedown and mouseup and lose the click.
+   */
   function setValue(name: FieldName<TSchema>, value: string) {
-    setValues((current) => ({ ...current, [name]: value }));
+    const nextValues = { ...values, [name]: value };
+    setValues(nextValues);
+    if (fieldErrors[name]) validateField(name, nextValues);
   }
 
   /**
@@ -66,14 +86,7 @@ export function useSchemaForm<TSchema extends z.ZodType, TData = unknown>({
    */
   function handleBlur(name: FieldName<TSchema>) {
     if (values[name] === "" && !fieldErrors[name]) return;
-    const parsed = schema.safeParse(values);
-    const errors = parsed.success ? undefined : toFieldErrors(parsed.error.issues).fieldErrors[name];
-    setFieldErrors((current) => {
-      const next = { ...current };
-      if (errors) next[name] = errors;
-      else delete next[name];
-      return next;
-    });
+    validateField(name, values);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

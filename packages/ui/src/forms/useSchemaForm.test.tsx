@@ -124,4 +124,19 @@ describe("useSchemaForm", () => {
     expect(onSuccess).toHaveBeenCalledWith({ redirectTo: "/account" });
     expect(email()).toHaveValue("ada@example.com");
   });
+
+  it("clears a shown error while the user fixes the value, so leaving the field moves nothing", () => {
+    render(<Harness onSubmit={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    expect(screen.getByTestId("email-errors")).toHaveTextContent("Enter a valid email address");
+    fireEvent.change(email(), { target: { value: "ada@" } });
+    expect(screen.getByTestId("email-errors")).toHaveTextContent("Enter a valid email address");
+    fireEvent.change(email(), { target: { value: "ada@example.com" } });
+    expect(screen.getByTestId("email-errors")).toHaveTextContent("");
+    // The password also shows an error after submit, so it updates live too.
+    fireEvent.change(password(), { target: { value: "short" } });
+    expect(screen.getByTestId("password-errors")).toHaveTextContent("Use at least 15 characters");
+    fireEvent.change(password(), { target: { value: "correct horse battery" } });
+    expect(screen.getByTestId("password-errors")).toHaveTextContent("");
+  });
 });

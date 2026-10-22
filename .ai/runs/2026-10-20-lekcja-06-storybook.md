@@ -148,3 +148,17 @@
   potraktowane jako bez akcji (do potwierdzenia przez PO).
 - Q-SC1 potwierdzone (b): w failed/blocked kontakt z zespołem jest akcją i przyciskiem głównym,
   gdy to pierwsza niezakończona pozycja z akcją; `payoutHasAction` obejmuje failed i blocked.
+
+## 2026-10-21: etap 3, partia 5
+
+- Decyzja PO przed partią: `CrudForm` dostaje pola `textarea` i `select` (ściśle addytywnie,
+  E02 Flow 2, zasada 12); wpis w POSTEP, żeby E02 Phase 1 nie robił tego drugi raz.
+- Ekrany: 6 E01 + 4 E02, 77 stories na pełny ekran (MSW, prawdziwe `apiCall`), 10 stron docs
+  z mapą stanów; bloki Storybooka: rama ekranu, zastępniki schematów, banery Stripe, profil publiczny.
+- Sprawdzone: lint, typecheck, check:tokens, test:coverage (276, 100%), build-storybook,
+  test:storybook 323/323 × 2, build, test:integration (4/4), Chromium 10 stron × 2 motywy × 2 szerokości.
+- Wynik: partia 5 i etap 3 zakończone; czeka na Q-CF1, P-SCR1–P-SCR6 i „dalej” do etapu 4.
+- Decyzje po partii 5: Q-CF1 (a) — `CrudForm` z walidacją po opuszczeniu pola i `aria-describedby`;
+  P-SCR1–P-SCR6 przyjęte; zmiana kolejności Slots w spec E02 dopisana do zadań poza DS.
+- Po Q-CF1 test integracyjny `/backend/users` złapał zgubiony klik (błąd znikał przy blur i przesuwał
+  przycisk); poprawka w `useSchemaForm`: pole z błędem sprawdzane przy wpisywaniu. Lekcja dopisana.

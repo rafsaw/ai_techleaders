@@ -1,0 +1,35 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./confirm-email.stories";
+
+<Meta of={Stories} />
+
+# Confirm email
+
+`/confirm-email?token=…`, public kit. Source: E01 Flow 2, AD7. Every state below is a full-screen story with
+the real site header. The page frame (P-SCR1) and the page title (P-SCR2) are proposals approved by Rafał; the app
+has no layouts yet.
+
+## What the screen is for
+
+Confirming the address with the password, or saying why the link does not work.
+
+## Built from
+
+**Site header**, **Confirm email panel**. Pattern: **Form**.
+
+## State map
+
+| Screen state | Story | Source |
+|---|---|---|
+| Valid link → confirmed and signed in | *Valid* | E01 Flow 2 |
+| Confirming | *Pending* | Form pattern |
+| Wrong password (401) | *Wrong password* | E01 Flow 2 |
+| Expired | *Expired* | E01 Flow 2 |
+| Already confirmed | *Already confirmed* | E01 Flow 2 |
+| Invalid | *Invalid* | E01 Flow 2 |
+| Long address, 320 px | *Narrow* | P-L1 |
+
+Empty, many: not applicable.
+
+<Canvas of={Stories.Invalid} />

@@ -25,6 +25,10 @@ People lose typed data, send twice, or think something was saved when it was not
 | `/account` (display name) | signed-in | `CrudForm` |
 | `/mentor/profile`, `/mentor/slots` | signed-in | `CrudForm`, `useSchemaForm` |
 
+`CrudForm` field kinds: `text`, `email`, `password`, `number`, `url`, `tel`, plus `textarea` and
+`select` (with `options` and an instruction option from `placeholder`) for `/mentor/profile`
+(E02 Flow 2, Phase 1; proposal approved by Rafał under rule 12).
+
 ## 3. Built from
 
 **Schema form**, **Text field**, **Password field**, **Submit button**, **Notice** (public);
@@ -35,8 +39,9 @@ People lose typed data, send twice, or think something was saved when it was not
 | Rule | Source |
 |---|---|
 | The label is always visible above the field. A placeholder is an example, never the field's name. | prompt (Form pattern), WCAG 3.3.2 |
-| A field is checked when the person leaves it, but only once it has a value or already shows an error. | prompt, F2 (`useSchemaForm`) |
+| A field is checked when the person leaves it, but only once it has a value or already shows an error. Both kits: `SchemaForm` and `CrudForm`. | prompt, F2 (`useSchemaForm`); `CrudForm` since 2026-10-21 (Q-CF1, rule 12, approved by Rafał) |
 | On submit every error shows at once and focus moves to the first invalid field. | prompt, F2 |
+| A field that shows an error is re-checked while the person types, so the error goes away as soon as the value is fixed. Nothing then moves when they leave the field by clicking the button: an error removed on blur would shift the button between mousedown and mouseup and lose the click. | F2 (`useSchemaForm`), found by the `/backend/users` integration test on 2026-10-21 |
 | Typed values stay after any error, including server and network errors. | prompt, F2 |
 | While sending, the button is disabled and says what is happening (*Creating account…*, *Saving…*); a second click or Enter sends nothing. | prompt, P-C4 |
 | Success shows only after the server confirms it. | prompt, Q4 |
@@ -53,7 +58,7 @@ People lose typed data, send twice, or think something was saved when it was not
 | Field error from the server | *Server field error*, *Signed in field error* |
 | Server error (500) | *Server error*, *Signed in server error* |
 | No network | *Network error*, *Signed in network error* |
-| Validation on leaving a field | *Validate on blur* |
+| Validation on leaving a field | *Validate on blur*, *Signed in validate on blur* |
 | Validation on submit, focus on the first error | *Focus first error* |
 | Long values and messages, 320 px | *Long content, narrow* |
 
@@ -66,7 +71,7 @@ API responses are simulated with Mock Service Worker (`parameters.msw`) against 
 
 ## 6. Behaviour and accessibility
 
-- Errors are tied to the field with `aria-describedby` and `aria-invalid` (WCAG 3.3.1).
+- In both kits each error is tied to its field with `aria-describedby` and `aria-invalid` (WCAG 1.3.1, 3.3.1), so a screen reader reads it with the field. `CrudForm` got this, and validation on leaving a field, on 2026-10-21 (Q-CF1).
 - The form-level error is `role="alert"`; a save confirmation is `role="status"`.
 - Cmd/Ctrl+Enter submits and Escape cancels in `CrudForm` (AGENTS.md).
 - Known gap: `CrudForm` has no `resetOnSuccess` yet, so after a save it returns to its initial

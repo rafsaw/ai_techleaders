@@ -1,0 +1,39 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./profile-form.stories";
+
+<Meta of={Stories} />
+
+# Profile form
+
+`/mentor/profile`, signed-in kit. Source: E02 Flow 2. Every state below is a full-screen story with
+the real site header. The page frame (P-SCR1) and the page title (P-SCR2) are proposals approved by Rafał; the app
+has no layouts yet.
+
+## What the screen is for
+
+Creating or editing the public profile: area, description, links and the two prices.
+
+## Built from
+
+**Site header**, **CrudForm** with select and textarea fields (Native select, Textarea, Input). Pattern: **Form**.
+
+## State map
+
+| Screen state | Story | Source |
+|---|---|---|
+| Create: empty | *Create* | E02 Flow 2 |
+| Edit: prefilled | *Edit* | E02 UI/UX |
+| Validation, focus on the first error | *Invalid* | Form pattern |
+| Link rejected, message names the line | *Link error* | E02 Flow 2 |
+| Saving → /mentor | *Saving* | E02 Flow 2 |
+| Server error | *Server error* | Form pattern |
+| 320 px | *Narrow* | P-L1 |
+
+Loading: the page renders on the server.
+
+<Canvas of={Stories.LinkError} />
+
+## Notes
+
+`CrudForm` gained the `textarea` and `select` field kinds for this page (E02 Flow 2, Phase 1; proposal approved by Rafał under rule 12). The instruction option *Choose an area* and the links placeholder example are P-SCR6 (proposal approved by Rafał). The client messages come from story stand-ins; core's `mentorProfileSchema` decides the real ones.

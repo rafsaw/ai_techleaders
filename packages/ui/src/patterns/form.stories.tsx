@@ -256,6 +256,20 @@ export const SignedInServerError: Story = {
   },
 };
 
+/** Signed-in kit, validation on leaving a field: the error is tied to the field (Q-CF1). */
+export const SignedInValidateOnBlur: Story = {
+  render: () => <AccountName />,
+  play: async ({ canvas }) => {
+    const name = canvas.getByRole("textbox", { name: "Display name" });
+    await userEvent.clear(name);
+    await userEvent.type(name, " ");
+    await userEvent.tab();
+    await expect(name).toHaveAttribute("aria-invalid", "true");
+    await expect(name).toHaveAccessibleDescription("Display name is required");
+    await expect(requests).toBe(0);
+  },
+};
+
 export const SignedInNetworkError: Story = {
   render: () => <AccountName />,
   parameters: { msw: [http.patch(ACCOUNT, counted(() => HttpResponse.error()))] },
