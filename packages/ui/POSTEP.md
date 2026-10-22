@@ -12,9 +12,9 @@ czekamy na „dalej” od PO. W nowej sesji najpierw przeczytaj ten plik.
 | 2. Komponenty bazowe | **zakończony**: partie 1–4 (1–3 w 766a227, d2073e8, 9739dab); decyzje po partii 4 wpisane | 2026-10-21 |
 | 3. Komponenty produktu, wzorce, ekrany | **zakończony**: partie 1–5 (1–4 w a45f031, 9fbecd9, 09081a1, e044136); decyzje po partii 5 wpisane; czeka na „dalej” do etapu 4 | 2026-10-21 |
 | 4. Strony, które uczą | **zakończony**, bramki aplikacji domknięte; P-DOC1–2 zatwierdzone | 2026-10-21 |
-| 5. Sprawdzenie i raport | **audyt i poprawki wykonane**, jawne wyjątki docs EX-AUD1–2; test świeżym agentem przygotowany | 2026-10-21 |
+| 5. Sprawdzenie i raport | **audyt i poprawki wykonane**, jawne wyjątki docs EX-AUD1–2; test świeżym agentem wykonany | 2026-10-21 |
 
-**Następny krok:** poprawki P-AUD1–3 wykonane; pozostałe zgłoszenia docs zapisane jako EX-AUD1–2 poniżej. W osobnej sesji wykonać przygotowany test świeżym agentem `/error`, po rozpatrzeniu listy „Do zrobienia poza design systemem”. Rozważyć ręczny test czytnikiem dla wyjątków ramek. Niczego nie commitowano.
+**Następny krok:** poprawki P-AUD1–3 i test świeżym agentem `/error` wykonane; wynik oraz niezatwierdzone założenia są poniżej. Pozostałe zgłoszenia docs zapisano jako EX-AUD1–2. Rozważyć ręczny test czytnikiem dla wyjątków ramek. Niczego nie commitowano.
 
 ## Przeczytane materiały
 
@@ -1283,7 +1283,7 @@ Rozstrzygnięte 2026-10-21, zob. „Decyzje PO z 2026-10-21 (po partii 5 etapu 3
 
 ## Opis ekranu do testu agentem (etap 5)
 
-**Przygotowany, niewykonany. Uruchomić w nowej sesji, bez historii tej rozmowy.**
+**Wykonany 2026-10-21 w nowej sesji, bez historii wcześniejszej pracy.**
 
 **Kandydat:** E01 #28 / E01-S01 #34, publiczna strona `/error?code=internal_error`.
 Nie ma jej w Storybooku (sprawdzono indeks 70 stron / 324 stories).
@@ -1311,6 +1311,70 @@ zgadywanych decyzji. Każdy brak później uzupełnić w dokumentacji albo wpisa
 What is missing. Prototyp tylko w osobnej sesji/gałęzi; w bieżącym audycie niczego
 nie zbudowano. Wcześniej rozpatrzyć listę „Do zrobienia poza design systemem”;
 nie wykonywać tych zmian aplikacji automatycznie w ramach audytu.
+
+### Wynik testu świeżym agentem (2026-10-21)
+
+**Prototyp:** dodano lokalną, statycznie prerenderowaną stronę
+`packages/app/src/app/error/page.tsx`. Leży bezpośrednio pod root layoutem, poza
+`(frontend)`, ponieważ planowany layout tej grupy będzie odczytywał principal. Strona nie
+przyjmuje `searchParams` i nie importuje principal resolvera, kontenera, request scope,
+cookies, headers, API ani DB. Query `?code=internal_error` prowadzi do tej samej ogólnej,
+statycznej treści. Nagłówek zawiera wyłącznie link marki do `/`; nie ma nawigacji konta.
+
+**Wybór komponentów i importów:** gotowy `SiteHeader` odrzucono. Jego `account={null}`
+oznacza „wylogowany” i pokazuje **Sign in**, a przy awarii principal tożsamość jest nieznana;
+ponadto źródło i dokumentacja komponentu wprost wyłączają `/error`. Nagłówek backendu
+odrzucono jako nawigację administracyjną opartą na zestawie signed-in. Użyto tylko Next
+`Link`, istniejącego publicznego `linkButtonVariants()` i `cn()`. Lokalny nagłówek powtarza
+zatwierdzoną siatkę nagłówka (`max-w-content`, `px-page-gutter`) i semantyczne tokeny.
+Nie dodano komponentu, wariantu, zależności ani reguły produktu.
+
+**Sprawdzenie:** `npm run lint`, `npm run typecheck`, `npm run build`,
+`npm run test:coverage`, `npm run test:integration:install`,
+`npm run test:integration` i `npm run check:tokens` przeszły. Build oznacza `/error` jako
+statyczne `○`; test jednostkowy dowodzi, że `createRequestScope` nie jest wywołany, a test
+integracyjny otwiera dokładnie `/error?code=internal_error`, sprawdza brak nawigacji konta
+i przechodzi klawiaturą do `/`. Coverage: 281 testów, 100% statements/branches/functions/lines;
+integracja: 5/5. Macierz Chromium: jasny/ciemny × 320/768/1440 px, 6/6 bez poziomego
+przewijania i bez błędów konsoli/runtime. Przy 320 px działanie ma pełną szerokość; przy
+768/1440 px szerokość naturalną. Tab przechodzi przez **DevMentor**, potem **Back to home**;
+oba linki mają solidny obrys 2 px z offsetem 2 px. Zrzuty są lokalnie w
+`test-results/error-screen/`.
+
+**Użyte źródła:** root `AGENTS.md`; `packages/app/AGENTS.md`; `packages/ui/AGENTS.md`;
+ten plik; `packages/ui/docs/design-system.md`; Storybook MDX **Start here**, **How to
+choose**, **Usage and accessibility**, **E01 Accounts and access**, **Site header**,
+**Link button** i **Sign in**, wraz z ich stories oraz `.storybook/blocks/screen.tsx`;
+`.ai/specs/2026-10-17-accounts-and-roles.md` (AD2, Auth navigation and error fallback,
+UI/UX, Edge cases, Phase 1 kroki 4, 7 i 9);
+`.ai/specs/2026-10-17-platform-primitives.md` (failure scenarios F5/P4);
+`.ai/lessons.md`; lokalna dokumentacja Next 16 **Layouts and Pages** oraz **Link**.
+
+**Miejsca wymagające zgadywania — wszystko poniżej pozostaje założeniem prototypu, nie
+zatwierdzoną treścią ani regułą produktu:**
+
+- *Something went wrong* oraz opis *We couldn't load this page. Please try again from the
+  home page.* — brakowało dokładnego tytułu i opisu. Szukano w E01: Auth navigation and
+  error fallback, tabeli UI/UX, Edge cases, Phase 1 krok 4 oraz w stronach Storybooka E01,
+  Content i What is missing; znaleziono tylko „minimal generic error screen”.
+- **Back to home** → `/` jako główne działanie — brakowało zdefiniowanej akcji odzyskania,
+  etykiety, celu i hierarchii. Szukano w tych samych sekcjach E01 oraz w Storybook **How to
+  choose**, **Link button** i mapach ekranów E01; nie znaleziono kontraktu. `/` wybrano jako
+  najmniej zależny cel, a prawdziwy link jako jedyną akcję strony.
+- Link marki **DevMentor** w nagłówku → `/` — spec wymaga osobnego, identity-free nagłówka,
+  ale nie określa jego anatomii. Szukano w E01 UI/UX i krokach 4/9, platform failure
+  scenarios, `SiteHeader` source/docs/stories oraz Storybook screen frame. Zastosowano tylko
+  wspólny element marki i siatkę, bez kontrolek konta.
+- Tytuł dokumentu *Something went wrong · DevMentor* — E01 nie podaje metadanych strony.
+  Szukano w tabeli UI/UX, Phase 1 i istniejących metadanych aplikacji; użyto tytułu `h1`
+  zgodnie z obecnym szablonem root layoutu.
+- Wszystkie wartości `code` inne niż `internal_error` oraz brak parametru pokazują tę samą
+  treść — brak mapy kodów dla tej strony. Szukano w E01 API Contracts, UI/UX, Edge cases i
+  Phase 1; tylko `internal_error` jest określony. Strona celowo nie odczytuje query, żeby
+  zachować udowodnioną niezależność od request-time dependencies.
+
+Do listy „Do zrobienia poza design systemem” nie wprowadzono żadnej zmiany i żadnego jej
+punktu nie wykonano automatycznie. Nie commitowano, nie pushowano i nie publikowano.
 
 
 ## Etap 4: co wdrożono (2026-10-21)

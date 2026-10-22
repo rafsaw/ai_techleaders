@@ -80,6 +80,25 @@ describe("production application with ephemeral PostgreSQL", () => {
     expect((await browser.command("get", "url")).url).toBe(`${baseURL}/backend`);
   });
 
+  it("renders the identity-free error fallback with keyboard navigation", async () => {
+    await browser.command("open", `${baseURL}/error?code=internal_error`);
+    expect((await browser.command("get", "title")).title).toBe("Something went wrong · DevMentor");
+    expect(await browser.heading("Something went wrong")).toBe("Something went wrong");
+
+    const errorPage = await browser.snapshot();
+    expect(errorPage).toMatch(/^\s*- banner(?:\s|$)/m);
+    expect(errorPage).toMatch(/^\s*- main(?:\s|$)/m);
+    expect(errorPage).not.toMatch(/^\s*- navigation(?:\s|$)/m);
+    expect(errorPage).not.toContain("Sign in");
+    expect(errorPage).toContain('link "Back to home"');
+
+    await browser.command("press", "Tab");
+    await browser.command("press", "Tab");
+    await browser.command("press", "Enter");
+    await browser.waitForText("A project for tech leaders");
+    expect((await browser.command("get", "url")).url).toBe(`${baseURL}/`);
+  });
+
   it("renders the admin page directly with its title, navigation, and connected database", async () => {
     await browser.command("open", `${baseURL}/backend`);
     await browser.waitForText("0 registered users");

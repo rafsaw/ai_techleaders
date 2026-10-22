@@ -10,11 +10,16 @@ import BackendLayout from "@/app/backend/layout";
 import Dashboard, { metadata as dashboardMetadata } from "@/app/backend/page";
 import UsersPage, { metadata as usersMetadata } from "@/app/backend/users/page";
 import { UsersPanel } from "@/app/backend/users/users-panel";
+import ErrorPage, { metadata as errorMetadata } from "@/app/error/page";
 import RootLayout, { metadata } from "@/app/layout";
 
-const { count, connection } = vi.hoisted(() => ({ count: vi.fn(), connection: vi.fn() }));
+const { count, connection, createRequestScope } = vi.hoisted(() => ({
+  count: vi.fn(),
+  connection: vi.fn(),
+  createRequestScope: vi.fn(() => ({ cradle: { userService: { count } } })),
+}));
 vi.mock("next/server", () => ({ connection }));
-vi.mock("@/server/container", () => ({ createRequestScope: () => ({ cradle: { userService: { count } } }) }));
+vi.mock("@/server/container", () => ({ createRequestScope }));
 vi.mock("next/font/google", () => ({ Geist: () => ({ variable: "geist-font" }) }));
 vi.mock("@devmentor/ui/backend/api/apiCall", () => ({ apiCall: vi.fn() }));
 
@@ -28,6 +33,21 @@ describe("page composition", () => {
     render(<Home />);
     expect(screen.getByRole("heading", { name: "DevMentor" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Open backend" })).toHaveAttribute("href", "/backend");
+  });
+
+  it("renders the generic error fallback without resolving identity or database state", () => {
+    createRequestScope.mockClear();
+    createRequestScope.mockImplementation(() => { throw new Error("Principal database is unavailable"); });
+    render(<ErrorPage />);
+
+    expect(errorMetadata.title).toBe("Something went wrong");
+    expect(screen.getByRole("banner")).toBeVisible();
+    expect(screen.getByRole("heading", { level: 1, name: "Something went wrong" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "DevMentor" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "Back to home" })).toHaveAttribute("href", "/");
+    expect(screen.queryByRole("navigation", { name: "Account" })).not.toBeInTheDocument();
+    expect(createRequestScope).not.toHaveBeenCalled();
+    createRequestScope.mockImplementation(() => ({ cradle: { userService: { count } } }));
   });
 
   it("provides backend navigation and preserves page content", () => {
