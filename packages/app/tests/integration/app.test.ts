@@ -87,7 +87,7 @@ describe("production application with ephemeral PostgreSQL", () => {
     expect(await browser.heading("Dashboard")).toBe("Dashboard");
     expect(await browser.visible("heading", "Dashboard")).toBe(true);
     expect(await browser.visible("link", "Users")).toBe(true);
-    expect(await browser.visible("button", "View site")).toBe(true);
+    expect(await browser.visible("link", "View site")).toBe(true);
     const dashboard = await browser.snapshot();
     expect(dashboard).toMatch(/^\s*- banner(?:\s|$)/m);
     expect(dashboard).toMatch(/^\s*- navigation(?:\s|$)/m);
@@ -98,7 +98,7 @@ describe("production application with ephemeral PostgreSQL", () => {
     expect(dashboard).not.toContain("Unavailable");
     await browser.capture("admin-empty");
 
-    await browser.click("button", "View site");
+    await browser.click("link", "View site");
     await browser.waitForText("A project for tech leaders");
     expect((await browser.command("get", "url")).url).toBe(`${baseURL}/`);
     expect(await browser.heading("DevMentor")).toBe("DevMentor");
