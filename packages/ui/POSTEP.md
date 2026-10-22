@@ -209,6 +209,13 @@ Wszystkie jako „proposal approved by Rafał” (w dokumentacji i tokenach).
   wymienia (AD6 i UI/UX mówią tylko o podpowiedzi i menedżerach haseł). Dopisać go do UI/UX
   `/sign-up`, `/sign-in`, `/confirm-email` przy E01 Phase 2. To zmiana poza design systemem,
   więc specyfikacji nie ruszam.
+- **Role rozmiaru i promienia na stronie głównej (PO, 2026-10-21):** `(frontend)/page.tsx` ma
+  jeszcze surowe klasy rozmiaru: `text-sm`, `text-lg`, `text-5xl sm:text-6xl`, `rounded-md`,
+  `px-4 py-2`, `gap-6`, `max-w-3xl`. Zamienić na role (`text-label`, `text-body`, `text-page-title`,
+  `rounded-button`, `px-button-x-lg`, `gap-between-groups`, `max-w-content`). Zmiana kolorów na
+  tokeny jest już zrobiona; rozmiarów celowo nie ruszano.
+- **Favicon z szablonu (audyt, lekcja-06/audyt.md):** zob. `.ai/runs/2026-10-21-hardcoded-colors-to-tokens.md`;
+  zatwierdzony znak DevMentor to decyzja PO.
 - **Link jako przycisk (PO, osobny commit):**
   - `AGENTS.md` l. 240: reguła `<Button nativeButton={false} render={<Link href="…" />}>`
     → `buttonVariants()` na `<Link>`;

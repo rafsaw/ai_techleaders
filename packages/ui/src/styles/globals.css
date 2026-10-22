@@ -99,6 +99,10 @@
   /* text, then an action at the end: card header with CardAction */
   grid-template-columns: minmax(0, 1fr) auto;
 }
+@utility grid-cols-content-aside {
+  /* main column, then a fixed-width aside: list plus form panel on /backend/users */
+  grid-template-columns: minmax(0, 1fr) 20rem;
+}
 
 /* Type role for text typed into a control (B1, proposal approved by Rafał 2026-10-21):
    16 px below 768 px, because iOS Safari zooms the page into a field with smaller text;

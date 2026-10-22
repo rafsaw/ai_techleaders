@@ -65,7 +65,7 @@ export function UsersPanel() {
   }
 
   return (
-    <div className="grid items-start gap-6 lg:grid-cols-[1fr_20rem]">
+    <div className="grid items-start gap-6 lg:grid-cols-content-aside">
       <DataTable
         columns={columns}
         rows={state.status === "ready" ? state.users : undefined}

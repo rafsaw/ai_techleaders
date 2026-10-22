@@ -4,19 +4,19 @@ import Link from "next/link";
 export default function Home() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-3xl flex-col justify-center gap-6 px-6 py-24">
-      <p className="text-sm font-medium tracking-widest text-neutral-500 uppercase">
+      <p className="text-sm font-medium tracking-widest text-muted-foreground uppercase">
         AI Techleaders
       </p>
-      <h1 className="text-5xl font-semibold tracking-tight text-neutral-950 sm:text-6xl">
+      <h1 className="text-5xl font-semibold tracking-tight text-foreground sm:text-6xl">
         DevMentor
       </h1>
-      <p className="max-w-xl text-lg text-pretty text-neutral-600">
+      <p className="max-w-xl text-lg text-pretty text-muted-foreground">
         A project for tech leaders who use AI in their teams&apos; daily work.
       </p>
       <div>
         <Link
           href="/backend"
-          className="inline-flex items-center rounded-md bg-neutral-950 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-neutral-800"
+          className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           Open backend
         </Link>
