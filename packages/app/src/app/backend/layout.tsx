@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { Button } from "@devmentor/ui/components/button";
+import { buttonVariants } from "@devmentor/ui/components/button";
 
 // Backend (admin) pages: composed from @devmentor/ui shadcn components.
 export default function BackendLayout({
@@ -23,9 +23,9 @@ export default function BackendLayout({
               </Link>
             </nav>
           </div>
-          <Button variant="outline" size="sm" nativeButton={false} render={<Link href="/" />}>
+          <Link href="/" className={buttonVariants({ variant: "outline", size: "sm" })}>
             View site
-          </Button>
+          </Link>
         </div>
       </header>
       <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">{children}</main>

@@ -1,0 +1,152 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+import { OctagonXIcon } from "lucide-react";
+
+import { Alert, AlertDescription, AlertTitle } from "@devmentor/ui/components/alert";
+import { Button } from "@devmentor/ui/components/button";
+import { DoDont } from "../../.storybook/blocks/stories";
+import * as AlertStories from "./alert.stories";
+
+<Meta of={AlertStories} />
+
+# Alert
+
+`import { Alert, AlertTitle, AlertDescription, AlertAction } from "@devmentor/ui/components/alert"`
+
+shadcn `base-nova` alert, restyled with DevMentor tokens: a compact bordered panel with an
+icon and text.
+
+## 1. What it is for
+
+An alert tells the user what just happened to the page or an outside service and, when
+needed, what to do next, without hiding the page.
+
+## 2. When to use
+
+| Message | Variant | Screen | Source |
+|---|---|---|---|
+| "Stripe confirmed your account." (+ "You are bookable.") | `success`, `role="status"` | `/mentor?stripe=returned` | E02 Flow 3 step 6 `ready`, UI/UX `/mentor` banners (`2026-10-18-mentor-setup.md`) |
+| "Stripe is checking your details. …" + **Check status** | `default`, `role="status"` | `/mentor?stripe=returned` | E02 Flow 3 step 6 `pending` |
+| "Stripe onboarding isn't finished. …" + **Continue with Stripe** | `warning` | `/mentor?stripe=returned` | E02 Flow 3 step 6 `incomplete` |
+| "Stripe can't enable payouts for this account. …" | `destructive` | `/mentor?stripe=returned` | E02 Flow 3 step 6 `blocked` |
+| "We couldn't reach Stripe to check your status." + **Try checking again** | `destructive` | `/mentor?stripe=check_failed` | E02 Flow 3 step 6 |
+| "This is the name others see. You can change it." | `default`, `role="status"` | `/account?welcome=1` | E01 Flow 1 step 5 (`2026-10-17-accounts-and-roles.md`) |
+| A form could not be sent (server error, no network) | `destructive` | signed-in forms | prompt, Form pattern (stage 3) |
+
+The choice of variant per Stripe status (`ready` → success, `pending` → default,
+`incomplete` → warning, `blocked` → destructive) is not set by the spec; the mapping is a
+proposal approved by Rafał (2026-10-21).
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| An error in one field | `FieldError` under the field | B3, WCAG 3.3.1 |
+| A decision the user must confirm | `AlertDialog` | WAI-ARIA APG Alert Dialog |
+| A short-lived "saved" note | nothing in 1.0: no toast (What is missing) | Q5 |
+| A state of one item in a list | `Badge` | Q2 |
+| A public page (`/sign-in`, `/invite`) | public `Notice` (batch 4) | Q1 |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| Container | yes | `rounded-panel`, `border-border`, `bg-card`, `p-panel-compact` 16 px, no shadow |
+| Icon | recommended | lucide 16 px, `aria-hidden`, in the variant colour |
+| `AlertTitle` | yes | `text-label`, variant colour: what happened |
+| `AlertDescription` | optional | `text-body` in the normal text colour: what to do; may hold a button |
+| `AlertAction` | optional | top right, only for a short control (≤ 1 word); longer actions go in the description |
+
+## 5. Variants
+
+| Variant | When | Source |
+|---|---|---|
+| `default` | neutral news (waiting, a hint) | — |
+| `success` | the server confirmed something | Q2, B5; E02 Flow 3 `ready` |
+| `warning` | the user must act to continue | Q2, B5; E02 Flow 3 `incomplete` |
+| `destructive` | something failed or is blocked | Q2, T5 |
+
+The variant colours the icon and the title; the description stays in the normal text colour,
+so a long message stays easy to read and colour is never the only signal (WCAG 1.4.1).
+
+<Canvas of={AlertStories.Variants} />
+
+## 6. States
+
+An alert is not interactive: hover, focus, pressed, disabled and selected belong to its
+button. Loading is shown by the button inside it (*Checking…*), not by the alert. Its
+"states" are the variants above and whether it is shown.
+
+<Canvas of={AlertStories.States} />
+
+## 7. Behaviour and accessibility
+
+- `role="alert"` (the default) is read at once: use it for errors and for messages that need action (`warning`, `destructive`). Story *Error with action* tests it.
+- Pass `role="status"` for news that needs no action (`success`, `default`); it is read politely (WAI-ARIA `status`). Story *Playground* tests it.
+- An alert rendered with the page on load is read as page content; a live role matters only when it appears after an action.
+- An error that needs action is always an alert, never a toast (prompt, What to avoid).
+- Focus does not move to the alert; its button is in the normal tab order.
+
+## 8. Content
+
+- Title: what happened, as a sentence (*Stripe confirmed your account.*).
+- Description: what to do next, with the action as a button (*Continue with Stripe*).
+- Use the spec's wording for provider messages; never blame the user.
+- Long text wraps; there is no truncation.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | text wraps; the action button sits below the text, may take `w-full` (P-C5) |
+| 768 px, 1440 px | at the width of the content it belongs to (`max-w-text` above a form) |
+
+<Canvas of={AlertStories.LongContentNarrow} />
+
+## 10. API
+
+| Component | Props | Default | Description |
+|---|---|---|---|
+| `Alert` | `variant?: "default" \| "success" \| "warning" \| "destructive"`, `role?`, `<div>` props | `"default"`, `role="alert"` | the panel |
+| `AlertTitle` | `<div>` props | — | first line |
+| `AlertDescription` | `<div>` props | — | details and action |
+| `AlertAction` | `<div>` props | — | short control, top right |
+
+<Controls of={AlertStories.Playground} />
+
+## 11. Code
+
+```tsx
+<Alert role="status">
+  <InfoIcon aria-hidden />
+  <AlertTitle>This is the name others see. You can change it.</AlertTitle>
+</Alert>
+```
+
+From the product (`/mentor?stripe=returned`, payout status `incomplete`):
+
+```tsx
+<Alert variant="warning">
+  <TriangleAlertIcon aria-hidden />
+  <AlertTitle>Stripe onboarding isn't finished.</AlertTitle>
+  <AlertDescription>
+    <p>Continue where you left off.</p>
+    <Button size="sm" onClick={continueWithStripe}>Continue with Stripe</Button>
+  </AlertDescription>
+</Alert>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<Alert variant="destructive" className="w-full"><OctagonXIcon aria-hidden /><AlertTitle>We couldn&apos;t reach Stripe to check your status.</AlertTitle><AlertDescription><Button variant="link" size="sm" className="px-0">Try checking again</Button></AlertDescription></Alert>}
+    doText="Say what happened and give the next step as a button."
+    dontExample={<Alert variant="destructive" className="w-full"><AlertTitle>Error 502</AlertTitle></Alert>}
+    dontText="A code without a next step leaves the user stuck."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: **FieldError** (one field), **AlertDialog** (needs a decision), toast (not in 1.0), public **Notice**.
+- Used in patterns: Provider status (`/mentor` Stripe banners), Form (server error, no network).

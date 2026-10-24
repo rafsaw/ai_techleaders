@@ -1,0 +1,130 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { Skeleton } from "@devmentor/ui/components/skeleton";
+import { Spinner } from "@devmentor/ui/components/spinner";
+import { DoDont } from "../../.storybook/blocks/stories";
+import * as SkeletonStories from "./skeleton.stories";
+
+<Meta of={SkeletonStories} />
+
+# Skeleton
+
+`import { Skeleton } from "@devmentor/ui/components/skeleton"`
+
+Added with `npm run ui:add -- skeleton` (shadcn `base-nova`), restyled with DevMentor tokens:
+a muted block with the radius of a control.
+
+## 1. What it is for
+
+A skeleton holds the place of content that is still loading, in its final shape, so the page
+does not jump when the data arrives and the user already sees what kind of list is coming.
+
+## 2. When to use
+
+- The first load of the upcoming-slots list on `/mentor/slots` (E02 Flow 4; inventory, stage 0): rows of a known shape (time, metadata line, badge).
+- Any later list or panel whose layout is known before the data (P-LD1, proposal approved by Rafał).
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| Work started by a button (save, publish, remove) | `Spinner` in the button with an *-ing* label | P-C4 |
+| A `/backend` list through `DataTable` | `LoadingMessage` (built into `DataTable`) | AGENTS.md, "Reusable API & UI layer" |
+| A layout you do not know before the data | `LoadingMessage` | P-LD1, proposal approved by Rafał |
+| A form that is saving | keep the form and its values; spinner in the submit button | prompt, Form pattern |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| Block | yes | `bg-muted`, `rounded-control` (8 px); size from `className` (height of the type role it replaces: `h-6` row title, `h-5` metadata) |
+| Badge block | optional | `h-badge rounded-pill` for a badge placeholder |
+| Live region | yes, around the blocks | `role="status"` + `aria-busy="true"` + a visually hidden label (*Loading upcoming slots*) |
+
+## 5. Variants
+
+None. The shape comes from `className`; use the heights of the tokens it stands in for.
+
+<Canvas of={SkeletonStories.Shapes} />
+
+## 6. States
+
+| State | Look | Source |
+|---|---|---|
+| Loading | slow pulse (`animate-pulse`, Tailwind's 2 s loop) | P-LD2, proposal approved by Rafał |
+| Loading, reduced motion | still block | Q4, WCAG 2.3.3 |
+| Loaded | the real rows replace the blocks in the same place | — |
+| Hover, focus, pressed, disabled, selected, error | not applicable: a skeleton is not interactive; a load error shows *Error state* instead | — |
+
+<Canvas of={SkeletonStories.States} />
+
+## 7. Behaviour and accessibility
+
+- Each block has `aria-hidden` by default (P-LD3, proposal approved by Rafał), so a screen reader does not read empty shapes.
+- The region around the blocks is `role="status"` with `aria-busy="true"` and a hidden label, so the loading is announced once (WAI-ARIA `status`, `aria-busy`). Story *Playground* tests both.
+- When the data arrives, remove `aria-busy`; the list is then read as normal content.
+- Not focusable; nothing to click.
+- The pulse stops with reduced motion (Q4); the shape alone still says "something comes here".
+
+## 8. Content
+
+No visible text. The hidden label names what loads: *Loading upcoming slots*, not *Loading…*.
+Show as many rows as fit the first screen (3–5), not the expected count.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | metadata blocks shrink with the row (`w-full max-w-72`); the badge block keeps its size |
+| 768 px, 1440 px | the list sits within `max-w-text` like the real one |
+
+<Canvas of={SkeletonStories.Narrow} />
+
+## 10. API
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `className` | `string` | — | size and, for a badge, `rounded-pill` |
+| `aria-hidden` | `boolean` | `true` | override only if the block is the only loading signal (avoid) |
+| …rest | `<div>` props | — | |
+
+<Controls of={SkeletonStories.Playground} />
+
+## 11. Code
+
+Minimal:
+
+```tsx
+<div role="status" aria-busy="true">
+  <span className="sr-only">Loading upcoming slots</span>
+  <Skeleton className="h-6 w-40" />
+</div>
+```
+
+From the product (`/mentor/slots`, one row of the list):
+
+```tsx
+<li className="grid grid-cols-text-action items-center gap-x-in-group py-list-row-y">
+  <div className="flex flex-col gap-list-row-gap">
+    <Skeleton className="h-6 w-40" />
+    <Skeleton className="h-5 w-full max-w-72" />
+  </div>
+  <Skeleton className="h-badge w-14 rounded-pill" />
+</li>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<div className="flex w-full flex-col gap-list-row-gap"><Skeleton className="h-6 w-40" /><Skeleton className="h-5 w-full" /></div>}
+    doText="Blocks in the shape of the row that will appear."
+    dontExample={<div className="flex w-full items-center gap-in-group text-body text-muted-foreground"><Spinner aria-hidden /><span>Loading…</span></div>}
+    dontText="A generic spinner where the list shape is known makes the page jump when rows arrive (P-LD1, proposal approved by Rafał)."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: **Spinner** (work started by a control), **Loading message** (unknown shape, `/backend`).
+- Used in: `SlotList` (stage 3), Slots screen (loading state).

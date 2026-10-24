@@ -1,0 +1,162 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { Field, FieldDescription, FieldError, FieldLabel } from "@devmentor/ui/components/field";
+import { Input } from "@devmentor/ui/components/input";
+import { DoDont } from "../../.storybook/blocks/stories";
+import * as FieldStories from "./field.stories";
+
+<Meta of={FieldStories} />
+
+# Field
+
+```tsx
+import {
+  Field, FieldLabel, FieldDescription, FieldError, FieldGroup,
+  FieldSet, FieldLegend, FieldContent, FieldTitle, FieldSeparator,
+} from "@devmentor/ui/components/field"
+```
+
+shadcn `base-nova` field parts, restyled with DevMentor tokens. A form field is always
+**label + control + optional description + error**, in that order.
+
+## 1. What it is for
+
+A field keeps a control together with its label, help and error, so the user always sees what
+to enter and what went wrong in one place.
+
+## 2. When to use
+
+- Every control in a signed-in form: `/account` (display name), `/mentor/profile` (area,
+  description, links, two prices), `/mentor/slots` (start time), the Stripe country on `/mentor`.
+- `FieldSet` + `FieldLegend` to name a group (*Profile*, *Prices* on `/mentor/profile`).
+- `FieldGroup` to stack fields with the between-groups gap.
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| Public forms (`/sign-in`, `/sign-up`, `/confirm-email`) | public `SchemaForm` / `TextField` (batch 4) | Q1 |
+| Showing a value that cannot be edited (email, roles on `/account`) | a description list or plain text | E01 account page |
+| A whole-form error (server down, no network) | `Alert` above the form (batch 2) | prompt, Form pattern |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| `Field` | yes | `role="group"`, `gap-in-group` (8 px) between its parts (T4) |
+| `FieldLabel` | yes | `text-label`, above the control |
+| Control | yes | `Input`, `Textarea`, `NativeSelect` |
+| `FieldDescription` | optional | `text-meta`, `muted-foreground`, below the control |
+| `FieldError` | when invalid | `text-meta`, `destructive`, `role="alert"`, below the description |
+| `FieldGroup` | for several fields | `gap-between-groups` (16 px) |
+| `FieldSet` + `FieldLegend` | for a named group | legend in `text-section-title` |
+| `FieldContent`, `FieldTitle` | horizontal layout only | title and description next to a short control |
+| `FieldSeparator` | rarely | a line with optional text between alternatives |
+
+<Canvas of={FieldStories.Anatomy} />
+
+## 5. Variants
+
+`orientation`:
+
+| Value | When | Source |
+|---|---|---|
+| `vertical` (default) | every text field and select in E01/E02 | P-L2 |
+| `horizontal` | a label next to a short control (checkbox-like settings; none in E01/E02 yet) | P-L2 |
+| `responsive` | vertical in narrow containers, horizontal from the `md` container width; not used in E01/E02 | P-L2 |
+
+<Canvas of={FieldStories.Orientations} />
+
+## 6. States
+
+<Canvas of={FieldStories.States} />
+
+| State | Look | Source |
+|---|---|---|
+| Default | label, control, optional description | — |
+| Error | control border `destructive`; `FieldError` below in `destructive` text; the label keeps its colour | B3, WCAG 3.3.1, 1.4.1 |
+| Several errors | one list, duplicates removed (`errors` prop) | shadcn behaviour |
+| Disabled | `data-disabled="true"` on `Field`: label in `disabled-foreground`; the reason in the description | B2 |
+| Hover, focus, pressed | on the control, see Input | B3 |
+| Loading, selected | not applicable | — |
+
+## 7. Behaviour and accessibility
+
+- **Name:** `FieldLabel htmlFor` → control `id` (WCAG 1.3.1, 4.1.2). Story *Playground* tests that the label focuses the control.
+- **Description and error:** the control's `aria-describedby` lists both ids; `aria-invalid` marks the error. `Field` does not wire these ids for you.
+- **Announcement:** `FieldError` has `role="alert"`, so a new error is read once when it appears (WAI-ARIA `alert`). Story *Error list* tests it.
+- **Required:** every required control has the native `required` attribute (P-F1; WCAG 3.3.2, 4.1.2). Story *Profile form* checks it.
+- **Groups:** `FieldSet`/`FieldLegend` give screen readers the group name (*Prices*).
+- **Focus after a failed submit:** moves to the first invalid control (Form pattern, stage 3).
+
+## 8. Content
+
+- Label: noun phrase with unit (*Price for 25 minutes (USD)*, P-C7, proposal approved by Rafał). Optional fields add *(optional)*; required fields are not marked in the text (P-F1, proposal approved by Rafał) but always carry the `required` attribute, so screen readers announce “required” (P-F1; WCAG 3.3.2, 4.1.2, WAI-ARIA `aria-required`).
+- Description: the rule or a consequence (*A new price applies to future bookings only.*).
+- Error: what happened and what to do, one sentence, in the server's words when the server
+  decides (*Pick a time at least 2 hours from now. Mentees need 2 hours' notice.*, E02 Flow 4).
+- Long texts wrap; never truncate an error.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | one column; label, control, description, error stacked |
+| 768 px | still one column (P-L2) |
+| 1440 px | form at `max-w-text` |
+
+<Canvas of={FieldStories.LongContentNarrow} />
+
+## 10. API
+
+| Component | Props | Default | Description |
+|---|---|---|---|
+| `Field` | `orientation?: "vertical" \| "horizontal" \| "responsive"`, `data-invalid`, `data-disabled`, `<div>` props | `"vertical"` | one field |
+| `FieldLabel` | `<label>` props (`htmlFor`) | — | the label |
+| `FieldDescription` | `<p>` props (`id`) | — | help text |
+| `FieldError` | `errors?: { message?: string }[]`, `children`, `<div>` props (`id`) | — | renders nothing without content |
+| `FieldGroup` | `<div>` props | — | stack of fields |
+| `FieldSet` | `<fieldset>` props | — | named group |
+| `FieldLegend` | `variant?: "legend" \| "label"`, `<legend>` props | `"legend"` | group name; `label` is the smaller label role |
+| `FieldContent`, `FieldTitle`, `FieldSeparator` | `<div>` props | — | horizontal layout parts |
+
+<Controls of={FieldStories.Playground} />
+
+## 11. Code
+
+Minimal:
+
+```tsx
+<Field>
+  <FieldLabel htmlFor="display-name">Display name</FieldLabel>
+  <Input id="display-name" required />
+</Field>
+```
+
+From the product (`/mentor/slots`, 400 from `POST /api/availability/slots`):
+
+```tsx
+<Field data-invalid={!!error}>
+  <FieldLabel htmlFor="starts-at">Start time (your time zone: {zone})</FieldLabel>
+  <Input id="starts-at" type="datetime-local" required aria-invalid={!!error}
+    aria-describedby={error ? "starts-at-hint starts-at-error" : "starts-at-hint"} />
+  <FieldDescription id="starts-at-hint">Reserves 50 minutes; the mentee picks 25 or 50.</FieldDescription>
+  <FieldError id="starts-at-error">{error}</FieldError>
+</Field>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<Field data-invalid="true"><FieldLabel htmlFor="dd-1">Display name</FieldLabel><Input id="dd-1" aria-invalid aria-describedby="dd-1-e" /><FieldError id="dd-1-e">Enter a display name.</FieldError></Field>}
+    doText="The error sits under the field it belongs to and is linked to it."
+    dontExample={<div className="flex flex-col gap-in-group"><p className="text-meta text-destructive">Enter a display name.</p><Field><FieldLabel htmlFor="dd-2">Display name</FieldLabel><Input id="dd-2" /></Field></div>}
+    dontText="An error far from the field, not linked to it, is missed by screen readers."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: **Label** (the bare label), **Alert** (form-level error), public **TextField**.
+- Used in patterns: Form (all signed-in forms), Provider status (country choice).

@@ -1,0 +1,40 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./sign-up.stories";
+
+<Meta of={Stories} />
+
+# Sign up
+
+`/sign-up`, public kit. Source: E01 Flow 2, UI/UX `/sign-up`. Every state below is a full-screen story with
+the real site header. The page frame (P-SCR1) and the page title (P-SCR2) are proposals approved by Rafał; the app
+has no layouts yet.
+
+## What the screen is for
+
+Creating an email account, with the password rule and the no-reset warning (N03) shown before typing.
+
+## Built from
+
+**Site header**, **Notice**, **Schema form**, **Password field**, **Link button**. Pattern: **Form**.
+
+## State map
+
+| Screen state | Story | Source |
+|---|---|---|
+| Default: N03 and the 15-character rule visible | *Default* | E01 UI/UX, AD6 |
+| From an invitation: which address to use, returnTo kept | *From invitation* | E01 UI/UX, platform P6 |
+| Success → /sign-up/check-email after the server answers | *Success* | E01 Flow 2, Q4 |
+| Creating account | *Pending* | Form pattern |
+| Validation, focus on the first error | *Invalid* | Form pattern |
+| Too many attempts (429) | *Rate limited* | E01 edge cases |
+| No network | *Network error* | Form pattern |
+| 320 px | *Narrow* | P-L1 |
+
+Empty, many: not applicable. The response is the same whether or not the email exists (E01 Flow 2), so there is no "already registered" state.
+
+<Canvas of={Stories.FromInvitation} />
+
+## Notes
+
+Copy proposals (P-SCR3, proposal approved by Rafał): the invitation notice *Use the email address that received your invitation.* (the spec only says to explain it) and the link **Sign in instead**.

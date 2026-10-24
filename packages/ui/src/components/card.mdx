@@ -1,0 +1,145 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@devmentor/ui/components/card";
+import { DoDont } from "../../.storybook/blocks/stories";
+import * as CardStories from "./card.stories";
+
+<Meta of={CardStories} />
+
+# Card
+
+```tsx
+import { Card, CardHeader, CardTitle, CardDescription, CardAction, CardContent, CardFooter } from "@devmentor/ui/components/card"
+```
+
+shadcn `base-nova` card, restyled with DevMentor tokens: a panel with a border and a surface,
+never a shadow.
+
+## 1. What it is for
+
+A card groups the information and actions about one thing (the account, the profile, the
+payouts step) so the user can read it as one unit on a page.
+
+## 2. When to use
+
+- A panel on a signed-in page: account details on `/account` (E01), the form panel on `/mentor/profile` (E02 Flow 2).
+- One item of a short list of panels with its own action: the three setup items on `/mentor` (E02 Flow 1), `size="sm"`.
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| Rows of a list (slots, mentors, sessions) | rows separated by lines (`divide-y`), not a card per row | R01.3, Z4, C1 |
+| A card inside a card | one card with sections separated by `Separator` or spacing | prompt, What to avoid |
+| A message about the page state | `Alert` | — |
+| A public page | public kit (Tailwind-only) | Q1 |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| `Card` | yes | `rounded-panel` 12 px, `border-border`, `bg-card`, no shadow |
+| `CardHeader` | usually | title, description, optional action at the end |
+| `CardTitle` | yes in a header | `text-section-title` (`text-row-title` in `sm`); give it `role="heading"` and `aria-level` |
+| `CardDescription` | optional | `text-body`, `muted-foreground` |
+| `CardAction` | optional | top right of the header: a badge or a small button |
+| `CardContent` | optional | the body |
+| `CardFooter` | optional | actions, separated by a `border` line, no tinted background |
+
+<Canvas of={CardStories.Anatomy} />
+
+## 5. Variants
+
+| Size | Padding | When | Source |
+|---|---|---|---|
+| `default` | `p-panel` 24 px | a page panel | B4, T4 |
+| `sm` | `p-panel-compact` 16 px, title `text-row-title` | an item in a list of panels (setup checklist) | B4; the smaller title is P-C9, proposal approved by Rafał |
+
+<Canvas of={CardStories.Sizes} />
+
+## 6. States
+
+A card is not interactive: hover, focus, pressed, disabled, loading and selected do not apply to
+it. Its buttons and links have their own states. A locked or waiting item says so in text in
+the description (E02 UI/UX: "Each checklist item's state is text, not only a colour").
+
+<Canvas of={CardStories.States} />
+
+## 7. Behaviour and accessibility
+
+- The title is a `div` in shadcn; add `role="heading"` and the right `aria-level` so screen reader users can jump between panels (WCAG 1.3.1, 2.4.6). Story *Playground* tests it.
+- Do not make the whole card clickable; put a link or button inside it (WAI-ARIA: one name per control).
+- Reading order is DOM order: header, content, footer.
+- The footer's actions follow P-C2: Cancel first, then the main action, aligned right.
+
+## 8. Content
+
+- Title: the thing, as a noun (*Account*, *Payouts with Stripe*), sentence case.
+- Description: one sentence with the state and what to do next (*Not bookable yet: finish your profile and Stripe.*, E02 Flow 1).
+- Long text wraps; a card never truncates.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | full width; footer actions may take `w-full` (P-C5) |
+| 768 px | full content width or in a grid of two |
+| 1440 px | within `max-w-content`; never stretched over the whole screen |
+
+<Canvas of={CardStories.LongContentNarrow} />
+
+## 10. API
+
+| Component | Props | Default | Description |
+|---|---|---|---|
+| `Card` | `size?: "default" \| "sm"`, `<div>` props | `"default"` | the panel |
+| `CardHeader`, `CardContent`, `CardFooter`, `CardAction` | `<div>` props | — | parts |
+| `CardTitle` | `<div>` props; add `role="heading"` and `aria-level` | — | title |
+| `CardDescription` | `<div>` props | — | secondary text |
+
+<Controls of={CardStories.Playground} />
+
+## 11. Code
+
+Minimal:
+
+```tsx
+<Card>
+  <CardHeader>
+    <CardTitle role="heading" aria-level={2}>Account</CardTitle>
+  </CardHeader>
+  <CardContent>…</CardContent>
+</Card>
+```
+
+From the product (`/mentor`, profile item):
+
+```tsx
+<Card size="sm">
+  <CardHeader>
+    <CardTitle role="heading" aria-level={3}>Profile</CardTitle>
+    <CardDescription>Saved. Mentees see it at your public link.</CardDescription>
+    <CardAction><Badge variant="success">Saved</Badge></CardAction>
+  </CardHeader>
+  <CardFooter className="justify-end">
+    <Link href={`/mentors/${id}`} className={buttonVariants({ variant: "outline" })}>View public page</Link>
+    <Button>Edit profile</Button>
+  </CardFooter>
+</Card>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<Card size="sm" className="w-full"><CardHeader><CardTitle>Upcoming slots</CardTitle></CardHeader><CardContent><ul className="divide-y divide-border"><li className="py-list-row-y">Wed, 4 Nov, 18:30</li><li className="py-list-row-y">Thu, 5 Nov, 09:00</li></ul></CardContent></Card>}
+    doText="One panel, rows separated by lines."
+    dontExample={<Card size="sm" className="w-full"><CardContent className="grid gap-in-group"><Card size="sm"><CardContent>Wed, 4 Nov, 18:30</CardContent></Card><Card size="sm"><CardContent>Thu, 5 Nov, 09:00</CardContent></Card></CardContent></Card>}
+    dontText="A card per row inside a card wastes space and breaks the dense list (R01.3, What to avoid)."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: **Alert** (a message, not a thing), **Separator** (lines inside one card), list rows (`SlotRow`, stage 3).
+- Used in patterns: Setup checklist (`/mentor`), Form (panel around `/mentor/profile`), Detail view.

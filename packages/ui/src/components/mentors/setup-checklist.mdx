@@ -1,0 +1,116 @@
+import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./setup-checklist.stories";
+
+<Meta of={Stories} />
+
+# Setup checklist
+
+```tsx
+import { SetupChecklist } from "@devmentor/ui/components/mentors/SetupChecklist"
+import { SetupItem } from "@devmentor/ui/components/mentors/SetupItem"
+```
+
+E02 product component for `/mentor` (Flow 1), signed-in kit: an ordered list of small cards.
+Profile and slots items are built here from `MentorSetupDto`; the payouts item is
+`PayoutStatus` (payments concept).
+
+## 1. What it is for
+
+It shows a new mentor what is done, what is next and what is locked, with exactly one next
+action per step.
+
+## 2. When to use
+
+- `/mentor` only, below the bookable status line.
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| A list of records (slots, sessions) | dense rows, not cards | R01.3 |
+| A progress indicator | the status line | R01.5 |
+
+## 4. Anatomy
+
+| Part | Notes |
+|---|---|
+| `ol` named *Mentor setup* | one `li` per shipped phase (G5) |
+| `SetupItem` | `Card size="sm"`; title (heading level 2, under the page's `h1`; found by axe `heading-order` in Patterns/Setup checklist), state badge beside it, optional note, actions |
+| State badge | text, never colour alone (E02 UI/UX accessibility); variants per the approved mapping (badge.mdx); one to three words, never wraps (P-C10): a longer state from the spec is the note, with a short label in the badge (*Setup interrupted*, *Pending*: P-S1a, P-S1b, proposal approved by Rafał) |
+| Note | *Save your profile first.* on locked items (E02 Flow 1), or the spec's full state sentence |
+| Action | the primary button goes to the **first unfinished item with an action**: the first step, from the top, that is not done and that the mentor can do something about right now. Contacting the team counts as an action (*Setup failed*, *Blocked*). An item that is only waiting (Stripe is checking the details, with just **Check status**) is skipped, so the primary moves on, e.g. to **Publish slots**. Every other action is `outline` or a link (**Check status** stays `secondary`). So the screen has one primary button, or none when no item has an action. The checklist works this out itself (`firstWithAction`: profile not saved → payouts with an action → no slots); R01.6, P-M4 (proposal approved by Rafał), Q-SC1 option (2), decided by Rafał 2026-10-21 |
+
+## 5. Variants
+
+| Item | States → action (E02 Flow 1) |
+|---|---|
+| Profile | *Not started* → **Create your profile**; *Saved* → **Edit profile** + **View public page** |
+| Payouts with Stripe | see **Payout status** |
+| Slots | *Locked*; *No upcoming slots* → **Publish slots**; *N upcoming (M booked)* → **Manage slots** |
+
+## 6. States (data states)
+
+| State | Story |
+|---|---|
+| Empty: new mentor | *Playground* |
+| Partial: profile saved | *Profile saved* |
+| Waiting: Stripe checking | *Stripe checking* |
+| Done, many slots | *Complete* |
+| Error: blocked, contact is the primary | *Blocked* |
+| Phase 1 | *Phase one* |
+| Long state text, 320 px | *Long content, narrow* |
+| Loading | not applicable: rendered on the server (E02 Flow 1, step 3) |
+
+<Canvas of={Stories.ProfileSaved} />
+
+## 7. Behaviour and accessibility
+
+- An ordered list with a name; each item's title is a level-2 heading, so screen reader users can jump between steps.
+- Locked items have no disabled button: the note says why (P-C6, B2).
+
+## 8. Content
+
+States and actions from E02 Flow 1. Counts use digits (*3 upcoming (1 booked)*).
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | the title wraps beside the short badge; the note and actions wrap below |
+| 768 px, 1440 px | within `max-w-text` |
+
+<Canvas of={Stories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Description |
+|---|---|---|
+| `profile` | `not-started { createHref } \| saved { editHref, publicHref }` | |
+| `payouts` | `Omit<PayoutStatusProps, "next">` | the Payout status props from Phase 2; the checklist renders `PayoutStatus` and sets `next` |
+| `slots` | `locked \| none { manageHref } \| some { upcoming, booked, manageHref }` | from Phase 3 |
+| `SetupItem` | `title`, `state`, `variant?`, `note?`, `children?` | one step |
+
+<Controls of={Stories.Playground} />
+
+## 11. Code
+
+```tsx
+<SetupChecklist
+  profile={{ status: "saved", editHref: "/mentor/profile", publicHref: `/mentors/${id}` }}
+  payouts={{ payout, startOnboarding: start, onOnboardingUrl: go, contactHref: contact }}
+  slots={{ status: "some", upcoming: 3, booked: 1, manageHref: "/mentor/slots" }}
+/>
+```
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| One next action per item | several equal buttons | R01.6 |
+| Say why a step is locked | a greyed-out button | B2: a disabled action always says why |
+
+## 13. Related
+
+- Built from: **Card**, **Badge**, **Button**; with **Payout status** and **Bookable status line**.
+- Used in: Mentor setup screen, Setup checklist pattern.

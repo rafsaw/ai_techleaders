@@ -1,0 +1,86 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/How to choose" />
+
+# How to choose
+
+Choose by the user's task, then check availability. **Missing** means the component is
+not approved for this release: use the stated existing alternative and record the need
+on [What is missing](?path=/docs/design-system-what-is-missing--docs), rather than adding
+it during screen work (POSTEP: scope and omitted primitives; prompt rule 6).
+
+Sources: `R*` and `A*` refer to `lekcja-06/referencje.md`; `Z*` to `lekcja-06/tokeny.md`;
+`P-*` are proposals approved by Rafał in `packages/ui/POSTEP.md`. E01 and E02 refer to
+the account and mentor-setup specifications in `.ai/specs/`. APG means the
+[WAI-ARIA Authoring Practices Guide](https://www.w3.org/WAI/ARIA/apg/patterns/).
+
+## Actions and navigation
+
+<table tabIndex={0} aria-label="Actions and navigation" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"If the person needs to\u2026"}</th><th scope="col">{"Use"}</th><th scope="col">{"DevMentor example / boundary"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Perform an action on the current screen"}</td><td><code>{"Button"}</code>{"; public forms use "}<code>{"SubmitButton"}</code></td><td>{"Save display name; publish a slot. One primary action per screen."}</td><td>{"R01.6, Z1; E01 Flow: account; E02 Flow 4; APG Button"}</td></tr>
+    <tr><td>{"Go to a URL, even when it looks like the main action"}</td><td>{"A real link; public "}<code>{"LinkButton"}</code>{", signed-in link styled with "}<code>{"buttonVariants()"}</code></td><td>{"Sign in with GitHub; View public page. Preserve link semantics, open-in-new-tab and copy-link behaviour."}</td><td>{"D13; POSTEP Link as Button decision; APG Button distinguishes actions from navigation"}</td></tr>
+    <tr><td>{"Offer a compact action whose meaning remains clear"}</td><td>{"Existing icon size on "}<code>{"Button"}</code>{", with an accessible name"}</td><td><code>{"PasswordField"}</code>{" owns its Show password action; use it instead of recreating the toggle. Do not hide Publish slot behind an icon."}</td><td>{"P-PF1; R01.6; WCAG 4.1.2, 2.5.8"}</td></tr>
+    <tr><td>{"Offer several secondary actions in limited space"}</td><td>{"Action menu \u2014 "}<strong>{"missing"}</strong></td><td>{"Do not invent an account menu: "}<code>{"SiteHeader"}</code>{" currently exposes account, mentor and sign-out controls."}</td><td>{"POSTEP P-A4 temporary solution and Menu gap; APG Menu Button"}</td></tr>
+  </tbody>
+</table>
+
+## Choosing a value
+
+<table tabIndex={0} aria-label="Choosing a value" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"If\u2026"}</th><th scope="col">{"Use"}</th><th scope="col">{"DevMentor example / boundary"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"One of a small set must be selected, with all choices visible"}</td><td>{"Radio group \u2014 "}<strong>{"missing"}</strong></td><td>{"A future duration selector belongs to E04, which has no approved screen spec here. Do not build it from the brief."}</td><td>{"D10; POSTEP scope; APG Radio Group"}</td></tr>
+    <tr><td>{"One value is selected from a fixed approved set"}</td><td><code>{"NativeSelect"}</code>{"; public equivalent only when specified"}</td><td>{"Area has TypeScript, React, Python; Stripe country uses E02's allowed list. Keep a visible label and an instruction option."}</td><td>{"E02 MD3, MD8; P-C8, P-M6; WCAG 3.3.2"}</td></tr>
+    <tr><td>{"Options require searching rather than scanning"}</td><td>{"Searchable combobox \u2014 "}<strong>{"missing"}</strong></td><td>{"E03 discovery/filtering is deferred; the three mentor areas do not justify adding search."}</td><td>{"D04; E02 MD3; POSTEP Q6; APG Combobox"}</td></tr>
+    <tr><td>{"A binary setting applies immediately"}</td><td>{"Switch \u2014 "}<strong>{"missing"}</strong></td><td>{"There is no approved immediate product setting requiring one. Do not use it to publish a slot or accept an invitation."}</td><td>{"E01/E02 flows; POSTEP omitted primitives; APG Switch"}</td></tr>
+    <tr><td>{"A selection is committed with a form"}</td><td>{"Checkbox \u2014 "}<strong>{"missing"}</strong></td><td>{"Do not invent consent, newsletter or subscription fields on sign-up. Its approved fields come from E01."}</td><td>{"E01 UI/UX sign-up; A05; APG Checkbox"}</td></tr>
+  </tbody>
+</table>
+
+## Where information or a task belongs
+
+<table tabIndex={0} aria-label="Where information or a task belongs" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"If\u2026"}</th><th scope="col">{"Use"}</th><th scope="col">{"DevMentor example / boundary"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"A destructive action needs an explicit decision"}</td><td><code>{"AlertDialog"}</code>{" through Delete confirmation"}</td><td>{"Ask to remove the named slot; Cancel is easy to find, Remove slot states the action."}</td><td>{"E02 Flow 4; prompt Delete confirmation; APG Alert Dialog"}</td></tr>
+    <tr><td>{"A substantial task interrupts a page"}</td><td>{"Dialog \u2014 "}<strong>{"missing"}</strong></td><td>{"Keep profile editing on "}<code>{"/mentor/profile"}</code>{", rather than inventing an edit modal."}</td><td>{"E02 Flow 2; POSTEP omitted primitives; APG Dialog"}</td></tr>
+    <tr><td>{"A task needs a persistent URL or substantial form"}</td><td>{"Separate page"}</td><td>{"Account, mentor setup, profile, slots and public profile retain their specified routes."}</td><td>{"E01/E02 UI/UX; D04"}</td></tr>
+    <tr><td>{"Secondary detail needs an overlay next to its trigger"}</td><td>{"Popover \u2014 "}<strong>{"missing"}</strong></td><td>{"Country restrictions and irreversible country selection stay visible beside the field."}</td><td>{"E02 Flow 3; WCAG 3.3.2; POSTEP omitted primitives"}</td></tr>
+    <tr><td>{"A short, supplementary explanation appears on hover/focus"}</td><td>{"Tooltip \u2014 "}<strong>{"missing"}</strong></td><td>{"A disabled action's reason and a required field hint must remain visible; never put them only in a tooltip."}</td><td>{"B2; WCAG 3.3.2, 1.4.13; APG Tooltip"}</td></tr>
+    <tr><td>{"Context must stay alongside a long task"}</td><td>{"Side panel \u2014 "}<strong>{"missing"}</strong></td><td>{"Use the approved separate mentor pages. Do not add a channel sidebar to a future text session."}</td><td>{"E02 UI/UX; R02.6, K2; POSTEP omitted primitives"}</td></tr>
+  </tbody>
+</table>
+
+## Feedback and waiting
+
+<table tabIndex={0} aria-label="Feedback and waiting" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"If\u2026"}</th><th scope="col">{"Use"}</th><th scope="col">{"DevMentor example / boundary"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"A specific input needs correction"}</td><td><code>{"FieldError"}</code>{" or public "}<code>{"TextField"}</code>{"/"}<code>{"PasswordField"}</code>{" error"}</td><td>{"Invalid price or slot start: associate the message with that field and focus the first invalid field after submit."}</td><td>{"E02 MD2, MD11; F2, Q-CF1; WCAG 3.3.1, 3.3.3"}</td></tr>
+    <tr><td>{"The problem affects a whole form or task, but the page remains available"}</td><td><code>{"Alert"}</code>{" / public "}<code>{"Notice"}</code>{"; "}<code>{"ErrorMessage"}</code>{" for failed data loading"}</td><td>{"Could not load your slots, Retry; Stripe requirements, Continue to Stripe or contact action as specified. Keep the problem and remedy on screen."}</td><td>{"E02 Flow 3\u20134; P-M5; P-E4; WCAG 4.1.3; P-ERR2"}</td></tr>
+    <tr><td>{"The whole page cannot complete because of a 5xx failure"}</td><td>{"Use the dedicated full-page error composition: one h1, an explanatory paragraph and one recovery link. Do not wrap the whole page in Notice."}</td><td>{"/error?code=internal_error: Something went wrong; Go to the home page."}</td><td>{"P-ERR2, proposal approved by Rafa\u0142; lesson 06, Content and E01 P7"}</td></tr>
+    <tr><td>{"A short transient confirmation would be convenient"}</td><td>{"Toast \u2014 "}<strong>{"missing"}</strong></td><td>{"No toast in 1.0. Use the existing inline saved status or Notice. An error requiring action is never a toast."}</td><td>{"POSTEP Q5; P-FM1; prompt stage 4"}</td></tr>
+    <tr><td>{"First load has a known content shape"}</td><td><code>{"Skeleton"}</code>{", plus a loading status"}</td><td>{"Upcoming slot rows before data arrives; the skeleton is decorative and the region announces loading."}</td><td>{"P-LD1, P-LD3; WCAG 4.1.3"}</td></tr>
+    <tr><td>{"A request is running or content shape is unknown"}</td><td><code>{"Spinner"}</code>{", "}<code>{"LoadingMessage"}</code>{", or button pending state"}</td><td>{"Publishing slot\u2026; Checking status\u2026. Keep the pending action in place and prevent a second submission."}</td><td>{"P-LD1; P-C4; F2"}</td></tr>
+  </tbody>
+</table>
+
+## Showing collections and destinations
+
+<table tabIndex={0} aria-label="Showing collections and destinations" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"If\u2026"}</th><th scope="col">{"Use"}</th><th scope="col">{"DevMentor example / boundary"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"People compare the same columns across records"}</td><td><code>{"DataTable"}</code>{" / "}<code>{"Table"}</code></td><td>{"Existing backend users management; keep the table container keyboard-focusable, including when it does not overflow."}</td><td>{"platform F1; POSTEP Table decision; WCAG 1.3.1, 2.1.1"}</td></tr>
+    <tr><td>{"People scan a title and metadata for one item"}</td><td>{"A divided list; "}<code>{"SlotList"}</code>{" and "}<code>{"SlotRow"}</code>{" for availability"}</td><td>{"Upcoming slots, with start, named zone, reserved duration and Open/Booked text. Do not wrap each row in a card."}</td><td>{"R01.1, R01.3, R01.5; E02 Flow 4; Z4"}</td></tr>
+    <tr><td>{"One grouped task or object needs a bounded surface"}</td><td><code>{"Card"}</code>{"; "}<code>{"SetupChecklist"}</code>{" for mentor setup"}</td><td>{"Profile, Stripe and slots setup items. A card is not a default wrapper for every paragraph."}</td><td>{"E02 Flow 1; B4; R01.3"}</td></tr>
+    <tr><td>{"Nearby views are alternate panels of one context"}</td><td>{"Tabs \u2014 "}<strong>{"missing"}</strong></td><td>{"Do not replace mentor setup, profile and slots routes with ad hoc tabs."}</td><td>{"E02 UI/UX; POSTEP omitted primitives; APG Tabs"}</td></tr>
+    <tr><td>{"Destinations have distinct tasks or URLs"}</td><td>{"Separate pages and links"}</td><td><code>{"/mentor"}</code>{", "}<code>{"/mentor/profile"}</code>{", "}<code>{"/mentor/slots"}</code>{"."}</td><td>{"E02 UI/UX; D04"}</td></tr>
+  </tbody>
+</table>
+
+For exact imports, props and state coverage, continue to
+[Components](?path=/docs/design-system-components--docs). Use the Form, Detail view,
+Delete confirmation and Payout setup patterns before composing their parts independently
+(prompt stage 4: build a screen).

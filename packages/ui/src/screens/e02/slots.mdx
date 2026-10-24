@@ -1,0 +1,43 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./slots.stories";
+
+<Meta of={Stories} />
+
+# Slots
+
+`/mentor/slots`, signed-in kit. Source: E02 Flow 4. Every state below is a full-screen story with
+the real site header. The page frame (P-SCR1) and the page title (P-SCR2) are proposals approved by Rafał; the app
+has no layouts yet.
+
+## What the screen is for
+
+Publishing start times mentees can book, and removing open ones.
+
+## Built from
+
+**Site header**, the page's slot form (useSchemaForm, Field, Input, Button, Spinner, Alert), **Slot list**, **Slot row**. Patterns: **Form**, **Delete confirmation**.
+
+## State map
+
+| Screen state | Story | Source |
+|---|---|---|
+| Open and booked slots | *Default* | E02 Flow 4 |
+| Empty | *Empty* | E02 UI/UX |
+| Loading the list | *Loading* | P-LD1 |
+| List failed to load | *Load error* | P-M5 |
+| Many: 24 slots | *Many* | E02 Flow 4 |
+| Published: row appears, date stays | *Published* | E02 Flow 4 |
+| Publishing | *Publishing* | P-C4 |
+| Too soon (400 on the field) | *Too soon* | E02 Flow 4, MD11 |
+| Overlap (409, names the other slot) | *Overlap* | E02 Flow 4 |
+| No date chosen | *Invalid* | Form pattern |
+| 320 px | *Narrow* | P-L1 |
+
+Removing a slot: see **Delete confirmation**.
+
+<Canvas of={Stories.Overlap} />
+
+## Notes
+
+**Add a slot** sits above **Upcoming slots** so the page's main action is visible without scrolling, even with many slots (P-SCR5, proposal approved by Rafał; the spec lists the list first). The slot form is colocated in the app (E02 UI/UX), so this story rebuilds it from package parts.

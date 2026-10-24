@@ -135,4 +135,57 @@ describe("CrudForm", () => {
     fireEvent.keyDown(name, { key: "Escape" });
     expect(onCancel).toHaveBeenCalledTimes(2);
   });
+
+  it("renders textarea and select fields and submits their values (E02 Flow 2)", async () => {
+    const profileSchema = z.object({
+      area: z.enum(["typescript", "react", "python"], "Choose an area"),
+      description: z.string().trim().min(1, "Describe what you help with"),
+    });
+    const onSubmit = vi.fn().mockResolvedValue(success);
+    render(
+      <CrudForm
+        schema={profileSchema}
+        fields={[
+          { name: "area", label: "Area", type: "select", placeholder: "Choose an area", options: [
+            { value: "typescript", label: "TypeScript" },
+            { value: "react", label: "React" },
+          ] },
+          { name: "description", label: "Description", type: "textarea", placeholder: "What you help with" },
+          { name: "other", label: "Other", type: "select" },
+        ] as never}
+        onSubmit={onSubmit}
+      />
+    );
+    const area = screen.getByRole("combobox", { name: "Area" });
+    expect(area).toHaveValue("");
+    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual(["Choose an area", "TypeScript", "React", ""]);
+    const description = screen.getByRole("textbox", { name: "Description" });
+    expect(description.tagName).toBe("TEXTAREA");
+    expect(description).toHaveAttribute("placeholder", "What you help with");
+    submit();
+    expect(screen.getAllByRole("alert").map((alert) => alert.textContent)).toEqual(["Choose an area", "Describe what you help with"]);
+    expect(area).toHaveAttribute("aria-invalid", "true");
+    expect(description).toHaveAttribute("aria-invalid", "true");
+    fireEvent.change(area, { target: { value: "react" } });
+    fireEvent.change(description, { target: { value: "Line one\nLine two" } });
+    submit();
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith({ area: "react", description: "Line one\nLine two" }));
+  });
+
+  it("checks a field when the person leaves it and ties the error to the field", () => {
+    render(<CrudForm schema={schema} fields={fields} onSubmit={vi.fn()} />);
+    const email = screen.getByLabelText("Email");
+    fireEvent.blur(email);
+    expect(email).not.toHaveAttribute("aria-invalid");
+    expect(email).not.toHaveAttribute("aria-describedby");
+    fireEvent.change(email, { target: { value: "ada@" } });
+    fireEvent.blur(email);
+    expect(email).toHaveAttribute("aria-invalid", "true");
+    expect(email).toHaveAccessibleDescription("Email is invalid");
+    expect(screen.getByLabelText("Name")).not.toHaveAttribute("aria-invalid");
+    fireEvent.change(email, { target: { value: "ada@example.com" } });
+    fireEvent.blur(email);
+    expect(email).not.toHaveAttribute("aria-invalid");
+    expect(email).not.toHaveAttribute("aria-describedby");
+  });
 });

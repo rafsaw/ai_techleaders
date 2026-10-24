@@ -27,6 +27,88 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-21 — An error removed on blur can swallow the submit click
+
+**Context:** `CrudForm` started validating on blur. On `/backend/users`, after an empty submit the
+person fixed the fields and clicked **Create user**: mousedown blurred the field, the error under it
+disappeared, the button moved up, mouseup landed elsewhere and no click fired (integration tests
+failed; unit and story tests passed).
+**Lesson:** never change layout on blur in a form. Re-check a field that already shows an error
+while the user types (`useSchemaForm.setValue`), so it clears before they leave the field; blur may
+only add errors. Run `npm run test:integration` after any change to shared form behaviour.
+**Applies to:** `packages/ui/src/forms/useSchemaForm.ts`, `CrudForm`, `SchemaForm`.
+
+### 2026-10-21 — Circular imports between ui components fail only in the browser
+
+**Context:** `SetupChecklist` started importing `PayoutStatus`, which already imported
+`LOCKED_NOTE` from `SetupChecklist`. Unit tests (jsdom) passed; three story files failed to load
+in Chromium with `Cannot access 'LOCKED_NOTE' before initialization`.
+**Lesson:** when one component starts rendering another, check the reverse import first. Put
+shared constants in the lower-level module (`SetupItem`), never in the composite, and run the
+story tests, not only unit tests, after such a change.
+**Applies to:** `packages/ui/src/components/<concept>/` modules that import each other.
+
+### 2026-10-21 — Compose components into a page before trusting their a11y checks
+
+**Context:** every `SetupItem` story passed axe, but the Setup checklist pattern (the item under a
+page `h1`) failed `heading-order`: the item title was hard-coded to level 3.
+**Lesson:** a component story checks the component alone; heading levels, landmarks and
+duplicate names only show up in context. Build at least one pattern or screen story that puts the
+component under a real page heading, and pick heading levels for the page it lives on.
+**Applies to:** `packages/ui/src/patterns/`, `packages/ui/src/screens/`, product components with headings.
+
+### 2026-10-21 — A `<header>` for a page section is a second banner landmark
+
+**Context:** `MentorProfileHeader` (name, area, description at the top of `/mentors/[id]`) was a
+`<header>`. axe in the Storybook a11y test failed with `landmark-no-duplicate-banner`.
+**Lesson:** use `<header>` only for the site header (`SiteHeader`). A `<header>` that is not inside
+`<main>`, `<article>` or `<section>` becomes a banner landmark, so a page-top block next to the site
+header gives two banners. Use a `<div>` and let the `h1` name the page.
+**Applies to:** product components in `packages/ui/src/components/<concept>/` that open a page.
+
+### 2026-10-21 — A no-horizontal-scroll check misses clipped text
+
+**Context:** Lesson 06 design system, `SetupItem` at 320 px. A long state in a `Badge` (`overflow-hidden whitespace-nowrap`) beside the card title covered the title and was cut off, yet `scrollWidth <= clientWidth` passed.
+**Lesson:** `overflow-hidden` hides overflow from scroll-width checks, so for narrow-screen stories look at the screenshot too. Do not fix a long badge by letting it wrap (rejected by PO as P-M8): a badge holds one to three words and never wraps (P-C10). Put a short label in the badge and the spec's full sentence in the text under the title.
+**Applies to:** stories "Long content, narrow" in `packages/ui`, `Badge` with long text.
+
+### 2026-10-21 — Storybook docs canvases stay white in a dark theme
+
+**Context:** Lesson 06 design system; dark-mode docs pages looked fine around the canvases, but story examples (light token text) sat on Storybook's white `.sbdocs-preview` and args table.
+**Lesson:** When theming Storybook docs with CSS, also set the background of `.sbdocs-preview` and `.docblock-argstable-body` rows, and scope text-colour overrides with `:not(.docs-story *)` so stories keep their own token colours. Check the story canvases, not only the prose, in screenshots.
+**Applies to:** `packages/ui/.storybook/preview.css`.
+
+### 2026-10-21 — overflow-hidden on a wrapper hides a child's focus outline
+
+**Context:** `DataTable` wraps the focusable table scroll container in a rounded `overflow-hidden` panel; the container's outline (offset outward) was clipped, so keyboard focus was invisible.
+**Lesson:** When a focusable child fills an `overflow-hidden` parent, draw the focus ring on the parent with `has-[<child>:focus-visible]:outline-*`, and verify the computed outline in a real browser.
+**Applies to:** `packages/ui/src/backend/tables/DataTable.tsx`, any clipped panel around a focusable region.
+
+### 2026-10-21 — Storybook docs-only MDX pages run no decorators
+
+**Context:** `withThemeByClassName` toggled `.dark` for stories, but MDX pages without stories
+stayed light, and the measured contrast table showed only the light theme.
+**Lesson:** sync global state that must reach docs pages (theme class on `<html>`) from the
+preview channel (`SET_GLOBALS`, `GLOBALS_UPDATED`) in `preview.tsx`, not only in a decorator.
+**Applies to:** `packages/ui/.storybook/preview.tsx`, any addon that relies on decorators.
+
+### 2026-10-21 — msw-storybook-addon 3 changed its API
+
+**Context:** `import { initialize, mswLoader } from "msw-storybook-addon"` failed the Storybook
+build with MISSING_EXPORT.
+**Lesson:** with v3 and CSF 3 stories use `import { mswLoader } from "msw-storybook-addon/csf3"`
+and `loaders: [mswLoader()]`, add `"msw-storybook-addon"` to `addons`, and drop `initialize()`.
+**Applies to:** `packages/ui/.storybook/{main.ts,preview.tsx}`.
+
+### 2026-10-21 — `@storybook/addon-vitest` can pull a second Vitest
+
+**Context:** `npm install -D -w @devmentor/ui …` crashed (`Cannot read properties of null
+(reading 'edgesOut')`); adding the deps to `package.json` and running `npm install` worked, but
+the addon then installed Vitest 5.0.5 next to the root's 5.0.4.
+**Lesson:** add workspace dev deps by editing `package.json` + `npm install` when npm crashes,
+then check `npm ls vitest` and keep one version by raising the root range.
+**Applies to:** root `package.json`, `packages/ui/package.json`.
+
 ### 2026-10-17 — Split platform primitives from feature specs
 
 **Context:** E01 started as one spec covering the accounts features and the
@@ -216,3 +298,73 @@ after upgrading Next.
 **Context:** The PO corrected D15 during approval of the accounts and booking refresh.
 **Lesson:** Use the other participant’s display name in booking information and related flows; do not reinterpret it as a first or legal name. Keep decision records and the brief consistent.
 **Applies to:** D15, booking notifications and session-list specifications.
+
+### 2026-10-21 — Tailwind 4 `outline-none` hides a later `outline-2`
+
+**Context:** Stage 2 of the design system: buttons had `outline-none … focus-visible:outline-2 focus-visible:outline-ring`, and the frozen focus preview showed no outline. Real keyboard focus was invisible too.
+**Lesson:** In Tailwind 4 `outline-none` sets `outline-style: none`, and `outline-2` only sets the width. Add `focus-visible:outline-solid` (or use `outline-hidden` as the base). Story tests assert `getComputedStyle(el).outlineStyle === "solid"` after `userEvent.tab()`.
+**Applies to:** every focusable component in `packages/ui/src/components/`.
+
+### 2026-10-21 — `cn` drops custom type roles unless it knows the tokens
+
+**Context:** `cn("text-label text-primary-foreground")` returned only the colour, because the merge tables treat an unknown `text-*` class as a text colour.
+**Lesson:** `packages/ui/src/lib/utils.ts` builds `cn` with `createCn` from `cn/config` and lists every token utility (type roles, relation spacing, role radii, shadow, container widths, durations). When you add a token utility to `globals.css`, add it there too, plus a case in `lib/utils.test.ts`. Components import `cn` from `@devmentor/ui/lib/utils`; `shadcn add` writes `from "cn"`, so fix the import after each add.
+**Applies to:** `packages/ui/src/lib/utils.ts`, new shadcn components.
+
+### 2026-10-21 — Frozen hover/focus previews by redefining Tailwind variants in Storybook only
+
+**Context:** The prompt asks for state matrices that show hover and focus without a pointer, using the component's own declarations.
+**Lesson:** `.storybook/preview-states.css` redefines `@custom-variant hover|active|focus-visible` to also match `[data-preview-state~=…]`. The Storybook build compiles it; the app's CSS does not import it, so production keeps the plain pseudo-classes. Set `data-preview-state` on the component in a story.
+**Applies to:** state-matrix stories in `packages/ui/src/components/*.stories.tsx`.
+
+### 2026-10-21 — `cva` variant functions do not resolve class conflicts
+
+**Context:** A link styled with `buttonVariants({ variant: "outline" })` lost its border in the dark theme. `cva` concatenated the base `border-transparent` and the variant's `border-input`; the later rule in the CSS won. `<Button>` was fine because it passed the string through `cn`.
+**Lesson:** Exported `*Variants` helpers in `packages/ui/src/components/` wrap the `cva` function in `cn(...)` (see `button.tsx`, `badge.tsx`). Test them with whole class names (`value.split(" ")`), because substrings such as `data-disabled:border-transparent` give false failures.
+**Applies to:** every exported `cva` helper used outside its component.
+
+### 2026-10-21 — `shadcn add` prompts before overwriting an edited component
+
+**Context:** `npm run ui:add -- alert-dialog` asked "button.tsx already exists. Would you like to overwrite?" and a non-interactive run hung.
+**Lesson:** Run it as `(printf 'n\n'; sleep 60) | npm run ui:add -- <name>` so restyled primitives are kept, then diff `package.json` (root, app, ui) and `globals.css`, and switch the new file's `import { cn } from "cn"` to `@devmentor/ui/lib/utils`.
+**Applies to:** `npm run ui:add` after stage 2 of the design system.
+
+### 2026-10-21 — `pkill -f <pattern>` can kill the shell that runs it
+
+**Context:** `pkill -f "http.server 6007"; npm run …` in one Bash call exited with 144 before the rest ran: the shell's own command line contained the pattern.
+**Lesson:** Stop helper servers in a separate command, or match on something only the target has (`pkill -f "^python3 -m http.server"`), and don't chain the real work after it.
+**Applies to:** local preview servers started from agent shells.
+
+
+### 2026-10-21 — A multi-story MDX catalog needs themed inline previews
+
+**Context:** 37 Canvas iframe previews reset the catalog's dark globals to light; inline
+Canvas added low-contrast Storybook toolbar controls. Plain Story previews needed the
+existing `.docs-story` boundary so documentation anchor/table overrides did not affect them.
+**Lesson:** for a catalog, render existing stories with `Story inline autoplay={false}` inside
+`Unstyled` and a `.docs-story` token-styled wrapper. Check the whole catalog with axe at 320 px
+and both themes; per-story passes do not validate the documentation composition.
+**Applies to:** `packages/ui/src/docs/design-system/components.mdx`.
+
+### 2026-10-21 — Story a11y passes do not validate documentation controls
+
+**Context:** the final Storybook audit passed 324 stories in both themes, while
+full MDX pages exposed nonfocusable scrolling tables, dark Canvas/ArgsTable contrast,
+object-inspector list semantics, repeated landmarks and docs theme resets.
+**Lesson:** audit built MDX as well as stories at narrow widths and both themes;
+assert the actual class on html after embedded examples settle. For browser probes,
+ignore hidden `.sb-errordisplay` boilerplate and allow portal-only stories whose root
+is empty. Keep documentation findings separate from story-test results.
+**Applies to:** `packages/ui/.storybook/`, full Storybook audits.
+
+### 2026-10-21 — Storybook iframe previews must carry theme globals
+
+**Context:** P-AUD2 docs frames booted light and broadcast SET_GLOBALS/GLOBALS_UPDATED,
+resetting dark docs. A class-on-html decorator alone could not prevent it.
+**Lesson:** use the supported MDX Story override to pass the selected theme in every
+iframe URL and reload frames on toolbar changes; verify both docs and frame roots.
+Theme DocsContainer too: Canvas/ArgsTable controls need their matching base theme.
+Keep prose CSS out of Unstyled component previews; overriding anchor colours there
+broke the primary LinkButton contrast. Record cross-frame axe best-practice findings
+explicitly instead of disabling rules.
+**Applies to:** `packages/ui/.storybook/blocks/documentation.tsx`, `preview.css`.

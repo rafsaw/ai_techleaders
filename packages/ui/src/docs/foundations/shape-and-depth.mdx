@@ -1,0 +1,88 @@
+import { Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { RadiusBox, TokenTable } from "../../../.storybook/blocks/tokens";
+
+<Meta title="Foundations/Shape and depth" />
+
+# Shape and depth
+
+Shape is chosen by **role**. Content is separated by thin lines and surfaces, not by shadows
+(R01.3, Z4).
+
+## Radius
+
+<Unstyled>
+  <TokenTable
+    rows={[
+      { token: "--radius-control", utility: "rounded-control", use: "small controls: input, select, textarea", source: "Q3", sample: <RadiusBox token="--radius-control" /> },
+      { token: "--radius-button", utility: "rounded-button", use: "buttons", source: "Q3", sample: <RadiusBox token="--radius-button" /> },
+      { token: "--radius-panel", utility: "rounded-panel", use: "cards and panels (never larger)", source: "Q3, Z5", sample: <RadiusBox token="--radius-panel" /> },
+      { token: "--radius-pill", utility: "rounded-pill", use: "badges only", source: "Q3, Z5", sample: <RadiusBox token="--radius-pill" /> },
+    ]}
+  />
+</Unstyled>
+
+| Rule | Source |
+|---|---|
+| Never `rounded-2xl` or larger on panels and cards. | Z5, A01 |
+| The pill shape is for badges only, not for buttons or inputs. | Q3, Z5 |
+| `rounded-sm` … `rounded-4xl` still exist for the current shadcn components; new code uses the role radii. Stage 2 moves the components over. | Z-1, Z-3 |
+
+## Borders
+
+| Use | Class | Source |
+|---|---|---|
+| Separator between list rows | `divide-y divide-border` | R01.3, Z4 |
+| Panel edge | `border border-border` | R01.3 |
+| Field outline | `border border-input` (3 : 1) | T5, WCAG 1.4.11 |
+| Focus | `outline-2 outline-solid outline-offset-2 outline-ring`: full colour, 2 px, 2 px away from the edge; no translucent glow | B3 (proposal approved by Rafał), T5, WCAG 2.4.7 |
+| Error | `border-destructive`, no glow; the message is text below the field | B3, WCAG 3.3.1, 1.4.1 |
+
+## Control sizes
+
+<Unstyled>
+  <TokenTable
+    rows={[
+      { token: "--spacing-button-lg", utility: "h-button-lg", use: "large button", source: "Q3" },
+      { token: "--spacing-button-md", utility: "h-button-md", use: "default button", source: "Q3" },
+      { token: "--spacing-button-sm", utility: "h-button-sm", use: "small button", source: "Q3" },
+      { token: "--spacing-button-xs", utility: "h-button-xs", use: "extra small button (still above the 24 × 24 px target)", source: "Q3, WCAG 2.5.8" },
+      { token: "--spacing-badge", utility: "h-badge", use: "badge height (24 px), text-label inside", source: "B5, proposal approved by Rafał" },
+      { token: "--spacing-badge-x", utility: "px-badge-x", use: "badge horizontal padding (8 px)", source: "P-T4, proposal approved by Rafał" },
+      { token: "--spacing-control-md", utility: "h-control-md", use: "input and native select, level with the default button", source: "B1, proposal approved by Rafał" },
+      { token: "--spacing-control-sm", utility: "h-control-sm", use: "small native select in dense rows", source: "B1, proposal approved by Rafał" },
+      { token: "--spacing-control-x", utility: "px-control-x", use: "horizontal padding of input, textarea, select", source: "B1, proposal approved by Rafał" },
+      { token: "--spacing-button-x-lg", utility: "px-button-x-lg", use: "horizontal padding, lg button (16 px)", source: "B1, proposal approved by Rafał" },
+      { token: "--spacing-button-x-md", utility: "px-button-x-md", use: "horizontal padding, default button (12 px)", source: "B1, proposal approved by Rafał" },
+      { token: "--spacing-button-x-sm", utility: "px-button-x-sm", use: "horizontal padding, sm button (10 px)", source: "B1, proposal approved by Rafał" },
+      { token: "--spacing-button-x-xs", utility: "px-button-x-xs", use: "horizontal padding, xs button (8 px)", source: "B1, proposal approved by Rafał" },
+    ]}
+  />
+</Unstyled>
+
+## Shadows
+
+<Unstyled>
+  <TokenTable
+    rows={[
+      { token: "--shadow-overlay", utility: "shadow-overlay", use: "menu, popover, dialog: layers that float above the page", source: "P-S1, proposal approved by Rafał; the value is a start value" },
+    ]}
+  />
+</Unstyled>
+
+| Rule | Source |
+|---|---|
+| No shadow on list rows or cards; a card is separated by its border and surface. | R01.3, Z4 |
+| A shadow is used only for layers that float above the page (menu, popover, dialog), with `shadow-overlay`. Today only the alert dialog uses it. | P-S1, proposal approved by Rafał |
+| Behind a dialog the page is dimmed with `bg-scrim`, never blurred. | Z5; value P-T4, proposal approved by Rafał |
+| A shadow is never the only thing that separates content: overlays also have a border. | P-S1, prompt (What to avoid) |
+
+## Named grid layouts
+
+Two layouts that would otherwise need an arbitrary value (prompt rule 3) are named utilities in
+`globals.css`:
+
+| Utility | Columns | Used by |
+|---|---|---|
+| `grid-cols-icon-text` | icon, then text (`auto minmax(0, 1fr)`) | `Alert` with an icon |
+| `grid-cols-text-action` | text, then an action (`minmax(0, 1fr) auto`) | `CardHeader` with `CardAction` |

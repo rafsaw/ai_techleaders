@@ -1,0 +1,139 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/Contributing" />
+
+# Contributing
+
+Start with the specified user task and an existing pattern. The package is a documented
+system for building screens; a missing need goes to What is missing before it becomes a
+new dependency, component or variant (prompt rules 1, 6 and 12; stage 4 Contributing).
+
+Sources are `lekcja-06/prompt-storybook.md`, `lekcja-06/tokeny.md`,
+`packages/ui/POSTEP.md`, root `AGENTS.md` and the product brief/specifications in `.ai/specs/`.
+PO below means Rafał, the recorded product owner; product decisions require his approval
+(brief: decider for scope; POSTEP approved decisions).
+
+## Component, variant, or no change?
+
+<table tabIndex={0} aria-label="Component, variant, or no change?" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Situation"}</th><th scope="col">{"Decision"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"The same reusable need occurs in at least two places"}</td><td>{"Propose a shared component, citing both consumers and the screen/spec requirement."}</td><td>{"prompt stage 4 Contributing; AGENTS component homes"}</td></tr>
+    <tr><td>{"A component is used by one page only"}</td><td>{"Colocate it with that page until a second consumer appears; do not grow the shared package speculatively. Storybook screen compositions remain documentation fixtures."}</td><td>{"AGENTS reusable component homes; prompt rule 5"}</td></tr>
+    <tr><td>{"Existing anatomy/behaviour fits, but a specified context needs another presentation"}</td><td>{"Propose a variant with the concrete screen, spec and states; preserve the existing public API."}</td><td>{"B5; prompt rule 6; POSTEP Z-1"}</td></tr>
+    <tr><td>{"Existing props or a documented pattern already satisfy the need"}</td><td>{"Reuse them. Do not introduce a near-duplicate component or a convenient unapproved variant."}</td><td>{"prompt rules 5\u20136; stage 4 build-screen flow"}</td></tr>
+    <tr><td>{"A new base primitive is needed"}</td><td>{"First record the gap and get it approved. Add the approved primitive through "}<code>{"npm run ui:add -- <name>"}</code>{", then adapt owned code to product tokens."}</td><td>{"AGENTS primitive rule; prompt rule 6; POSTEP approved plan"}</td></tr>
+    <tr><td>{"A public page needs a control"}</td><td>{"Use the public Tailwind-only kit; do not pull signed-in/admin primitives into it."}</td><td>{"POSTEP Q1; platform F3; AGENTS frontend/backend rules"}</td></tr>
+  </tbody>
+</table>
+
+## Put code in its designated home
+
+<table tabIndex={0} aria-label="Put code in its designated home" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Kind"}</th><th scope="col">{"Home / boundary"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Generated primitive"}</td><td><code>{"packages/ui/src/components/"}</code>{"; add with the repo CLI, then maintain its API."}</td><td>{"AGENTS shadcn rules"}</td></tr>
+    <tr><td>{"Generic panel pattern"}</td><td><code>{"packages/ui/src/backend/<category>/"}</code>{"; presentation only."}</td><td>{"AGENTS reusable component homes"}</td></tr>
+    <tr><td>{"Component tied to a domain shape"}</td><td><code>{"packages/ui/src/components/<concept>/"}</code>{"; use the concept's shared directory name."}</td><td>{"AGENTS domain convention and component homes"}</td></tr>
+    <tr><td>{"Public control or form"}</td><td><code>{"packages/ui/src/frontend/"}</code>{"; shared form orchestration stays in "}<code>{"src/forms/"}</code>{"."}</td><td>{"platform F2/F3; POSTEP stage 2 public kit"}</td></tr>
+    <tr><td>{"Stories and component documentation"}</td><td>{"Beside the component, "}<code>{"*.stories.tsx"}</code>{" and "}<code>{"*.mdx"}</code>{". General pages live in "}<code>{"src/docs/"}</code>{"; docs-only helpers in "}<code>{".storybook/blocks/"}</code>{" with no package export."}</td><td>{"POSTEP Z-6; prompt rule 5"}</td></tr>
+    <tr><td>{"Application data/integration"}</td><td>{"Outside ui; ui has no data access, server-only code or workspace dependency on core/db/app. Import DTO types using "}<code>{"import type"}</code>{" where appropriate."}</td><td>{"AGENTS dependency direction and service DTO convention"}</td></tr>
+  </tbody>
+</table>
+
+## New-component documentation contract
+
+Every primitive/product component page includes all thirteen sections; if one does not
+apply, explain why (prompt stage 2):
+
+1. The user problem in one sentence.
+2. Concrete DevMentor situations to use it.
+3. When not to use it and the alternative.
+4. Anatomy, including optional parts.
+5. Every variant and its selection rule.
+6. Default, hover, focus, pressed, disabled, pending, selected and error states where applicable; explain unavailable actions.
+7. Keyboard, focus, semantics, announcements and minimum target size.
+8. Labels, length, long text, numbers and longer translations.
+9. Behaviour at 320, 768 and 1440 px.
+10. Typed API, defaults and prop descriptions.
+11. Minimal code and a realistic product example.
+12. Good/bad pairs with a reason for each.
+13. Related components and patterns.
+
+Rules carry a reference/anti-reference, brief/spec decision, WCAG or WAI-ARIA source.
+Unsourced choices are explicitly labelled proposals and reported to the PO (prompt rule 4).
+Pattern pages use their separately approved nine-section contract rather than pretending
+to be primitives (P-PT1: proposal approved by Rafał).
+
+<table tabIndex={0} aria-label="New-component documentation contract" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Story obligation"}</th><th scope="col">{"Evidence"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Playground, each variant/size, frozen hover/focus state matrix"}</td><td>{"Render actual package components, with controls and the existing preview-state hooks."}</td><td>{"prompt rules 5 and stage 2"}</td></tr>
+    <tr><td>{"Long text and narrow width"}</td><td>{"Use fictional but realistic data from the product; no fabricated ratings, customer totals or endorsements."}</td><td>{"prompt rule 7; P-C5"}</td></tr>
+    <tr><td>{"Interaction test for the core behaviour"}</td><td>{"Exercise keyboard/click/validation in "}<code>{"play"}</code>{", with a11y configured to fail."}</td><td>{"prompt stages 1\u20132"}</td></tr>
+    <tr><td>{"Product data states"}</td><td>{"Loading, empty, error, partial data, many records and long text; screens map each state to its story."}</td><td>{"prompt stage 3"}</td></tr>
+    <tr><td>{"Form response states"}</td><td>{"Simulate success, pending, field error, server failure and offline using approved MSW tooling."}</td><td>{"prompt stage 3; POSTEP technical plan"}</td></tr>
+    <tr><td>{"Built documentation"}</td><td>{"Inspect each MDX page in built Storybook; wrap real previews in Unstyled. Markdown tables are supported by the configured remark-gfm."}</td><td>{"prompt rules 8 and stage 1"}</td></tr>
+  </tbody>
+</table>
+
+## Changing a token
+
+<table tabIndex={0} aria-label="Changing a token" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Before approving a token change"}</th><th scope="col">{"Why / source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Find its role, reference and consumers; keep raw values inside "}<code>{"src/styles/globals.css"}</code>{". Preserve existing themes, palettes and names unless a change is approved."}</td><td>{"prompt rules 3, 12; T1\u2013T8; POSTEP Z-1/Z-2"}</td></tr>
+    <tr><td>{"Change the semantic role rather than adding per-component raw values. Add a component token only when existing roles cannot express the need."}</td><td>{"prompt stage 1 three layers; T4"}</td></tr>
+    <tr><td>{"Recalculate contrast for the actual values in both themes, including hover, disabled, field boundaries, focus and overlay contexts. Stop for PO decision if a pair falls below its threshold."}</td><td>{"prompt stage 1; T5/T7; B2/B3; WCAG 1.4.3, 1.4.11"}</td></tr>
+    <tr><td>{"Update its source comment, Foundations documentation and contrast table, plus affected state stories."}</td><td>{"prompt stage 1; prompt rule 4"}</td></tr>
+    <tr><td>{"Inspect reduced motion, long text, narrow layout and overlay theme inheritance when affected."}</td><td>{"Q4; P-C5; prompt rules 8\u20139 and stage 5"}</td></tr>
+  </tbody>
+</table>
+
+## Approval and review
+
+The PO approves product/style choices, new scope and changes to existing system assets;
+record approval and unresolved questions in POSTEP. A contributor may investigate, write
+an explicit proposal and prepare its reviewable evidence; an unapproved proposal is not a
+new system rule (brief scope decider; prompt rules 1, 4, 6, 12).
+
+Use source/spec review, validation and rendered-browser evidence for technical review.
+The materials do not name another standing design-system maintainer; do not invent a
+second approver. Stage work stops for the PO's “dalej” before the next stage. Do not push
+or publish during this exercise (prompt workflow and rule 11).
+
+## Commands and completion evidence
+
+Run from the repository root (AGENTS commands; POSTEP technical plan):
+
+```sh
+npm run storybook
+npm run build-storybook
+npm run check:tokens
+npm run test:storybook
+npm run test:storybook:themes -w @devmentor/ui
+npm run lint
+npm run typecheck
+npm run build
+npm run test:coverage
+npm run test:integration:install
+npm run test:integration
+```
+
+`storybook` opens the local documentation server; `build-storybook` produces the static
+site; `check:tokens` rejects raw colours, palette classes and arbitrary Tailwind values.
+`test:storybook:themes` runs story interactions/a11y in both themes (POSTEP technical plan).
+Integration tests require Docker and the production build and must not silently skip
+(AGENTS testing rules).
+
+All configured gates must pass before calling a change complete. Changed runtime files
+require 100% per-file unit coverage; stories have their own interaction/a11y runner.
+Browser review covers widths 320/768/1440, both themes, keyboard and overlays. Record
+what was actually checked, unresolved gaps and proposals, rather than equating a build
+with a visual or accessibility pass (AGENTS testing; prompt stage 5).
+
+Keep the run log in `.ai/runs/`, update the relevant spec and POSTEP, and update the
+agent guide/component catalogue when the system contract changes. For this exercise,
+changes outside the design-system directory are limited to the explicitly authorized
+wiring and agent-guide work; pending application/spec corrections stay listed in POSTEP
+until their separate implementation task (AGENTS SDD; prompt rule 11; POSTEP outside-system list).

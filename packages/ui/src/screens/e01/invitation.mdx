@@ -1,0 +1,36 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./invitation.stories";
+
+<Meta of={Stories} />
+
+# Invitation
+
+`/invite/[token]`, public kit. Source: E01 Flow 3. Every state below is a full-screen story with
+the real site header. The page frame (P-SCR1) and the page title (P-SCR2) are proposals approved by Rafał; the app
+has no layouts yet.
+
+## What the screen is for
+
+Accepting the mentor role with the invited address, and only with it.
+
+## Built from
+
+**Site header**, **Invitation panel**. Patterns: **Sign-in and return**.
+
+## State map
+
+| Screen state | Story | Source |
+|---|---|---|
+| Valid, matching account → Accept invitation → /mentor | *Valid* | E01 Flow 3, E02 Flow 1 |
+| Accepting | *Accepting* | Form pattern |
+| Accept refused (409) | *Accept failed* | E01 Flow 3 |
+| Signed out | *Signed out* | E01 Flow 3, P6 |
+| Signed in with another address | *Other account* | E01 Flow 3 |
+| Already a mentor | *Already mentor* | E01 Flow 3 |
+| Invalid, used, revoked or expired | *Invalid* | E01 Flow 3 |
+| 320 px | *Narrow* | P-L1 |
+
+Loading: the page renders on the server. Empty, many: not applicable.
+
+<Canvas of={Stories.OtherAccount} />

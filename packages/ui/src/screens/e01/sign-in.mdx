@@ -1,0 +1,37 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./sign-in.stories";
+
+<Meta of={Stories} />
+
+# Sign in
+
+`/sign-in`, public kit. Source: E01 Flow 1–2, UI/UX `/sign-in`. Every state below is a full-screen story with
+the real site header. The page frame (P-SCR1) and the page title (P-SCR2) are proposals approved by Rafał; the app
+has no layouts yet.
+
+## What the screen is for
+
+Signing in with GitHub first, or with email and password, and coming back with a message when GitHub fails.
+
+## Built from
+
+**Site header**, **Sign-in options** (Notice, Schema form, Password field, Link button). Patterns: **Form**, **Sign-in and return**.
+
+## State map
+
+| Screen state | Story | Source |
+|---|---|---|
+| Default (Phase 2): GitHub first, email form, N03 | *Default* | E01 UI/UX |
+| Phase 1: GitHub only | *Github only* | E01 Phase 1 |
+| Back from GitHub, cancelled | *Github cancelled* | E01 Flow 1 |
+| Back from GitHub, email linked to another GitHub account | *Github email taken* | E01 Flow 1 |
+| Signing in | *Pending* | Form pattern |
+| Wrong email or password (401) | *Wrong password* | E01 edge cases |
+| Email not confirmed (403) → Resend confirmation | *Email not confirmed* | E01 Flow 2 |
+| Too many attempts (429) | *Rate limited* | E01 edge cases, platform P11 |
+| 320 px, longest banner | *Narrow* | P-L1 |
+
+Empty, many: not applicable (a fixed set of ways in). Loading: the page renders on the server.
+
+<Canvas of={Stories.Default} />

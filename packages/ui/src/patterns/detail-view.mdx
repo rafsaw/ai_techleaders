@@ -1,0 +1,92 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./detail-view.stories";
+
+<Meta of={Stories} />
+
+# Detail view
+
+How a page about one thing is laid out. In E01–E02 that is the public mentor profile
+`/mentors/[id]` (E02 Flow 2 step 4); E04 adds booking to the same page.
+
+## 1. Problem it solves
+
+A mentee should see at once who the mentor is, whether they can book and what it costs, without
+hunting below a long description.
+
+## 2. Where in the product
+
+| Screen | Kit |
+|---|---|
+| `/mentors/[id]` | public |
+
+## 3. Built from
+
+**Not bookable notice**, **Mentor profile header**, **Price list**, **Text-only note**,
+**Public work links**; **Link button** in the not-found state.
+
+## 4. Rules
+
+| Rule | Source |
+|---|---|
+| The most important information and the main action are visible without scrolling. | prompt (Detail view) |
+| One main action per screen; on the profile that will be booking (E04). E02 has none. | R01.6 |
+| A status that changes what the visitor can do comes first, above the name: *Not taking bookings yet*. | P-DV1, proposal approved by Rafał |
+| From 1024 px the prices sit in a side column next to the description, where E04 adds **Book**; narrower, they follow the description. | P-DV2, proposal approved by Rafał |
+| An id that does not exist and a profile the visitor may not see return the same 404, so the page never says which. | E02 Flow 2, platform P5 |
+| No ratings, reviews, titles or employers anywhere on the page. | N02, A03, A08 |
+
+## 5. States
+
+| State | Story |
+|---|---|
+| Bookable | *Playground* |
+| Not bookable yet | *Not bookable* |
+| Many links | *Many links* |
+| Long description, 320 px | *Long content, narrow* |
+| Does not exist or no access | *Not found* |
+| Loading | not applicable: the page renders on the server (`connection()`) |
+| Empty, partial | not applicable: a saved profile has every field (E02 Flow 2) |
+
+<Canvas of={Stories.NotBookable} story={{ inline: false, height: "800px" }} />
+
+The not-found copy is P-DV3 (proposal approved by Rafał): *Page not found*, *This page doesn't exist, or you
+don't have access to it.* and **Go to the home page**. The app has no `not-found.tsx` yet.
+
+<Canvas of={Stories.NotFound} story={{ inline: false, height: "400px" }} />
+
+## 6. Behaviour and accessibility
+
+- One `h1`, the mentor's name. Prices are an `aside` named *Sessions*.
+- Documentation previews use separate frames so each full-page example retains its own landmarks (P-AUD3, proposal approved by Rafał; WCAG 1.3.1).
+- At 320 px with a 2,000-character description, the prices follow the description. That is
+  acceptable while there is no **Book**; E04 has to keep its main action above the fold
+  (What is missing).
+
+## 7. Code
+
+```tsx
+<main className="mx-auto flex w-full max-w-content flex-col gap-component">
+  {profile.bookable ? null : <NotBookableNotice />}
+  <div className="grid gap-component lg:grid-cols-3">
+    <MentorProfileHeader className="lg:col-span-2" {...profile} />
+    <aside aria-label="Sessions" className="flex flex-col gap-in-group lg:col-start-3 lg:row-span-2 lg:row-start-1">
+      <PriceList prices={prices} />
+      <TextOnlyNote />
+    </aside>
+    <PublicWorkLinks className="lg:col-span-2" links={profile.publicWorkLinks} />
+  </div>
+</main>
+```
+
+## 8. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| Show the not-bookable notice first | hide it under the description | the visitor learns at once that they cannot book (MD4) |
+| One 404 for "missing" and "not allowed" | "This mentor is no longer a mentor" | it would reveal account state (E02 Flow 2) |
+
+## 9. Related
+
+- Components: **Mentor profile header**, **Public work links**, **Price list**, **Text-only note**, **Not bookable notice**.
+- Screens: Public profile (batch 5).

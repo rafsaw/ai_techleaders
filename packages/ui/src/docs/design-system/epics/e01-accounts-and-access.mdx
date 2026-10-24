@@ -1,0 +1,56 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/Epics/E01 Accounts and access" />
+
+# E01: Accounts and access
+
+Visitors get an account, confirm an email address when necessary, and accept an invitation on the account that owns its email. The header then shows the areas that account can enter. Sources: backlog E01 (#28), E01 specification, Flows 1–3 and UI/UX.
+
+## Flow and screen map
+
+Each linked screen page contains its complete state-to-story map. The UI package and its simulated responses are available; these routes and their services are still application implementation work on this branch. Storybook coverage does not mean authentication is shipped.
+
+<table tabIndex={0} aria-label="Flow and screen map" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Backlog item and flow"}</th><th scope="col">{"Screens and state maps"}</th><th scope="col">{"Components and patterns"}</th><th scope="col">{"Important states and source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"E01-S01 #34: choose GitHub, return from the provider, enter the account"}</td><td><a href="?path=/docs/screens-e01-sign-in--docs">{"Sign in"}</a>{", "}<a href="?path=/docs/screens-e01-account--docs">{"Account"}</a></td><td>{"SiteHeader, SignInOptions, AccountSummary; "}<a href="?path=/docs/patterns-sign-in-and-return--docs">{"Sign-in and return"}</a></td><td>{"GitHub only (Phase 1), cancelled, failed, no verified email, email taken; account roles and sign-out failure. E01 Flow 1; component Sign-in options includes provider errors beyond the screen's named stories."}</td></tr>
+    <tr><td>{"E01-S02 #35: register, check email, confirm, sign in"}</td><td><a href="?path=/docs/screens-e01-sign-up--docs">{"Sign up"}</a>{", "}<a href="?path=/docs/screens-e01-check-email--docs">{"Check email"}</a>{", "}<a href="?path=/docs/screens-e01-confirm-email--docs">{"Confirm email"}</a>{", "}<a href="?path=/docs/screens-e01-sign-in--docs">{"Sign in"}</a></td><td>{"SchemaForm, PasswordField, Notice, ConfirmEmailPanel; "}<a href="?path=/docs/patterns-form--docs">{"Form"}</a></td><td>{"Pending, field/server errors, email not sent, expired/used/invalid confirmation, incorrect password, resend and rate limiting. E01 Flow 2 and edge cases."}</td></tr>
+    <tr><td>{"E01-S03 #36: open invitation, sign in if necessary, accept"}</td><td><a href="?path=/docs/screens-e01-invitation--docs">{"Invitation"}</a>{", "}<a href="?path=/docs/screens-e01-sign-in--docs">{"Sign in"}</a></td><td>{"InvitationPanel; Sign-in and return"}</td><td>{"Signed out, matching account, mismatched account, already mentor, invalid invitation, accepting and acceptance failure. E01 Flow 3."}</td></tr>
+    <tr><td>{"E01-S03-T01 #46: operator creates an email-bound invitation"}</td><td>{"No operator screen by design"}</td><td>{"InvitationPanel covers the recipient, not operator creation"}</td><td>{"API/manual operator workflow remains to implement; no invented invitation dashboard. E01 Phase 3 supersedes the older create-only bearer-link interpretation."}</td></tr>
+  </tbody>
+</table>
+
+## Product rules the interface preserves
+
+<table tabIndex={0} aria-label="Product rules the interface preserves" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Rule"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"GitHub comes first; email/password is an alternative in Phase 2. Password reset is explicitly unavailable in this version."}</td><td>{"E01 Flow 1\u20132, N03"}</td></tr>
+    <tr><td>{"An invitation requires the signed-in account to match its email. A mismatch offers account switching and does not expose the invited email."}</td><td>{"E01 Flow 3, P6"}</td></tr>
+    <tr><td>{"Sign-out uses POST and full navigation; role links reflect the current principal."}</td><td>{"E01 F5 and UI/UX"}</td></tr>
+    <tr><td>{"Values survive errors, submission cannot happen twice, and success waits for the server."}</td><td>{"Form pattern; prompt stage 3; platform F2"}</td></tr>
+    <tr><td>{"Public authentication pages use the Tailwind-only kit; "}<code>{"/account"}</code>{" uses signed-in primitives."}</td><td>{"POSTEP Q1, platform F3"}</td></tr>
+  </tbody>
+</table>
+
+## Source files
+
+<table tabIndex={0} aria-label="Source files" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Purpose"}</th><th scope="col">{"Existing source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Product components"}</td><td><code>{"packages/ui/src/components/auth/{SiteHeader,SignInOptions,ConfirmEmailPanel,InvitationPanel,AccountSummary}.tsx"}</code></td></tr>
+    <tr><td>{"Public form components"}</td><td><code>{"packages/ui/src/frontend/forms/{SchemaForm,TextField,PasswordField,SubmitButton}.tsx"}</code></td></tr>
+    <tr><td>{"Shared form behaviour and signed-in form"}</td><td><code>{"packages/ui/src/forms/useSchemaForm.ts"}</code>{", "}<code>{"packages/ui/src/backend/forms/CrudForm.tsx"}</code></td></tr>
+    <tr><td>{"Full-screen examples and state maps"}</td><td><code>{"packages/ui/src/screens/e01/*.stories.tsx"}</code>{" and adjacent "}<code>{".mdx"}</code></td></tr>
+    <tr><td>{"Simulated schemas and API responses"}</td><td><code>{"packages/ui/.storybook/blocks/fixtures.ts"}</code>{" (substitutes, not production validators)"}</td></tr>
+    <tr><td>{"Implementation contract"}</td><td><code>{".ai/specs/2026-10-17-accounts-and-roles.md"}</code>{", "}<code>{".ai/specs/2026-10-17-platform-primitives.md"}</code></td></tr>
+  </tbody>
+</table>
+
+## Work remaining in the product
+
+Implement the E01 specification's three phases: authentication/session services and routes, actual schemas, account persistence, email confirmation and delivery, invitation management and acceptance. Build the application layouts and `/error` header; the Storybook frame is the approved P-SCR1 composition, not an installed app layout. Sources: E01 Implementation Plan; POSTEP “Do zrobienia poza design systemem”.
+
+Before wiring `/account`, add the specified `CrudForm` `resetOnSuccess={false}` behaviour so a successful save retains the updated name. Keep the already implemented shared validation, error associations and password visibility control; do not reimplement them. The spec still needs the approved password-visibility decision recorded when Phase 2 is implemented. Sources: E01 Phase 1, POSTEP Q-CF1 and P-PF1.
+
+The temporary truncated account name moves into an account menu when the approved Menu gap is resolved (POSTEP P-A4). See [What is missing](?path=/docs/design-system-what-is-missing--docs) for the complete backlog boundary.

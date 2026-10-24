@@ -1,0 +1,37 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Foundations/Themes" />
+
+# Themes
+
+DevMentor has a **light** and a **dark** theme. Both are defined in
+`packages/ui/src/styles/globals.css`: light values on `:root`, dark values on `.dark`.
+
+| Rule | Source |
+|---|---|
+| Components use semantic classes only; they never check the theme themselves. | Z6, prompt rule 3 |
+| The theme class goes on the root element (`<html>`), so dialogs, menus and popovers rendered outside the page tree get it too. | prompt rule 9 |
+| Every colour pair is measured in both themes on Foundations/Color. | T5, WCAG 1.4.3, 1.4.11 |
+| `dark:` variants are allowed only where a token cannot express the difference. Every such exception is listed below with its reason. | P-TH1, proposal approved by Rafał 2026-10-21 |
+
+## `dark:` exceptions
+
+| File | Class | Why a token is not enough |
+|---|---|---|
+| none yet | — | — |
+
+## In Storybook
+
+Use the theme switch (paintbrush) in the toolbar. It sets `class="dark"` on `<html>` of the
+preview. Stories and docs pages re-render with the dark tokens.
+
+Tests run in both themes:
+
+```sh
+npm run test:storybook        # every story, light then dark, accessibility errors fail
+```
+
+## In the app
+
+The app does not switch themes yet: nothing sets `.dark` on `<html>`. Adding a theme switch to
+the product is not in the backlog (What is missing).

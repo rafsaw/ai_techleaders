@@ -1,0 +1,68 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/What to avoid" />
+
+# What to avoid
+
+Use this page while reviewing a screen and its diff. References `R*`, `A*`, `K*` resolve
+to `lekcja-06/referencje.md`; `T*`, `Z*`, `C*` resolve to `lekcja-06/tokeny.md`.
+Approved `P-*`/`B*` decisions live in `packages/ui/POSTEP.md`.
+
+## Product anti-patterns
+
+<table tabIndex={0} aria-label="Product anti-patterns" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Recognize on screen and in code"}</th><th scope="col">{"Why it causes a problem"}</th><th scope="col">{"Replace with"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Course progress, certificates, levels and \u201cjourney\u201d; "}<code>{"Progress"}</code>{", "}<code>{"streak"}</code>{" or reward badges"}</td><td>{"People came with one blocker, not a learning curriculum."}</td><td>{"A booked 25/50-minute text session and a concrete next action. Setup completion is a task checklist, not learning progress."}</td><td>{"A02; D01, D10"}</td></tr>
+    <tr><td>{"Stars, 4.9 averages, testimonials and \u201cTrusted by\u201d; "}<code>{"Star"}</code>{", "}<code>{"rating"}</code>{", "}<code>{"reviewCount"}</code></td><td>{"Ratings are explicitly excluded; invented social proof misrepresents trust."}</td><td>{"Plain description and links to public work."}</td><td>{"A03; N02; R01.7; prompt rule 7"}</td></tr>
+    <tr><td>{"Feeds, likes, follower/activity counters; "}<code>{"likes"}</code>{", "}<code>{"followers"}</code>{", "}<code>{"feed"}</code></td><td>{"Adds a community and attention loop outside the task."}</td><td>{"The mentor's public profile and the participant's own session list when specified."}</td><td>{"A04; D04, D15"}</td></tr>
+    <tr><td>{"Free/Pro/Premium plans, \u201cMost popular\u201d, "}<code>{"/month"}</code>{"; "}<code>{"tier"}</code>{", "}<code>{"subscribe"}</code></td><td>{"Subscriptions are outside the first build."}</td><td>{"A mentor-set price per 25/50-minute session."}</td><td>{"A05; D01, D06"}</td></tr>
+    <tr><td>{"Call tiles, Join call, camera/microphone icons; "}<code>{"Video"}</code>{", "}<code>{"Camera"}</code>{", "}<code>{"Mic"}</code></td><td>{"Suggests a format the product does not offer."}</td><td>{"Explicit Text sessions only."}</td><td>{"A06; N01; P-PP6"}</td></tr>
+    <tr><td>{"Countdown sales, \u201cinstant\u201d, \u201churry\u201d, slot scarcity or exclamation marks in actions"}</td><td>{"Creates urgency and implies a start guarantee the schedule cannot meet."}</td><td>{"Scheduled start with the actual named zone and lead-time rule."}</td><td>{"A07; D03, D16"}</td></tr>
+    <tr><td>{"Employer logos, Ex-FAANG, years of experience as the primary claim; emphasized "}<code>{"company"}</code>{"/"}<code>{"yearsOfExperience"}</code></td><td>{"A title replaces evidence of relevant work."}</td><td>{"Public work and a specific plain-language description."}</td><td>{"A08; N02"}</td></tr>
+    <tr><td>{"Dense text with no hierarchy, many equal primary buttons; repeated "}<code>{"default"}</code>{" actions"}</td><td>{"Scanning fails and the next step becomes unclear."}</td><td>{"Row title/metadata roles and one main action."}</td><td>{"R01.5, R01.6; K1; Z1, Z2"}</td></tr>
+    <tr><td>{"Notifications everywhere, emoji reactions, typing/presence indicators, side channels or nested threads"}</td><td>{"Turns a bounded session into an always-on chat product."}</td><td>{"One linear text conversation, no session sidebar, explicit refresh time when E05 is specified. These are future-session constraints, not an E05 implementation here."}</td><td>{"R02.4\u2013R02.8; K2, K3; POSTEP scope"}</td></tr>
+  </tbody>
+</table>
+
+## Generic AI appearance
+
+<table tabIndex={0} aria-label="Generic AI appearance" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Recognize on screen and in code"}</th><th scope="col">{"Why it causes a problem"}</th><th scope="col">{"Replace with"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Gradients on a page, text or button; gradient utilities or "}<code>{"linear-gradient"}</code></td><td>{"Reintroduces the rejected effects-led AI landing-page style."}</td><td>{"Semantic background, foreground and primary roles."}</td><td>{"A01; Z5, T1"}</td></tr>
+    <tr><td>{"Glass panels and blur; translucent card surfaces or "}<code>{"backdrop-blur"}</code></td><td>{"Replaces readable warm surfaces with decorative effects."}</td><td>{"Opaque "}<code>{"card"}</code>{"/"}<code>{"popover"}</code>{" surfaces. The approved overlay scrim is a distinct exception."}</td><td>{"A01; Z5; P-T4"}</td></tr>
+    <tr><td>{"Glow and luminous coloured shadows; "}<code>{"drop-shadow"}</code>{" or custom decorative "}<code>{"box-shadow"}</code></td><td>{"Draws attention through effects rather than content hierarchy."}</td><td>{"Typography and borders; "}<code>{"shadow-overlay"}</code>{" only for the approved overlay layer."}</td><td>{"A01; Z2; P-S1"}</td></tr>
+    <tr><td>{"Emoji as icons, sparkles as \u201cAI\u201d; emoji in headings or "}<code>{"Sparkles"}</code>{" imports"}</td><td>{"Recreates the explicitly rejected visual vocabulary."}</td><td>{"Text; use the current consistent icon set only when an icon serves a task."}</td><td>{"A01; R02.5; Foundations/Icons approved starting set"}</td></tr>
+    <tr><td>{"Three identical icon cards in a feature grid; repeated feature cards with a three-column layout"}</td><td>{"Imposes a generic marketing composition on task content."}</td><td>{"Group by the real flow, such as the mentor setup checklist or a divided list."}</td><td>{"A01; E02 Flow 1; R01.3"}</td></tr>
+    <tr><td>{"Every control is pill-shaped; unrestricted "}<code>{"rounded-full"}</code></td><td>{"Removes the approved shape hierarchy."}</td><td><code>{"rounded-control"}</code>{", "}<code>{"rounded-button"}</code>{", "}<code>{"rounded-panel"}</code>{"; pill only for badges."}</td><td>{"Z5; Q3"}</td></tr>
+    <tr><td>{"A card inside every card, or one card for each list row; nested "}<code>{"Card"}</code>{" wrappers"}</td><td>{"Wastes space and obscures relationships."}</td><td>{"One panel boundary and internal spacing/dividers; rows use "}<code>{"border-border"}</code>{"."}</td><td>{"R01.1, R01.3; Z4; B4"}</td></tr>
+    <tr><td>{"Shadow is the only divider; "}<code>{"shadow-*"}</code>{" without a meaningful grouping or line"}</td><td>{"Violates the line-based list system and its density."}</td><td>{"Text hierarchy and borders; overlay shadow is limited to layers above the page."}</td><td>{"R01.3; Z4; P-S1"}</td></tr>
+    <tr><td>{"All text, errors and forms are centred; blanket "}<code>{"text-center"}</code>{"/"}<code>{"items-center"}</code></td><td>{"Discards the approved scan direction and task layout."}</td><td>{"Left-aligned content and loading feedback; centre the page container, not every line of text."}</td><td>{"R01.1; P-LD4; P-L3"}</td></tr>
+  </tbody>
+</table>
+
+The code fragments above are search clues, not proof by themselves: a legitimate
+layout can have three columns and a decorative icon can be hidden from a screen reader.
+Judge the actual user task and cited rule (A01's signatures; WCAG 1.1.1).
+
+## Implementation mistakes
+
+<table tabIndex={0} aria-label="Implementation mistakes" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Recognize on screen and in code"}</th><th scope="col">{"Why it causes a problem"}</th><th scope="col">{"Replace with"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"A raw colour, palette class or arbitrary Tailwind value in a component"}</td><td>{"Bypasses documented roles, contrast and theme behaviour."}</td><td>{"Existing semantic token; request approval when a role is genuinely absent. Run "}<code>{"npm run check:tokens"}</code>{"."}</td><td>{"prompt rule 3; Z6; T1\u2013T8"}</td></tr>
+    <tr><td>{"A new variant/dependency introduced \u201cwhile here\u201d; unexplained variant keys or package changes"}</td><td>{"Expands the approved system without a screen requirement."}</td><td>{"Existing API, or record the unmet requirement on What is missing."}</td><td>{"prompt rule 6; B5"}</td></tr>
+    <tr><td>{"A clickable "}<code>{"div"}</code>{"/"}<code>{"span"}</code>{" or navigation button with no actual link"}</td><td>{"Loses native keyboard/link behaviour and semantics."}</td><td>{"Native button for action, anchor for navigation."}</td><td>{"WCAG 2.1.1, 4.1.2; POSTEP Link as Button decision"}</td></tr>
+    <tr><td>{"Placeholder as the only name; no visible label/association"}</td><td>{"The field becomes unidentified while typing."}</td><td>{"Visible label plus optional example placeholder and associated hint/error."}</td><td>{"WCAG 1.3.1, 3.3.2; F2, Q-CF1"}</td></tr>
+    <tr><td>{"Status conveyed by a coloured dot or border only"}</td><td>{"Meaning disappears without colour perception."}</td><td>{"Open/Booked/Blocked text, with colour as supporting information."}</td><td>{"Q2; WCAG 1.4.1"}</td></tr>
+    <tr><td>{"Disabled submit with no reason, or faded text via opacity"}</td><td>{"People cannot recover; text may lose contrast."}</td><td>{"Visible explanation, approved disabled tokens and a clear prerequisite action."}</td><td>{"B2; E02 MD10; WCAG 3.3.2"}</td></tr>
+    <tr><td>{"An actionable error in a toast; timer dismisses the remedy"}</td><td>{"The correction disappears while the task is unresolved."}</td><td>{"Field error or persistent inline Alert/Notice/ErrorMessage with retry/action. No toast in 1.0."}</td><td>{"prompt stage 4; POSTEP Q5; WCAG 3.3.1, 3.3.3"}</td></tr>
+    <tr><td>{"Required instruction or disabled reason only in a tooltip/title"}</td><td>{"Touch and keyboard users may not find the information."}</td><td>{"Visible adjacent hint, linked with "}<code>{"aria-describedby"}</code>{" where relevant."}</td><td>{"WCAG 3.3.2; B2; E02 Flow 3"}</td></tr>
+    <tr><td>{"Success before server confirmation, double submits or cleared fields on failure"}</td><td>{"Misrepresents persistence and makes recovery harder."}</td><td>{"Shared form pending/error/success flow and retained values."}</td><td>{"Q4; F2; prompt Form pattern"}</td></tr>
+    <tr><td>{"Theme class only on a story wrapper"}</td><td>{"Portalled confirmation uses the wrong palette."}</td><td>{"Theme on "}<code>{"html"}</code>{"; inspect the open overlay in both themes."}</td><td>{"prompt rule 9"}</td></tr>
+  </tbody>
+</table>
+
+Continue with [Contributing](?path=/docs/design-system-contributing--docs) when a task
+cannot be met by an approved component/token (prompt rule 6).

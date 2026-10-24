@@ -1,0 +1,97 @@
+import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./price-list.stories";
+
+<Meta of={Stories} />
+
+# Price list
+
+`import { PriceList } from "@devmentor/ui/components/mentors/PriceList"`
+
+E02 product component for the public profile `/mentors/[id]` (Flow 2 step 4). Public kit only (F3).
+
+## 1. What it is for
+
+It shows what one session costs in each format before the mentee picks a slot (D06, R01).
+
+## 2. When to use
+
+- On `/mentors/[id]`, once.
+
+## 3. When not to use
+
+| Situation | Use instead |
+|---|---|
+| The mentor editing prices | the profile form on `/mentor/profile` |
+| Checkout and receipts | E04 |
+
+## 4. Anatomy
+
+| Part | Required | Notes | Source |
+|---|---|---|---|
+| List named *Prices* | yes | `aria-label` | P-PP5, proposal approved by Rafał |
+| Line per format | yes | *25 min · $40*, *50 min · $70*; 25 first | E02 Flow 2, R01 |
+| Amount | yes | `font-semibold`, tabular figures | P-PP5, proposal approved by Rafał (R01.5: hierarchy by weight, not colour) |
+
+## 5. Variants
+
+None.
+
+## 6. States (data states)
+
+| State | Story |
+|---|---|
+| Default | *Playground* |
+| The bounds, $5 and $1,000 | *Bounds* |
+| 50 minutes cheaper than 25 | *Longer is cheaper* |
+| 320 px | *Narrow* |
+| Empty, partial | not applicable: a saved profile has both prices (E02 Flow 2) |
+| Loading, error | not applicable: rendered on the server with the profile |
+
+<Canvas of={Stories.Bounds} />
+
+## 7. Behaviour and accessibility
+
+- A plain list; screen readers hear "Prices, list, 2 items".
+- Prices are never constrained against each other (E02 Flow 2).
+
+## 8. Content
+
+- The page formats amounts with core's `formatMoney` (P17): `$40` without `.00`, cents kept when
+  they exist (`$1.40`). The component does not format money, because `ui` may not import `core`.
+- USD only (MD2); no currency code is shown.
+- No "/month", plans or "Most popular" (A05).
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px, 768 px, 1440 px | the same two short lines |
+
+<Canvas of={Stories.Narrow} />
+
+## 10. API
+
+| Prop | Type | Description |
+|---|---|---|
+| `prices` | `{ 25: string; 50: string }` | formatted amounts |
+
+<Controls of={Stories.Playground} />
+
+## 11. Code
+
+```tsx
+<PriceList prices={{ 25: formatMoney(profile.prices[25]), 50: formatMoney(profile.prices[50]) }} />
+```
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| Show both formats with minutes | "From $40" | R01: two formats, D06: a price per format |
+| Format with `formatMoney` | round or format in the component | P17 money correctness |
+
+## 13. Related
+
+- Next to: **Text-only note**.
+- Used in: Public profile screen (batch 5).

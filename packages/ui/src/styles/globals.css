@@ -4,9 +4,155 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * DevMentor tokens. This file is the only place where raw values live.
+ * Three layers:
+ *   1. raw values      (--warm-*, --red-*, --green-*, --amber-*, fonts): never used in components
+ *   2. semantic tokens (named by purpose: --background, --muted-foreground, --success,
+ *                       --spacing-in-group, --radius-panel, --duration-menu …)
+ *   3. component tokens, only where a component needs its own value (--spacing-list-row-*,
+ *                       --button-height-*)
+ * Sources: lekcja-06/referencje.md (R…, A…, K…), lekcja-06/tokeny.md (T…, Z…, C…),
+ * PO decisions of 2026-10-21 recorded in packages/ui/POSTEP.md (Q2–Q4).
+ * Contrast of every text/background pair is documented on Foundations/Color.
+ */
+
+/* ---------- Layer 2 and 3: tokens that never change with the theme ---------- */
+@theme {
+  /* Spacing relations (T4). Utilities: gap-in-group, p-panel, mt-section, … */
+  --spacing-in-group: 8px; /* label and field, icon and text, name and time (R01.1, T4) */
+  --spacing-between-groups: 16px; /* between field groups (R01.1, R02.1, T4) */
+  --spacing-panel: 24px; /* inner padding of a panel (T4, PO change) */
+  --spacing-component: 32px; /* between neighbouring components on a page (T4, PO change) */
+  --spacing-section: 48px; /* between page sections (R01.6, T4, PO change) */
+  --spacing-list-row-y: 12px; /* component: vertical padding of a list row (R01.1, K2) */
+  --spacing-list-row-gap: 4px; /* component: title to metadata in a row (R01.1, R01.5) */
+  --spacing-panel-compact: 16px; /* inner padding of a small card and an alert (B4, proposal approved by Rafał 2026-10-21) */
+
+  /* Type roles. Utilities: text-page-title, text-section-title, text-body, text-label,
+     text-row-title, text-meta. Components use roles, never size classes (text-sm, text-2xl).
+     Numbers add tabular-nums (Q4); code uses font-mono (R01.2, Z3). */
+  --text-page-title: 1.5rem; /* page heading, 24/600 (P-T1, proposal approved by Rafał 2026-10-21) */
+  --text-page-title--line-height: 2rem;
+  --text-page-title--font-weight: 600;
+  --text-section-title: 1.125rem; /* section heading, 18/600 (P-T2, proposal approved by Rafał 2026-10-21) */
+  --text-section-title--line-height: 1.75rem;
+  --text-section-title--font-weight: 600;
+  --text-body: 0.875rem; /* body text, 14/400 (P-T3, proposal approved by Rafał 2026-10-21) */
+  --text-body--line-height: 1.25rem;
+  --text-body--font-weight: 400;
+  --text-label: 0.875rem; /* form label, button text, 14/500 (proposal approved by Rafał 2026-10-21) */
+  --text-label--line-height: 1.25rem;
+  --text-label--font-weight: 500;
+  --text-row-title: 1rem; /* list row title (R01.5, T3) */
+  --text-row-title--line-height: 1.5rem;
+  --text-row-title--font-weight: 600;
+  /* text-control (16 px below md, text-body from md) is a utility below, because it changes with the width. */
+  --text-meta: 0.875rem; /* row metadata, timestamps (R01.5, T3) */
+  --text-meta--line-height: 1.25rem;
+  --text-meta--font-weight: 400;
+
+  /* Layout (P-L1, P-L4, proposals approved by Rafał 2026-10-21).
+     Utilities: max-w-content, max-w-text, px-page-gutter */
+  --container-content: 64rem; /* maximum width of page content, centred at 1440 px (P-L3, P-L4) */
+  --container-text: 65ch; /* running text, about 65 characters per line (P-L4, WCAG 1.4.8) */
+  --spacing-page-gutter: 16px; /* page side margin from 320 px up (P-L1) */
+
+  /* Depth (P-S1, proposal approved by Rafał 2026-10-21). Utility: shadow-overlay.
+     Only for layers above the page: menu, popover, dialog. Cards and rows have no shadow (R01.3, Z4).
+     The value itself is a start value. */
+  --shadow-overlay: 0 8px 24px -6px oklch(0.145 0.005 70 / 0.18), 0 2px 6px -2px oklch(0.145 0.005 70 / 0.12);
+
+  /* Radius by role (Q3, 2026-10-21). Utilities: rounded-control, rounded-button, … */
+  --radius-control: 8px; /* small controls: input, select, textarea, checkbox-like (Q3) */
+  --radius-button: 10px; /* buttons (Q3) */
+  --radius-panel: 12px; /* cards and panels; never larger (Q3, Z5, A01) */
+  --radius-pill: 9999px; /* badges only (Q3, Z5) */
+
+  /* Component tokens: button heights (Q3). Utilities: h-button-lg, h-button-md, … */
+  --spacing-button-lg: 40px;
+  --spacing-button-md: 36px;
+  --spacing-button-sm: 32px;
+  --spacing-button-xs: 28px;
+
+  /* Component tokens: horizontal padding of controls (B1, proposal approved by Rafał 2026-10-21).
+     Utilities: px-control-x, px-button-x-lg, … */
+  --spacing-control-md: 36px; /* height of input and native select, same as the default button (B1) */
+  --spacing-control-sm: 32px; /* height of the small native select (B1, matches button sm) */
+  --spacing-control-x: 12px; /* input, textarea, native select */
+  --spacing-button-x-lg: 16px;
+  --spacing-button-x-md: 12px;
+  --spacing-button-x-sm: 10px;
+  --spacing-button-x-xs: 8px;
+
+  /* Component tokens: badge (B5, proposal approved by Rafał 2026-10-21). Utilities: h-badge, px-badge-x */
+  --spacing-badge: 24px; /* badge height; text-label inside (B5) */
+  --spacing-badge-x: 8px; /* badge horizontal padding (P-T4, proposal approved by Rafał 2026-10-21) */
+}
+
+/* Named grid layouts, so components need no arbitrary grid values (prompt rule 3). */
+@utility grid-cols-icon-text {
+  /* icon column, then text: alert with an icon */
+  grid-template-columns: auto minmax(0, 1fr);
+}
+@utility grid-cols-text-action {
+  /* text, then an action at the end: card header with CardAction */
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+@utility grid-cols-content-aside {
+  /* main column, then a fixed-width aside: list plus form panel on /backend/users */
+  grid-template-columns: minmax(0, 1fr) 20rem;
+}
+
+/* Type role for text typed into a control (B1, proposal approved by Rafał 2026-10-21):
+   16 px below 768 px, because iOS Safari zooms the page into a field with smaller text;
+   from 768 px the same as text-body. */
+@utility text-control {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 400;
+  @media (width >= 48rem) {
+    font-size: var(--text-body);
+    line-height: var(--text-body--line-height);
+  }
+}
+
+/* Motion durations (Q4). Used through the duration-* utilities below. */
+:root {
+  --duration-control: 120ms; /* hover, focus, press on controls (Q4) */
+  --duration-menu: 180ms; /* menus and popovers (Q4) */
+  --duration-dialog: 240ms; /* dialogs (Q4) */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-control: 0ms; /* Q4: no motion with reduced motion (WCAG 2.3.3) */
+    --duration-menu: 0ms;
+    --duration-dialog: 0ms;
+  }
+}
+
+@utility duration-control {
+  --tw-duration: var(--duration-control); /* also read by tw-animate-css enter/exit animations */
+  transition-duration: var(--duration-control);
+  animation-duration: var(--duration-control);
+}
+@utility duration-menu {
+  --tw-duration: var(--duration-menu);
+  transition-duration: var(--duration-menu);
+  animation-duration: var(--duration-menu);
+}
+@utility duration-dialog {
+  --tw-duration: var(--duration-dialog);
+  transition-duration: var(--duration-dialog);
+  animation-duration: var(--duration-dialog);
+}
+
+/* ---------- Mapping semantic tokens to Tailwind utilities ---------- */
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono); /* code, file names, paths, config only (R01.2, Z3) */
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -23,7 +169,12 @@
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
   --color-destructive: var(--destructive);
+  --color-disabled: var(--disabled);
+  --color-scrim: var(--scrim);
+  --color-disabled-foreground: var(--disabled-foreground);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -47,83 +198,141 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* ---------- Layer 1: raw values ---------- */
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Warm greys (R01.4, T1). oklch, hue 70°, start values; any change needs a new contrast check. */
+  --warm-0: oklch(0.995 0.003 70);
+  --warm-50: oklch(0.982 0.004 70);
+  --warm-100: oklch(0.962 0.006 70);
+  --warm-200: oklch(0.925 0.008 70);
+  --warm-300: oklch(0.87 0.01 70);
+  --warm-400: oklch(0.71 0.012 70);
+  --warm-450: oklch(0.64 0.013 70);
+  --warm-500: oklch(0.53 0.013 70);
+  --warm-600: oklch(0.45 0.012 70);
+  --warm-700: oklch(0.37 0.011 70);
+  --warm-800: oklch(0.27 0.009 70);
+  --warm-900: oklch(0.205 0.007 70);
+  --warm-950: oklch(0.145 0.005 70);
+
+  /* Status hues. Never purple or indigo (A01). */
+  --red-600: oklch(0.52 0.2 27.3); /* T5 contrast fix */
+  --red-300: oklch(0.704 0.191 22.216);
+  --green-600: oklch(0.5 0.12 150); /* Q2 start value */
+  --green-300: oklch(0.75 0.14 150);
+  --amber-600: oklch(0.52 0.11 65); /* Q2 start value */
+  --amber-300: oklch(0.78 0.13 75);
+
+  /* Self-hosted fonts (Q4: Geist and Geist Mono are start values; the typeface choice is a gap). */
+  --font-geist-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-geist-mono: "Geist Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* ---------- Layer 2: semantic tokens, light theme ---------- */
+:root {
+  color-scheme: light; /* native controls (date picker, select list, scrollbars) follow the theme (rule 9) */
+  --background: var(--warm-50); /* page background (R01.4) */
+  --foreground: var(--warm-950); /* titles, body, messages (R01.4) */
+  --card: var(--warm-0); /* panel surface (R01.4) */
+  --card-foreground: var(--warm-950); /* R01.4 */
+  --popover: var(--warm-0); /* menu and popover surface (R01.4) */
+  --popover-foreground: var(--warm-950); /* R01.4 */
+  --primary: var(--warm-900); /* the one primary action per screen (R01.6, Z1); no accent (gap) */
+  --primary-foreground: var(--warm-50); /* R01.6 */
+  --secondary: var(--warm-100); /* secondary actions (R01.4) */
+  --secondary-foreground: var(--warm-900); /* R01.4 */
+  --muted: var(--warm-100); /* code blocks, disabled fields (R01.2, R01.4) */
+  --muted-foreground: var(--warm-500); /* row metadata, timestamps (R01.5) */
+  --accent: var(--warm-100); /* hover surface, not a brand colour (R01.4) */
+  --accent-foreground: var(--warm-900); /* R01.4 */
+  --destructive: var(--red-600); /* errors and irreversible actions only (T5, Q2) */
+  --success: var(--green-600); /* positive status, always with text or icon (Q2, WCAG 1.4.1) */
+  --warning: var(--amber-600); /* needs attention, always with text or icon (Q2, WCAG 1.4.1) */
+  --border: var(--warm-200); /* row separators, panel edges; decorative, below 3:1 by design (R01.3, T7) */
+  --input: var(--warm-450); /* field outline, 3:1 against surfaces (T5, WCAG 1.4.11) */
+  --ring: var(--warm-500); /* focus outline (T5, WCAG 2.4.7) */
+  --disabled: var(--warm-100); /* surface of a disabled action or field; no opacity (B2, proposal approved by Rafał 2026-10-21) */
+  --disabled-foreground: var(--warm-500); /* text of a disabled action or field: 4.73:1 on --disabled (B2) */
+  --scrim: color-mix(in oklch, var(--warm-950) 40%, transparent); /* page dimmer behind a dialog; not a surface (Z5). Value: P-T4, proposal approved by Rafał 2026-10-21 */
+  --chart-1: oklch(0.87 0 0); /* unchanged; chart colours are a gap */
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem; /* existing base for rounded-sm…4xl; new code uses the role radii (Q3) */
+  --sidebar: var(--background); /* aliases (T8, R02.9, A01) */
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+/* ---------- Layer 2: semantic tokens, dark theme ---------- */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  color-scheme: dark; /* rule 9 */
+  --background: var(--warm-950); /* R01.4 */
+  --foreground: var(--warm-50); /* R01.4 */
+  --card: var(--warm-900); /* R01.4 */
+  --card-foreground: var(--warm-50); /* R01.4 */
+  --popover: var(--warm-900); /* R01.4 */
+  --popover-foreground: var(--warm-50); /* R01.4 */
+  --primary: var(--warm-200); /* R01.6, Z1 */
+  --primary-foreground: var(--warm-900); /* R01.6 */
+  --secondary: var(--warm-800); /* R01.4 */
+  --secondary-foreground: var(--warm-50); /* R01.4 */
+  --muted: var(--warm-800); /* R01.2, R01.4 */
+  --muted-foreground: var(--warm-400); /* R01.5 */
+  --accent: var(--warm-800); /* R01.4 */
+  --accent-foreground: var(--warm-50); /* R01.4 */
+  --destructive: var(--red-300); /* T5, Q2 */
+  --success: var(--green-300); /* Q2 */
+  --warning: var(--amber-300); /* Q2 */
+  --border: var(--warm-700); /* R01.3, T7 exception */
+  --input: var(--warm-500); /* T5 */
+  --ring: var(--warm-450); /* T5 */
+  --disabled: var(--warm-800); /* B2 */
+  --disabled-foreground: var(--warm-400); /* B2: 5.85:1 on --disabled */
+  --scrim: color-mix(in oklch, var(--warm-950) 70%, transparent); /* P-T4, proposal approved by Rafał */
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --sidebar: var(--background); /* T8: no purple (R02.9, A01) */
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: var(--accent-foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+}
+
+/* Self-hosted fonts: Storybook puts this class on <html>. The app keeps next/font, which sets --font-sans itself. */
+.devmentor-fonts {
+  --font-sans: var(--font-geist-sans);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring; /* B3: focus outline in full ring colour */
   }
   body {
     @apply bg-background text-foreground;
   }
   html {
     @apply font-sans;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    /* Q4: 0 ms with reduced motion, also for tw-animate-css enter/exit animations (WCAG 2.3.3). */
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0ms !important;
+      transition-duration: 0ms !important;
+    }
   }
 }

@@ -63,8 +63,10 @@ export function DataTable<T>({
   const visibleRows = rows.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="overflow-hidden rounded-lg border bg-card">
+    <div className="flex flex-col gap-in-group">
+      {/* overflow-hidden keeps row hover inside the rounded panel but would clip the table's own
+          focus outline, so the panel draws it while the scroll container has keyboard focus. */}
+      <div className="overflow-hidden rounded-panel border border-border bg-card has-[[data-slot=table-container]:focus-visible]:outline-2 has-[[data-slot=table-container]:focus-visible]:outline-offset-2 has-[[data-slot=table-container]:focus-visible]:outline-ring has-[[data-slot=table-container]:focus-visible]:outline-solid">
         <Table>
           <TableHeader>
             <TableRow>
@@ -95,7 +97,7 @@ export function DataTable<T>({
         </Table>
       </div>
       {pageCount > 1 && (
-        <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center justify-end gap-in-group text-meta text-muted-foreground tabular-nums">
           <span>
             Page {currentPage + 1} of {pageCount}
           </span>

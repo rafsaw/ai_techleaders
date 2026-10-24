@@ -1,0 +1,112 @@
+import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./invitation-panel.stories";
+
+<Meta of={Stories} />
+
+# Invitation panel
+
+`import { InvitationPanel } from "@devmentor/ui/components/auth/InvitationPanel"`
+
+E01 product component for `/invite/[token]` (Flow 3), public kit only.
+
+## 1. What it is for
+
+It tells an invited engineer whether the invitation can be accepted from the account they are
+in, and lets them accept it to get the mentor role.
+
+## 2. When to use
+
+- `/invite/[token]`, with the state the server computed from the token and the session.
+
+## 3. When not to use
+
+| Situation | Use instead |
+|---|---|
+| Confirming an email address | `ConfirmEmailPanel` |
+| Mentor setup after accepting | `/mentor` (E02) |
+
+## 4. Anatomy
+
+| Part | States | Notes |
+|---|---|---|
+| Sentence | signed-out, valid | what to do / what will happen |
+| Notice | invalid, mismatch, already-mentor | why |
+| **Accept invitation** | valid | the only write that grants a role |
+| **Sign in**, **Create an account** | signed-out | `returnTo=/invite/<token>` kept (P-A7, proposal approved by Rafał: Sign in as the main one) |
+| **Sign out** | mismatch | switch account; on success the page reloads the same invitation path |
+
+## 5. Variants
+
+The five page states of E01 Flow 3: `invalid`, `signed-out`, `mismatch`, `already-mentor`, `valid`.
+
+## 6. States (data states)
+
+| State | Story |
+|---|---|
+| Valid | *Playground* |
+| Signed out | *Signed out* |
+| Mismatch | *Mismatch* |
+| Already a mentor | *Already mentor* |
+| Invalid | *Invalid* |
+| Loading | *Pending* |
+| Error: revoked meanwhile (404) | *Accept failed* |
+| Long name and address, 320 px | *Long content, narrow* |
+| Empty, many | not applicable |
+
+<Canvas of={Stories.Mismatch} />
+
+## 7. Behaviour and accessibility
+
+- A mismatching account never sees the invited address or an Accept button (E01 Flow 3).
+- Accept and Sign out show their pending label and the server's message on failure; they do not navigate on failure (E01 F5).
+- Errors `role="alert"`; the already-mentor note `role="status"`.
+
+## 8. Content
+
+Copy from E01 Flow 3. The second mismatch sentence (*Sign out, then sign in or create an account
+with the invited address.*) puts the spec's "offer sign-out and email registration/sign-in" into
+words (P-A3, proposal approved by Rafał).
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | buttons wrap; long names and addresses break anywhere |
+| 768 px, 1440 px | within `max-w-text` |
+
+<Canvas of={Stories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Description |
+|---|---|---|
+| `state` | union of the five states; `valid` carries `displayName`, `email`, `accept`, `onAccepted`; `mismatch` carries `currentEmail`, `signOut`, `onSignedOut`; `signed-out` carries `signInHref`, `signUpHref` | from the server |
+
+<Controls of={Stories.Playground} />
+
+## 11. Code
+
+```tsx
+<InvitationPanel
+  state={{
+    status: "valid",
+    displayName: account.displayName,
+    email: account.email,
+    accept: () => apiCall("/api/auth/invitations/accept", { method: "POST", body: { token } }),
+    onAccepted: () => window.location.assign("/mentor"),
+  }}
+/>
+```
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| Name the account that will get the role | a bare **Accept** | the person must see which account changes |
+| Hide the invited address from another account | "This was sent to ada@example.com" | E01 Flow 3: do not disclose it |
+
+## 13. Related
+
+- Built from: **Notice**, **Submit button**, **Link button**.
+- Used in: Invitation screen, Sign-in and return pattern.

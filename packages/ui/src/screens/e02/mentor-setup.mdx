@@ -1,0 +1,39 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./mentor-setup.stories";
+
+<Meta of={Stories} />
+
+# Mentor setup
+
+`/mentor`, signed-in kit. Source: E02 Flow 1, Flow 3. Every state below is a full-screen story with
+the real site header. The page frame (P-SCR1) and the page title (P-SCR2) are proposals approved by Rafał; the app
+has no layouts yet.
+
+## What the screen is for
+
+Showing a mentor what is done, what is next and whether they can be booked.
+
+## Built from
+
+**Site header**, **Alert** (Stripe banners), **Bookable status line**, **Setup checklist**, **Payout status**. Patterns: **Setup checklist**, **Provider status**.
+
+## State map
+
+| Screen state | Story | Source |
+|---|---|---|
+| New mentor | *New mentor* | E02 Flow 1 |
+| Profile saved, next: Stripe | *Profile saved* | E02 Flow 1, Q-SC1 |
+| Starting Stripe failed (502) | *Start failed* | E02 Flow 3 |
+| Back from Stripe, still checking | *Back from Stripe checking* | E02 Flow 3 step 6, Q-SC1 |
+| Back from Stripe, not finished | *Back from Stripe incomplete* | E02 Flow 3 step 6 |
+| Stripe unreachable when checking | *Check failed* | E02 Flow 3 step 6 |
+| Blocked | *Blocked* | E02 Flow 3 step 6, Q-SC1 |
+| Bookable, no open slots | *Bookable no slots* | E02 Flow 1 |
+| Done: bookable | *Bookable* | E02 Flow 1 |
+| Phase 1 | *Phase one* | E02 Phase 1 |
+| 320 px | *Narrow* | P-L1 |
+
+Loading: the page renders on the server from `MentorSetupDto`.
+
+<Canvas of={Stories.BackFromStripeChecking} />

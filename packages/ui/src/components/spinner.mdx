@@ -1,0 +1,122 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { Button } from "@devmentor/ui/components/button";
+import { Spinner } from "@devmentor/ui/components/spinner";
+import { DoDont } from "../../.storybook/blocks/stories";
+import * as SpinnerStories from "./spinner.stories";
+
+<Meta of={SpinnerStories} />
+
+# Spinner
+
+`import { Spinner } from "@devmentor/ui/components/spinner"`
+
+shadcn `base-nova` spinner: the lucide `Loader2` icon turning, in the colour of the text around
+it.
+
+## 1. What it is for
+
+A spinner tells the user that the action they just started is running, right where they
+started it.
+
+## 2. When to use
+
+- In a submit button while the request runs: *Publishing slot…* (`/mentor/slots`), *Saving…* (`CrudForm`), *Starting Stripe setup…* (`/mentor`, E02 Flow 3).
+- In the confirm button of an alert dialog: *Removing slot…* (E02 Flow 4).
+- Inside `LoadingMessage`, next to its label.
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| The first load of a list of known shape | `Skeleton` | P-LD1, proposal approved by Rafał |
+| A whole panel or `/backend` list loading | `LoadingMessage` (spinner + label) | AGENTS.md |
+| Alone, with no text next to it | add a label: a spinner alone does not say what is happening | P-C4 |
+| A navigation link (*Check status* goes to a route) | nothing: the browser shows the page load | E02 Flow 3 |
+
+## 4. Anatomy
+
+One part: a 16 px icon (`size-4`), `currentColor`. Next to text it is `aria-hidden`.
+
+## 5. Variants
+
+None. Size follows the icon sizes (16 px default; 14 px `size-3.5` in a small button).
+
+<Canvas of={SpinnerStories.Sizes} />
+
+## 6. States
+
+| State | What the user sees | Source |
+|---|---|---|
+| Idle | no spinner; the button has its normal label | — |
+| Loading | button disabled, spinner first, label in *-ing* form | P-C4, B2 |
+| Loading, reduced motion | the icon stands still; the *-ing* label still says it is working | Q4 |
+| Done | the spinner goes; success shows only after the server answers | Q4, prompt Form pattern |
+
+The button is disabled while it spins to prevent a second submit (prompt, Form pattern); the
+*-ing* label is the reason, so no extra text is needed.
+
+<Canvas of={SpinnerStories.States} />
+
+## 7. Behaviour and accessibility
+
+- Alone: `role="status"` with the name *Loading* (story *Playground* tests it).
+- Next to a label: pass `aria-hidden`; the button's name (*Publishing slot…*) carries the meaning, read once (story *Long content, narrow* tests that no second status is read).
+- Not focusable; the button around it keeps its focus.
+- Rotation stops with reduced motion (Q4, WCAG 2.3.3).
+
+## 8. Content
+
+No text of its own. The label next to it: the verb in *-ing* form plus the object, ending with
+an ellipsis (*Publishing slot…*, P-C4).
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | the button may take `w-full` (P-C5); the spinner sits before the label |
+| 768 px, 1440 px | as in the button |
+
+<Canvas of={SpinnerStories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `aria-hidden` | `boolean` | — | pass it when a text label is next to the spinner |
+| `className` | `string` | — | size (`size-3.5`) |
+| …rest | `<svg>` props | — | `role="status"`, `aria-label="Loading"` by default |
+
+<Controls of={SpinnerStories.Playground} />
+
+## 11. Code
+
+Minimal:
+
+```tsx
+<Spinner />
+```
+
+From the product (`/mentor/slots`, slot form):
+
+```tsx
+<Button type="submit" disabled={isSubmitting}>
+  {isSubmitting ? <><Spinner aria-hidden />Publishing slot…</> : "Publish slot"}
+</Button>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<Button disabled><Spinner aria-hidden />Publishing slot…</Button>}
+    doText="Spinner and an -ing label in the button that started the work."
+    dontExample={<Button disabled><Spinner /></Button>}
+    dontText="A spinner alone replaces the label: the user no longer sees what is running (P-C4)."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: **Skeleton** (first load of a known shape), **Loading message** (a panel or `/backend` list).
+- Used in: Button (loading state), Alert dialog (*Removing slot…*), Loading message, Form pattern.

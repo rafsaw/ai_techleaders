@@ -1,0 +1,80 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./sign-in-and-return.stories";
+
+<Meta of={Stories} />
+
+# Sign-in and return
+
+How DevMentor sends someone to sign in and brings them back to where they were. Today: an
+invitation link `/invite/[token]` opened while signed out (E01 Flow 3); later the slot a mentee
+picked (E04).
+
+## 1. Problem it solves
+
+Signing in in the middle of a task must not lose the task.
+
+## 2. Where in the product
+
+| From | Through | Back to |
+|---|---|---|
+| `/invite/[token]` | `/sign-in`, `/sign-up`, GitHub, the confirmation email | `/invite/[token]` |
+| a slot (E04) | the same | the slot |
+
+## 3. Built from
+
+**Invitation panel**, **Sign-in options**, **Schema form**, **Link button**.
+
+## 4. Rules
+
+| Rule | Source |
+|---|---|
+| Every way in carries `returnTo`: the sign-in and sign-up links, GitHub, the email form and the confirmation link. | platform P6, E01 Flow 3 |
+| `returnTo` is a same-origin page path only; anything else falls back to `/`. The server validates it, never the page. | platform P6 |
+| An error keeps the person on the sign-in page with `returnTo` still in place. | platform P6, E01 UI/UX |
+| The page returned to checks everything again; returning never grants or reserves anything. | platform P6 ("a returned-to page must re-check everything") |
+
+## 5. States
+
+| State | Story |
+|---|---|
+| Signed out on the invitation | *Start signed out* |
+| Sign-in with `returnTo` | *Playground* |
+| Back, invitation still valid | *Returned* |
+| Wrong password | *Wrong password* |
+| Back, invitation no longer valid | *Returned to invalid* |
+| Unsafe `returnTo` | server-side only (falls back to `/`); nothing to show |
+
+<Canvas of={Stories.Returned} />
+
+## 6. Behaviour and accessibility
+
+- After sign-in the page uses a full navigation to `redirectTo` (platform F5), so the next page
+  renders with the new session.
+
+## 7. Code
+
+```tsx
+<SignInOptions
+  githubHref={`/api/auth/github?returnTo=${encodeURIComponent(returnTo)}`}
+  email={{
+    schema: signInSchema,
+    signIn: (values) => apiCall("/api/auth/sign-in", { method: "POST", body: { ...values, returnTo } }),
+    resend,
+    onSignedIn: (to) => window.location.assign(to),
+    signUpHref: `/sign-up?returnTo=${encodeURIComponent(returnTo)}`,
+  }}
+/>
+```
+
+## 8. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| Put `returnTo` on every way in | only on the form | GitHub and sign-up would lose the task (P6) |
+| Re-check the invitation on return | trust the earlier page state | it may have expired meanwhile (E01 Flow 3) |
+
+## 9. Related
+
+- Patterns: **Form**.
+- Components: **Sign-in options**, **Invitation panel**.

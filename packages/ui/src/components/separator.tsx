@@ -1,8 +1,10 @@
 "use client"
 
 import { Separator as SeparatorPrimitive } from "@base-ui/react/separator"
-import { cn } from "cn"
+import { cn } from "@devmentor/ui/lib/utils"
 
+// A 1 px line in --border: decorative, below 3:1 by design (T7); rows are told apart by their
+// text (R01.3, Z4). Docs: separator.mdx.
 function Separator({
   className,
   orientation = "horizontal",

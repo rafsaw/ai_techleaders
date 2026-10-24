@@ -1,0 +1,35 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./check-email.stories";
+
+<Meta of={Stories} />
+
+# Check email
+
+`/sign-up/check-email`, public kit. Source: E01 Flow 2, UI/UX `/sign-up/check-email`. Every state below is a full-screen story with
+the real site header. The page frame (P-SCR1) and the page title (P-SCR2) are proposals approved by Rafał; the app
+has no layouts yet.
+
+## What the screen is for
+
+Telling the person where the confirmation link went and how long it works.
+
+## Built from
+
+**Site header**, **Notice**, **Link button**.
+
+## State map
+
+| Screen state | Story | Source |
+|---|---|---|
+| Sent: Check your inbox at …, 24-hour expiry | *Sent* | E01 UI/UX |
+| Not sent (SMTP failed or the per-address limit is used up) | *Not sent* | E01 Flow 2, edge cases |
+| Long address, 320 px | *Narrow* | P-L1 |
+
+Loading, empty, many: not applicable (one message).
+
+<Canvas of={Stories.NotSent} />
+
+## Notes
+
+The not-sent body *Sign in with your email and password to resend the confirmation.* and **Sign in** as the main action there are P-SCR4 (proposal approved by Rafał); the spec says only that resend goes through sign-in.

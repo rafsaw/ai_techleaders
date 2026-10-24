@@ -2,8 +2,14 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "paths": {
-      "@devmentor/ui/*": ["./src/*"]
+      "@devmentor/ui/*": [
+        "./src/*"
+      ]
     }
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    ".storybook",
+    "vitest.storybook.config.ts"
+  ]
 }

@@ -1,0 +1,89 @@
+import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./not-bookable-notice.stories";
+
+<Meta of={Stories} />
+
+# Not bookable notice
+
+`import { NotBookableNotice } from "@devmentor/ui/components/mentors/NotBookableNotice"`
+
+E02 product component for the public profile `/mentors/[id]` (Flow 2 step 4, MD4). Public kit only (F3).
+
+## 1. What it is for
+
+A saved profile is public at its direct link before the mentor can be booked (MD4). This notice
+tells a visitor that, so a page with no booking does not look broken.
+
+## 2. When to use
+
+- On `/mentors/[id]` while the mentor is not bookable (`bookable: false` in `PublicMentorProfileDto`).
+
+## 3. When not to use
+
+| Situation | Use instead |
+|---|---|
+| The mentor's own setup state on `/mentor` | `BookableStatusLine` |
+| A bookable mentor with no open slots | E03 adds slots to this page; not designed yet |
+
+## 4. Anatomy
+
+| Part | Required | Notes | Source |
+|---|---|---|---|
+| Notice, `info` | yes | title *Not taking bookings yet* | E02 Flow 2, MD4; variant P-PP7, proposal approved by Rafał (no reference, What is missing) |
+| Body or action | no | none: the visitor cannot do anything about it | P-PP7, proposal approved by Rafał |
+
+## 5. Variants
+
+None. It always uses the `info` Notice.
+
+## 6. States (data states)
+
+| State | Story |
+|---|---|
+| Default | *Playground* |
+| 320 px | *Narrow* |
+| Loading, empty, error, partial, many, long | not applicable: fixed text, shown or not by the page |
+
+## 7. Behaviour and accessibility
+
+- `role="status"` from Notice; it is not an error, so never `role="alert"`.
+- No booking control on the page while it shows (MD4, E02 edge cases).
+
+## 8. Content
+
+Exactly *Not taking bookings yet* (E02 Flow 2). It does not say why: setup details are private to
+the mentor.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | full width |
+| 768 px, 1440 px | the page sets the width |
+
+<Canvas of={Stories.Narrow} />
+
+## 10. API
+
+No props of its own; `className` and other `<div>` props pass through. `NOT_BOOKABLE` exports the text.
+
+<Controls of={Stories.Playground} />
+
+## 11. Code
+
+```tsx
+{profile.bookable ? null : <NotBookableNotice />}
+```
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| Show the profile with the notice | hide the profile or return 404 | MD4: the direct link works before booking |
+| Leave out the booking control | show a disabled **Book** button | MD4: "offers no booking" |
+
+## 13. Related
+
+- Built from: **Notice**.
+- Used in: Public profile screen (batch 5).

@@ -1,0 +1,109 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./form.stories";
+
+<Meta of={Stories} />
+
+# Form
+
+How every form in DevMentor validates, sends and reports back, in both kits: the public
+`SchemaForm` (`/sign-up`, `/sign-in`, `/confirm-email`) and the signed-in `CrudForm`
+(`/account`, `/mentor/profile`). Both run on the same core, `useSchemaForm` (platform F2).
+
+Pattern pages have nine sections: problem, where, built from, rules, states, behaviour, code,
+do and don't, related (P-PT1, proposal approved by Rafał).
+
+## 1. Problem it solves
+
+People lose typed data, send twice, or think something was saved when it was not.
+
+## 2. Where in the product
+
+| Screen | Kit | Component |
+|---|---|---|
+| `/sign-up`, `/sign-in`, `/confirm-email` | public | `SchemaForm` |
+| `/account` (display name) | signed-in | `CrudForm` |
+| `/mentor/profile`, `/mentor/slots` | signed-in | `CrudForm`, `useSchemaForm` |
+
+`CrudForm` field kinds: `text`, `email`, `password`, `number`, `url`, `tel`, plus `textarea` and
+`select` (with `options` and an instruction option from `placeholder`) for `/mentor/profile`
+(E02 Flow 2, Phase 1; proposal approved by Rafał under rule 12).
+
+## 3. Built from
+
+**Schema form**, **Text field**, **Password field**, **Submit button**, **Notice** (public);
+`CrudForm` with **Field**, **Input**, **Button**, **Error state** (signed-in); `apiCall` for every request.
+
+## 4. Rules
+
+| Rule | Source |
+|---|---|
+| The label is always visible above the field. A placeholder is an example, never the field's name. | prompt (Form pattern), WCAG 3.3.2 |
+| A field is checked when the person leaves it, but only once it has a value or already shows an error. Both kits: `SchemaForm` and `CrudForm`. | prompt, F2 (`useSchemaForm`); `CrudForm` since 2026-10-21 (Q-CF1, rule 12, approved by Rafał) |
+| On submit every error shows at once and focus moves to the first invalid field. | prompt, F2 |
+| A field that shows an error is re-checked while the person types, so the error goes away as soon as the value is fixed. Nothing then moves when they leave the field by clicking the button: an error removed on blur would shift the button between mousedown and mouseup and lose the click. | F2 (`useSchemaForm`), found by the `/backend/users` integration test on 2026-10-21 |
+| Typed values stay after any error, including server and network errors. | prompt, F2 |
+| While sending, the button is disabled and says what is happening (*Creating account…*, *Saving…*); a second click or Enter sends nothing. | prompt, P-C4 |
+| Success shows only after the server confirms it. | prompt, Q4 |
+| The server's field errors land on their fields; other errors show once above the button (public) or above the fields (signed-in). | F2, E01 UI/UX |
+| Client and server use the same Zod schema, so the messages are the same. | AGENTS.md (CrudForm), F2 |
+| A form that keeps the person on the page says it saved, in a status: *Your display name is saved.* | P-FM1, proposal approved by Rafał |
+
+## 5. States
+
+| State | Story |
+|---|---|
+| Success after the server answers | *Success*, *Signed in success* |
+| Pending, double submit blocked | *Pending* |
+| Field error from the server | *Server field error*, *Signed in field error* |
+| Server error (500) | *Server error*, *Signed in server error* |
+| No network | *Network error*, *Signed in network error* |
+| Validation on leaving a field | *Validate on blur*, *Signed in validate on blur* |
+| Validation on submit, focus on the first error | *Focus first error* |
+| Long values and messages, 320 px | *Long content, narrow* |
+
+API responses are simulated with Mock Service Worker (`parameters.msw`) against the real
+`apiCall`, so the envelope, the CSRF header and the network failure path are the product's own.
+
+<Canvas of={Stories.ServerFieldError} />
+
+<Canvas of={Stories.SignedInServerError} />
+
+## 6. Behaviour and accessibility
+
+- In both kits each error is tied to its field with `aria-describedby` and `aria-invalid` (WCAG 1.3.1, 3.3.1), so a screen reader reads it with the field. `CrudForm` got this, and validation on leaving a field, on 2026-10-21 (Q-CF1).
+- The form-level error is `role="alert"`; a save confirmation is `role="status"`.
+- Cmd/Ctrl+Enter submits and Escape cancels in `CrudForm` (AGENTS.md).
+- Known gap: `CrudForm` has no `resetOnSuccess` yet, so after a save it returns to its initial
+  values. E01 Phase 1 adds `resetOnSuccess={false}` for `/account`.
+
+## 7. Code
+
+```tsx
+<SchemaForm
+  schema={signUpSchema}
+  fields={[
+    { name: "displayName", label: "Display name", autoComplete: "name" },
+    { name: "email", label: "Email", type: "email", autoComplete: "email" },
+    { name: "password", label: "Password", type: "password", autoComplete: "new-password" },
+  ]}
+  submitLabel="Create account"
+  pendingLabel="Creating account…"
+  onSubmit={(body) => apiCall("/api/auth/sign-up", { method: "POST", body })}
+  onSuccess={({ email }) => window.location.assign(`/sign-up/check-email?email=${encodeURIComponent(email)}`)}
+/>
+```
+
+## 8. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| Keep every typed value after an error | clear the form | the person has to type it again (prompt) |
+| Show success after the server answers | show success on click | the save may still fail (Q4) |
+| Disable the button with an *-ing* label | let a second click send again | double submit (prompt) |
+| Use the placeholder for an example | use it as the label | it disappears when typing (WCAG 3.3.2) |
+
+## 9. Related
+
+- Components: **Schema form**, **Text field**, **Password field**, **Submit button**, **Notice**, **Error state**.
+- Patterns: **Sign-in and return** (a form that navigates on success).

@@ -1,0 +1,30 @@
+import { Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { DurationDemo, TokenTable } from "../../../.storybook/blocks/tokens";
+
+<Meta title="Foundations/Motion" />
+
+# Motion
+
+Motion confirms what the user did; it never decorates (antycharakter: efekciarski, A01).
+
+<Unstyled>
+  <TokenTable
+    rows={[
+      { token: "--duration-control", utility: "duration-control", use: "hover, focus, press on controls", source: "Q4", sample: <DurationDemo token="--duration-control" label="Hover me" /> },
+      { token: "--duration-menu", utility: "duration-menu", use: "menus and popovers opening and closing", source: "Q4", sample: <DurationDemo token="--duration-menu" label="Hover me" /> },
+      { token: "--duration-dialog", utility: "duration-dialog", use: "dialogs opening and closing: fade only, no zoom (alert dialog and its scrim)", source: "Q4", sample: <DurationDemo token="--duration-dialog" label="Hover me" /> },
+    ]}
+  />
+</Unstyled>
+
+| Rule | Source |
+|---|---|
+| With `prefers-reduced-motion: reduce` every duration is 0 ms, including enter and exit animations. | Q4, WCAG 2.3.3 |
+| No success animation before the server has confirmed the action. Pending state shows a spinner, then the result. | Q4 |
+| No page-enter animations, no parallax, no animated gradients or glow. | A01 |
+| Easing: Tailwind's default `ease` curves (existing state; no decision). | existing |
+| Loops: the spinner turns (`animate-spin`, 1 s) and the skeleton pulses (`animate-pulse`, 2 s). Both are Tailwind's own loops, outside the three durations, and both stand still with reduced motion. | P-LD2, proposal approved by Rafał; Q4 |
+
+To check reduced motion, turn on "Reduce motion" in your operating system or emulate it in the
+browser DevTools (Rendering → Emulate CSS media feature `prefers-reduced-motion`).

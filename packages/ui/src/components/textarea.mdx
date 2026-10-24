@@ -1,0 +1,139 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { Field, FieldDescription, FieldLabel } from "@devmentor/ui/components/field";
+import { Input } from "@devmentor/ui/components/input";
+import { Textarea } from "@devmentor/ui/components/textarea";
+import { DoDont } from "../../.storybook/blocks/stories";
+import * as TextareaStories from "./textarea.stories";
+
+<Meta of={TextareaStories} />
+
+# Textarea
+
+`import { Textarea } from "@devmentor/ui/components/textarea"`
+
+Added with `npm run ui:add -- textarea` (shadcn `base-nova`, native `<textarea>`), restyled with
+DevMentor tokens. Always inside a `Field` with a `FieldLabel`.
+
+## 1. What it is for
+
+A textarea lets the user write several lines, such as a description of their mentoring or a
+list of links, and see all of it while editing.
+
+## 2. When to use
+
+- **Description** on `/mentor/profile`: plain text, 1–2,000 characters, line breaks kept (E02 Flow 2).
+- **Links to public work** on `/mentor/profile`: one `https://` link per line, 1–5 lines (E02 Flow 2). Use `font-mono`, because these are URLs (R01.2, Z3).
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| One short value | `Input` | E02 Flow 2 |
+| Formatted text (Markdown, HTML) | nothing yet: descriptions are plain text by decision | E02 Flow 2 |
+| A message in a session | the session composer (E05, What is missing) | R02.1, C3 |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| Label | yes | visible above |
+| Textarea | yes | `rounded-control`, at least 64 px, grows with content (`field-sizing-content`) |
+| Description | recommended | the rule: length, one link per line |
+| Error | when invalid | names the line when the rule is per line |
+
+## 5. Variants
+
+No visual variants. Add `font-mono` only for code, URLs and paths (R01.2, Z3).
+
+<Canvas of={TextareaStories.ProfileFields} />
+
+## 6. States
+
+<Canvas of={TextareaStories.States} />
+
+| State | Look | Source |
+|---|---|---|
+| Default / filled | border `input` | T5 |
+| Hover | no change | B2 |
+| Focus | 2 px outline in `ring`, 2 px offset | B3, WCAG 2.4.7 |
+| Disabled | background `disabled`, text `disabled-foreground`; reason in the description | B2 |
+| Error | border `destructive`, message below naming the line | B3, E02 Flow 2 |
+| Loading, selected, pressed | not applicable | — |
+
+## 7. Behaviour and accessibility
+
+- **Keyboard:** <kbd>Enter</kbd> adds a line and never submits (story *Playground* tests it). <kbd>Tab</kbd> leaves the field.
+- **Label and messages:** same as Input: `htmlFor`/`id`, `aria-invalid`, `aria-describedby` for the description and error (WCAG 1.3.1, 3.3.1). Story *Invalid* tests the announcement.
+- **Growth:** the field grows with its content, so nothing is hidden behind a scrollbar on long text (WCAG 1.4.10).
+- **Target size:** at least 64 px high, full width.
+
+## 8. Content
+
+- Label: a noun phrase (*Description*, *Links to public work*).
+- Description: the rule in one line (*One https:// link per line, up to 5.*).
+- Errors per line say which line and what to do: *Line 2: use a full https:// link* (E02 Flow 2).
+- Long text wraps; there is no character counter in 1.0 (not in the spec).
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | full width, text 16 px (`text-control`, B1), long lines wrap |
+| 768 px | one column (P-L2) |
+| 1440 px | form width (`max-w-text`) |
+
+<Canvas of={TextareaStories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `id` | `string` | — | required for the label |
+| `aria-invalid` | `boolean` | `false` | error state |
+| `aria-describedby` | `string` | — | ids of the description and the error |
+| `disabled` | `boolean` | `false` | only while saving |
+| `rows` | `number` | — | starting height; the field grows anyway |
+| `className` | `string` | — | layout only, or `font-mono` for URLs |
+| …rest | native `<textarea>` props | — | `value`, `onChange`, `maxLength`, `required` |
+
+<Controls of={TextareaStories.Playground} />
+
+## 11. Code
+
+Minimal:
+
+```tsx
+<Field>
+  <FieldLabel htmlFor="description">Description</FieldLabel>
+  <Textarea id="description" />
+</Field>
+```
+
+From the product (`/mentor/profile`):
+
+```tsx
+<Field data-invalid={!!error}>
+  <FieldLabel htmlFor="links">Links to public work</FieldLabel>
+  <Textarea id="links" className="font-mono" aria-invalid={!!error}
+    aria-describedby={error ? "links-hint links-error" : "links-hint"} />
+  <FieldDescription id="links-hint">One https:// link per line, up to 5.</FieldDescription>
+  <FieldError id="links-error">{error}</FieldError>
+</Field>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<Field><FieldLabel htmlFor="dd-1">Links to public work</FieldLabel><Textarea id="dd-1" className="font-mono" defaultValue={"https://github.com/ada-nowak/typed-routes"} /><FieldDescription>One https:// link per line, up to 5.</FieldDescription></Field>}
+    doText="A list of URLs goes in one textarea with the rule spelled out."
+    dontExample={<Field><FieldLabel htmlFor="dd-2">Links to public work</FieldLabel><Input id="dd-2" defaultValue="https://github.com/ada-nowak/typed-routes, https://ada-nowak.dev" /></Field>}
+    dontText="A single-line input hides most of a list and invites a separator the server does not accept."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: **Input** (one value).
+- Used in patterns: Form (`/mentor/profile`).

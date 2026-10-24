@@ -15,6 +15,8 @@ export interface EmptyStateProps {
   action?: ReactNode;
 }
 
+// The shared empty state: why the list is empty and, when there is one, the next step.
+// Docs: empty.mdx.
 export function EmptyState({ title, description, action }: EmptyStateProps) {
   return (
     <Empty>

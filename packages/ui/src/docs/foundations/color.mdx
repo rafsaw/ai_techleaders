@@ -1,0 +1,112 @@
+import { Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { ColorRoleTable, ContrastTable } from "../../../.storybook/blocks/tokens";
+
+<Meta title="Foundations/Color" />
+
+# Color
+
+DevMentor is warm grey with no accent colour. Hierarchy comes from type size and weight, not
+from colour (R01.5, Z2). Colour is never the only carrier of meaning: every status also has
+text or an icon (Q2, WCAG 1.4.1).
+
+## Rules
+
+| Rule | Source |
+|---|---|
+| Use only the semantic classes below (`bg-card`, `text-muted-foreground`, `border-input` …). Raw `--warm-*`, `--red-*`, `--green-*`, `--amber-*` live only in `globals.css`. | Z6, prompt rule 3 |
+| Neutrals are warm greys, hue 70°. No cool greys. | R01.4, T1 |
+| There is no accent colour yet. `primary` is near-black (light) or near-white (dark). | gap in R01–R02; T1 |
+| Purple and indigo are never an action colour, in gradients or solid. | A01, PO 2026-10-21 |
+| One `primary` button per screen. | R01.6, Z1 |
+| `destructive` only for errors and irreversible actions. Not for warnings or emphasis. | T5, Q2 |
+| `success` and `warning` are status roles. A status always shows text or an icon too. | Q2, WCAG 1.4.1 |
+| `accent` is the hover surface, not a brand colour. | tokeny.md |
+| `border` is a decorative separator (below 3 : 1 by design). Field outlines use `input`. | R01.3, T5, T7, WCAG 1.4.11 |
+
+## Roles
+
+Swatches are painted with the token itself; the values are read from the loaded CSS.
+
+<Unstyled>
+  <ColorRoleTable
+    roles={[
+      { token: "--background", purpose: "page background", avoid: "panel or card surface", source: "R01.4" },
+      { token: "--card", purpose: "panels, lists, cards", avoid: "a separate surface for every row (R01.3)", source: "R01.4" },
+      { token: "--popover", purpose: "menus, popovers, dialogs", avoid: "inline panels", source: "R01.4" },
+      { token: "--foreground", purpose: "titles, body text", avoid: "metadata", source: "R01.4" },
+      { token: "--muted-foreground", purpose: "row metadata, timestamps, hints", avoid: "titles, body text, button labels", source: "R01.5" },
+      { token: "--muted", purpose: "code blocks, disabled fields", avoid: "page background", source: "R01.2, R01.4" },
+      { token: "--primary", purpose: "the one primary action", avoid: "a second button, text emphasis", source: "R01.6, Z1" },
+      { token: "--primary-foreground", purpose: "label on primary", avoid: "anything else", source: "R01.6" },
+      { token: "--secondary", purpose: "secondary actions", avoid: "brand colour", source: "R01.4" },
+      { token: "--accent", purpose: "hover surface", avoid: "brand colour", source: "tokeny.md" },
+      { token: "--destructive", purpose: "errors, irreversible actions", avoid: "warnings, emphasis", source: "T5, Q2" },
+      { token: "--success", purpose: "positive status, with text or icon", avoid: "decoration, buttons", source: "Q2" },
+      { token: "--warning", purpose: "needs attention, with text or icon", avoid: "errors", source: "Q2" },
+      { token: "--border", purpose: "row separators, panel edges", avoid: "field outlines", source: "R01.3, T7" },
+      { token: "--input", purpose: "field outlines", avoid: "separators", source: "T5" },
+      { token: "--ring", purpose: "focus outline", avoid: "decoration", source: "T5, WCAG 2.4.7" },
+      { token: "--disabled", purpose: "surface of a disabled action or field", avoid: "opacity on the component", source: "B2, proposal approved by Rafał" },
+      { token: "--scrim", purpose: "dims the page behind a dialog (40 % light, 70 % dark of warm-950)", avoid: "panels, surfaces, blur (Z5)", source: "P-T4 (value), proposal approved by Rafał; needed by the alert dialog" },
+      { token: "--disabled-foreground", purpose: "text of a disabled action or field", avoid: "placeholders, metadata", source: "B2, proposal approved by Rafał" },
+    ]}
+  />
+</Unstyled>
+
+## Contrast, measured
+
+Every pair is measured in the browser from the values the page actually loaded (WCAG 2.x
+formula, oklch converted to sRGB). Thresholds: 4.5 : 1 for text (WCAG 1.4.3), 3 : 1 for UI
+elements such as outlines and focus rings (WCAG 1.4.11).
+
+<Unstyled>
+  <ContrastTable
+    pairs={[
+      { fg: "--foreground", bg: "--background", kind: "text" },
+      { fg: "--foreground", bg: "--card", kind: "text" },
+      { fg: "--foreground", bg: "--muted", kind: "text" },
+      { fg: "--card-foreground", bg: "--card", kind: "text" },
+      { fg: "--popover-foreground", bg: "--popover", kind: "text" },
+      { fg: "--muted-foreground", bg: "--background", kind: "text" },
+      { fg: "--muted-foreground", bg: "--card", kind: "text" },
+      { fg: "--muted-foreground", bg: "--muted", kind: "text" },
+      { fg: "--primary-foreground", bg: "--primary", kind: "text" },
+      { fg: "--secondary-foreground", bg: "--secondary", kind: "text" },
+      { fg: "--accent-foreground", bg: "--accent", kind: "text" },
+      { fg: "--destructive", bg: "--background", kind: "text" },
+      { fg: "--destructive", bg: "--card", kind: "text" },
+      { fg: "--success", bg: "--background", kind: "text" },
+      { fg: "--success", bg: "--card", kind: "text" },
+      { fg: "--warning", bg: "--background", kind: "text" },
+      { fg: "--warning", bg: "--card", kind: "text" },
+      { fg: "--destructive", bg: "--background", kind: "text", tint: { light: 0.1, dark: 0.1 }, note: "destructive button fill (10 % in both themes)" },
+      { fg: "--destructive", bg: "--card", kind: "text", tint: { light: 0.1, dark: 0.1 } },
+      { fg: "--disabled-foreground", bg: "--disabled", kind: "text", note: "disabled action or field (B2); WCAG exempts inactive controls, we keep 4.5 anyway" },
+      { fg: "--success", bg: "--background", kind: "text", tint: { light: 0.1, dark: 0.1 }, note: "success badge (10 % in both themes, B5)" },
+      { fg: "--success", bg: "--card", kind: "text", tint: { light: 0.1, dark: 0.1 } },
+      { fg: "--warning", bg: "--background", kind: "text", tint: { light: 0.1, dark: 0.1 }, note: "warning badge (10 % in both themes, B5)" },
+      { fg: "--warning", bg: "--card", kind: "text", tint: { light: 0.1, dark: 0.1 } },
+      { fg: "--primary", bg: "--background", kind: "ui", note: "button shape against the page" },
+      { fg: "--input", bg: "--background", kind: "ui" },
+      { fg: "--input", bg: "--card", kind: "ui" },
+      { fg: "--ring", bg: "--background", kind: "ui" },
+      { fg: "--ring", bg: "--card", kind: "ui" },
+      { fg: "--border", bg: "--background", kind: "ui", note: "Exception T7: decorative separator; rows are recognised by their text (WCAG 1.4.11 applies to UI components, not decoration)." },
+      { fg: "--border", bg: "--card", kind: "ui", note: "Exception T7, as above." },
+    ]}
+  />
+</Unstyled>
+
+Below-threshold pairs and what to do:
+
+| Pair | Status | Fix |
+|---|---|---|
+| `border` on `background` / `card` | accepted exception T7 | Never use `border` for anything that must be seen to operate the UI: field outlines use `input`, focus uses `ring`. |
+| `destructive` on a 20 % (light) / 30 % (dark) hover tint | was below 4.5 in tokeny.md | Not used: the destructive button changes its border on hover, not its fill (C7). |
+| `primary-foreground` on the hover fill `primary/90` | computed 12.88–12.96 : 1 light, 11.61–11.77 : 1 dark | passes; hover keeps the label readable (B2). |
+
+## Changing a colour
+
+Every value here is a start value (T1). After any change, reopen this page in both themes:
+the contrast table re-measures itself. A pair that drops below its threshold blocks the change.

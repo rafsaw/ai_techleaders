@@ -1,0 +1,155 @@
+import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as AlertDialogStories from "./alert-dialog.stories";
+
+<Meta of={AlertDialogStories} />
+
+# Alert dialog
+
+```tsx
+import {
+  AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader, AlertDialogMedia,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction,
+} from "@devmentor/ui/components/alert-dialog"
+```
+
+Added with `npm run ui:add -- alert-dialog` (shadcn `base-nova`, Base UI `AlertDialog`), restyled
+with DevMentor tokens. The spec names it for slot removal (E02 UI/UX: "Remove confirmation uses
+shadcn `alert-dialog`").
+
+## 1. What it is for
+
+An alert dialog stops the user before an action that cannot be undone and asks them to confirm
+it, naming exactly what will be lost.
+
+## 2. When to use
+
+- **Remove** on an *Open* slot row on `/mentor/slots` (E02 Flow 4, step 3).
+- Any later irreversible action (none other in E01/E02).
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| An action that can be undone or edited back | do it directly, no confirmation | prompt, Delete confirmation pattern |
+| A form or longer content in a layer | dialog (What is missing) or a separate page | prompt, How to choose |
+| Information without a decision | `Alert` on the page | WAI-ARIA APG Alert |
+| A booked slot | no **Remove** button: the row shows the sentence from E02 Flow 4 | E02 Flow 4 |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| `AlertDialogTrigger` | yes (or controlled `open`) | the button that opens it; focus returns here |
+| Scrim | yes | `bg-scrim` under the dialog; no blur (Z5) |
+| `AlertDialogContent` | yes | `bg-popover`, border, `shadow-overlay` (P-S1), `rounded-panel`, `p-panel` |
+| `AlertDialogMedia` | optional | icon box; not used in E02 |
+| `AlertDialogTitle` | yes | a question naming the object: *Remove the slot on Wed, 4 Nov, 18:30 (Europe/Warsaw)?* |
+| `AlertDialogDescription` | yes | the consequence |
+| Error | when the server refuses | an `Alert` inside the dialog |
+| `AlertDialogFooter` | yes | `AlertDialogCancel` first, then `AlertDialogAction`, aligned right (P-C2) |
+
+## 5. Variants
+
+| Size | Width | When |
+|---|---|---|
+| `default` | `max-w-sm` (24 rem); buttons in a row from `sm` | every confirmation in E02 |
+| `sm` | `max-w-xs` (20 rem), 16 px padding, two equal button columns | a one-line question with a short title (P-C11, proposal approved by Rafał) |
+
+The action uses `variant="destructive"` for irreversible actions (Q2).
+
+<Canvas of={AlertDialogStories.SmallWithMedia} />
+
+## 6. States
+
+| State | Story | What the user sees |
+|---|---|---|
+| Closed | *Playground* | only the **Remove** button in the row |
+| Open | *Open* | question, consequence, Cancel and Remove slot; focus on Cancel |
+| Pending | *Pending* | both buttons disabled, spinner, *Removing slot…* (P-C4, no double submit) |
+| Error: booked meanwhile (409) | *Booked meanwhile* | the spec's sentence in a destructive `Alert`, only **Close** |
+| Success | *Confirm* | the dialog closes; the row disappears after the server confirms (Q4: no success before the server) |
+| Hover, focus, pressed | on the buttons, see Button | — |
+
+<Canvas of={AlertDialogStories.Open} />
+<Canvas of={AlertDialogStories.Pending} />
+<Canvas of={AlertDialogStories.BookedMeanwhile} />
+
+## 7. Behaviour and accessibility
+
+- **Role:** `alertdialog`, named by the title and described by the description (WAI-ARIA APG Alert Dialog). Story *Playground* tests both.
+- **Focus:** moves into the dialog on open and starts on **Cancel**, the least destructive choice (WAI-ARIA APG Alert Dialog); it is the first button because Cancel comes first (P-C2).
+- **Keyboard:** <kbd>Tab</kbd> and <kbd>Shift</kbd>+<kbd>Tab</kbd> stay inside the dialog; <kbd>Escape</kbd> closes it; focus returns to the trigger (story *Playground*).
+- **Outside click:** does not close an alert dialog (Base UI default), so a stray click cannot dismiss the decision.
+- **Theme:** the dialog renders in a portal on `<body>`; the theme class sits on `<html>`, so it gets the theme (rule 9).
+- **Motion:** fade in `duration-dialog` (240 ms), 0 ms with reduced motion (Q4).
+
+## 8. Content
+
+- Title: a question with the verb and the exact object, including date, time and zone: *Remove the slot on Wed, 4 Nov, 18:30 (Europe/Warsaw)?* (prompt, Delete confirmation pattern).
+- Description: the consequence in one or two sentences.
+- Action: the same verb and object as the title (*Remove slot*), never *OK* or *Yes* (P-C3).
+- Cancel: *Cancel*; after an error that ends the decision, *Close*.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | the dialog keeps the page margin (`inset-x-page-gutter`); buttons stack, Cancel first |
+| 768 px, 1440 px | centred, `max-w-sm`; buttons in a row at the right |
+
+<Canvas of={AlertDialogStories.Narrow} />
+
+## 10. API
+
+| Component | Props | Default | Description |
+|---|---|---|---|
+| `AlertDialog` | `open?`, `defaultOpen?`, `onOpenChange?` (Base UI Root) | — | state |
+| `AlertDialogTrigger` | Base UI Trigger props, `render` | — | opener; `render={<Button variant="destructive" size="sm" />}` |
+| `AlertDialogContent` | `size?: "default" \| "sm"`, Base UI Popup props | `"default"` | the dialog, in a portal with the scrim |
+| `AlertDialogHeader`, `AlertDialogFooter`, `AlertDialogMedia` | `<div>` props | — | layout parts |
+| `AlertDialogTitle`, `AlertDialogDescription` | Base UI Title / Description props | — | accessible name and description |
+| `AlertDialogCancel` | `variant?`, `size?`, Base UI Close props | `"outline"` | closes the dialog |
+| `AlertDialogAction` | `Button` props | — | runs the action; close it yourself after the server answers |
+
+<Controls of={AlertDialogStories.Playground} />
+
+## 11. Code
+
+Minimal:
+
+```tsx
+<AlertDialog>
+  <AlertDialogTrigger render={<Button variant="destructive" size="sm" />}>Remove</AlertDialogTrigger>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Remove the slot on {when}?</AlertDialogTitle>
+      <AlertDialogDescription>Mentees will no longer see this time.</AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogAction variant="destructive" onClick={remove}>Remove slot</AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+```
+
+From the product (`/mentor/slots`): keep `open` in state, disable both buttons while
+`DELETE /api/availability/slots?id=…` runs, close on `ok: true`, and on 409 show the server's
+message in an `Alert` inside the dialog with only **Close** (stories *Pending* and *Booked meanwhile*).
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| *Remove the slot on Wed, 4 Nov, 18:30 (Europe/Warsaw)?* | *Are you sure?* | The user must see which slot goes (prompt, Delete confirmation). |
+| **Remove slot** | **OK** | The button repeats the action (P-C3). |
+| Cancel first, then the action | the action first and focused | Focus on the safe choice prevents an accidental Enter (WAI-ARIA APG). |
+
+These pairs are text because each live example opens a modal over the page; see the stories
+*Open* and *Small with media* for the rendered dialog.
+
+## 13. Related
+
+- Confused with: **Alert** (no decision), dialog and popover (What is missing), a separate page (longer forms).
+- Used in patterns: Delete confirmation (`/mentor/slots`).

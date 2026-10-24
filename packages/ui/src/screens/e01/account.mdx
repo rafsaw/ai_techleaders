@@ -1,0 +1,35 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./account.stories";
+
+<Meta of={Stories} />
+
+# Account
+
+`/account`, signed-in kit. Source: E01 UI/UX `/account`. Every state below is a full-screen story with
+the real site header. The page frame (P-SCR1) and the page title (P-SCR2) are proposals approved by Rafał; the app
+has no layouts yet.
+
+## What the screen is for
+
+Seeing and changing the name others see, and checking email, roles and sign-in methods.
+
+## Built from
+
+**Site header**, **Account summary** (Card, Badge), **CrudForm**. Pattern: **Form**.
+
+## State map
+
+| Screen state | Story | Source |
+|---|---|---|
+| Default | *Default* | E01 UI/UX |
+| First sign-in (?welcome=1) | *Welcome* | E01 Flow 1 |
+| Many: every role, both sign-in methods | *All roles* | E01 data model |
+| Saving | *Saving* | Form pattern |
+| Field error from the server | *Field error* | Form pattern |
+| Server error | *Server error* | Form pattern |
+| Long name, 320 px | *Narrow* | P-L1 |
+
+Empty: not applicable (every account has an email and a role). After a save `CrudForm` returns to its initial values until E01 Phase 1 adds `resetOnSuccess={false}`.
+
+<Canvas of={Stories.Welcome} />

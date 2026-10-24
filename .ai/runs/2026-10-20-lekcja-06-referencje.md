@@ -1,0 +1,9 @@
+# Run: lekcja 06, od opinii do decyzji (referencje DevMentora)
+
+- Date: 2026-10-20
+- Asked: turn the PO's reference cards (R01 GitHub, R02 Slack, A01 AI-startup look) into `lekcja-06/referencje.md` using the prompt `lekcja-06/od-opinii-do-decyzji-devmentor.txt`.
+- Did: read the product brief and research notes; drafted observations per card (no screenshots, so all observations are paraphrases); asked five questions and listed proposals P01–P17 separately; the PO answered all and accepted P01, P02, P04–P17 and rejected P03. P08 was accepted on the condition that backlog and specs contain no ratings: checked `.ai/specs/backlog.md`, the E01/E02 specs, issues #37 and #40 (all exclude ratings) and found `reviews` still listed in `AGENTS.md` and the implemented engineering-standards spec (M06, `api/reviews`); recorded as conflict K4, left open for the PO.
+- Decisions: warm greys only from R01 (no accent); hierarchy through type size and weight plus one primary action per screen; R02.3 resolved without changing D10; accent, main typeface and motion left as gaps; tone kept as a proposal.
+- Outcome: success. `lekcja-06/referencje.md` written; no code or spec changed; no spec covers this lesson exercise.
+- Follow-up (same day): the PO resolved K4: N02 applies and P08 is accepted. `AGENTS.md` and the engineering-standards spec stay unchanged; the PO will clean up `reviews` separately, outside this exercise.
+- Follow-up (same day), tokens: ran `lekcja-06/od-decyzji-do-tokenow-devmentor.txt`. `packages/ui/src/tokens.css` does not exist; mapped decisions onto shadcn names in `packages/ui/src/styles/globals.css` and checked both themes (`.dark` is defined but not applied). Contrast computed with an oklch→sRGB WCAG script; fixed muted-foreground, input, ring and destructive. The PO approved T1–T8, with Geist Mono marked as a proposal and T4 changed to 8/16/24/32/48 (adds `--spacing-component`). Wrote `lekcja-06/tokeny.md`; `globals.css` not changed.

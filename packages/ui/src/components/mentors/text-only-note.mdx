@@ -1,0 +1,84 @@
+import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./text-only-note.stories";
+
+<Meta of={Stories} />
+
+# Text-only note
+
+`import { TextOnlyNote } from "@devmentor/ui/components/mentors/TextOnlyNote"`
+
+E02 product component for the public profile `/mentors/[id]` (Flow 2 step 4). Public kit only (F3).
+
+## 1. What it is for
+
+It says before booking that a session is a written conversation, not a call (N01).
+
+## 2. When to use
+
+- On `/mentors/[id]`, next to the prices.
+
+## 3. When not to use
+
+| Situation | Use instead |
+|---|---|
+| The session screen (E05) | its own marking, designed with E05 (What is missing) |
+
+## 4. Anatomy
+
+| Part | Required | Notes | Source |
+|---|---|---|---|
+| Text *Text sessions only* | yes | `text-label`, foreground colour | E02 Flow 2, N01 |
+| Icon | no | none: no icon for text sessions is in the approved set, and video icons are never used | P-PP6, proposal approved by Rafał; Icons |
+
+## 5. Variants
+
+None.
+
+## 6. States (data states)
+
+| State | Story |
+|---|---|
+| Default | *Playground* |
+| Next to the prices | *With prices* |
+| Loading, empty, error, partial, many, long | not applicable: fixed text |
+
+<Canvas of={Stories.WithPrices} />
+
+## 7. Behaviour and accessibility
+
+- Plain text, read in order after the prices.
+
+## 8. Content
+
+Always *Text sessions only* (E02 Flow 2). Do not add "No video" or a camera icon: say what a
+session is, not what it is not.
+
+## 9. Responsiveness
+
+The same at 320, 768 and 1440 px.
+
+## 10. API
+
+No props of its own; `className` and other `<p>` props pass through. `TEXT_ONLY` exports the text.
+
+<Controls of={Stories.Playground} />
+
+## 11. Code
+
+```tsx
+<PriceList prices={prices} />
+<TextOnlyNote />
+```
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| Show it on every public profile | show it only at checkout | N01: the product says so before booking |
+| Use the exact text | "Chat only", "No video calls" | E02 Flow 2 |
+
+## 13. Related
+
+- Next to: **Price list**.
+- Used in: Public profile screen (batch 5).

@@ -1,0 +1,121 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { LinkButton } from "@devmentor/ui/frontend/actions/LinkButton";
+import { DoDont } from "../../../.storybook/blocks/stories";
+import * as LinkButtonStories from "./link-button.stories";
+
+<Meta of={LinkButtonStories} />
+
+# Link button
+
+`import { LinkButton, linkButtonVariants } from "@devmentor/ui/frontend/actions/LinkButton"`
+
+Public kit (F3): a real link that looks like a button or a text link. Variant names match the
+signed-in `Button` (P-LB1, proposal approved by PO(Rafał)).
+
+## 1. What it is for
+
+A link button takes a visitor to another page or route while looking like the action it is,
+and still works as a link (open in new tab, no JavaScript needed).
+
+## 2. When to use
+
+- **Sign in with GitHub** on `/sign-in`, first and main (E01 UI/UX: a real link to the navigation route).
+- **Create an account** on `/sign-in` (`link`).
+- Retry after a GitHub error (`outline`, inside a `Notice`).
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| Sending a form | `SubmitButton` | WCAG 4.1.2 |
+| A signed-in page | `buttonVariants()` on `<Link>` (Button docs) | Q1 |
+| A disabled navigation | remove the link and say why in text | — |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| `<a href>` | yes | role `link` |
+| Icon | optional | 16 px, `aria-hidden`; lucide has no GitHub mark, so none for now (icon set gap) |
+| Label | yes | verb and object |
+
+## 5. Variants
+
+| Variant | When |
+|---|---|
+| `default` | the main action is a navigation (GitHub sign-in) |
+| `outline` | a second way to the same place |
+| `link` | inline or tertiary navigation (*Create an account*) |
+
+<Canvas of={LinkButtonStories.Variants} />
+
+## 6. States
+
+| State | Look | Source |
+|---|---|---|
+| Hover | `primary/90`; outline `accent`; link thicker underline | B2 |
+| Focus | 2 px `ring` outline | B3 |
+| Pressed | as hover | B2 |
+| Disabled | none: a link cannot be disabled; remove it and explain why | WCAG 4.1.2 |
+
+<Canvas of={LinkButtonStories.States} />
+
+## 7. Behaviour and accessibility
+
+- A real `<a href>`: screen readers announce a link, Enter follows it, middle-click opens a new tab. Story *Playground* tests that there is no button role.
+- With Next's `<Link>`, pass `className={linkButtonVariants({ variant })}` (the same rule as the signed-in kit).
+- Story *Long content, narrow* tests the Tab order: GitHub first, then *Create an account*.
+
+## 8. Content
+
+- Verb and object (P-C3): *Sign in with GitHub*, *Create an account*.
+- Never *Click here*.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | the main action `w-full` (P-C5) |
+| 768 px, 1440 px | natural width or the form's width |
+
+<Canvas of={LinkButtonStories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `href` | `string` | — | destination |
+| `variant` | `"default" \| "outline" \| "link"` | `"default"` | look |
+| …rest | `<a>` props | — | |
+| `linkButtonVariants(props)` | function | — | classes for `<Link>` |
+
+<Controls of={LinkButtonStories.Playground} />
+
+## 11. Code
+
+```tsx
+<LinkButton href={`/api/auth/github?returnTo=${encodeURIComponent(returnTo)}`}>Sign in with GitHub</LinkButton>
+```
+
+With Next:
+
+```tsx
+<Link href="/sign-up" className={linkButtonVariants({ variant: "link" })}>Create an account</Link>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<LinkButton href="/api/auth/github">Sign in with GitHub</LinkButton>}
+    doText="Navigation is a link, styled as the main action."
+    dontExample={<button type="button" className="text-label underline">Sign in with GitHub</button>}
+    dontText="A button that navigates in JavaScript breaks new tabs and is announced wrongly (WCAG 4.1.2)."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: **Submit button**, signed-in `Button` with `buttonVariants`.
+- Used in: `SignInOptions` (stage 3), `/sign-in`, `Notice` actions.

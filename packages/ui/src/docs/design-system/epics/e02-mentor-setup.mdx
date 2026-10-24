@@ -1,0 +1,59 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/Epics/E02 Mentor setup" />
+
+# E02: Mentor setup
+
+A mentor publishes a profile and two prices, completes Stripe onboarding, and publishes concrete start times. The setup page always identifies the next available action. Sources: backlog E02 (#29), E02 Flows 1–4; POSTEP Q-SC1.
+
+## Flow and screen map
+
+The screen links open complete state-to-story maps. Product components and screen compositions exist in the UI package; profile persistence, Stripe integration and availability endpoints remain application work.
+
+<table tabIndex={0} aria-label="Flow and screen map" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Backlog item and flow"}</th><th scope="col">{"Screens and state maps"}</th><th scope="col">{"Components and patterns"}</th><th scope="col">{"States and source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"E02-S01 #37: save profile and prices, open the public page"}</td><td><a href="?path=/docs/screens-e02-profile-form--docs">{"Profile form"}</a>{", "}<a href="?path=/docs/screens-e02-public-profile--docs">{"Public profile"}</a></td><td>{"CrudForm, MentorProfileHeader, PublicWorkLinks, PriceList, TextOnlyNote, NotBookableNotice; "}<a href="?path=/docs/patterns-detail-view--docs">{"Detail view"}</a></td><td>{"Create/edit, saving, field/server errors; published but not bookable, plain long text, not found/no access. E02 Flow 2, MD4\u2013MD5."}</td></tr>
+    <tr><td>{"E02-S02 #38: choose country, continue to Stripe, return and check status"}</td><td><a href="?path=/docs/screens-e02-mentor-setup--docs">{"Mentor setup"}</a></td><td>{"SetupChecklist, SetupItem, PayoutStatus, BookableStatusLine; "}<a href="?path=/docs/patterns-provider-status--docs">{"Provider status"}</a>{", "}<a href="?path=/docs/patterns-setup-checklist--docs">{"Setup checklist"}</a></td><td>{"Profile locked, starting setup, start failed, checking, incomplete, check failed, blocked, ready, no slots. E02 Flows 1 and 3; Q-SC1."}</td></tr>
+    <tr><td>{"E02-S03 #39: publish a start time, inspect upcoming slots, remove an open slot"}</td><td><a href="?path=/docs/screens-e02-slots--docs">{"Slots"}</a></td><td>{"SlotList, SlotRow; "}<a href="?path=/docs/patterns-form--docs">{"Form"}</a>{", "}<a href="?path=/docs/patterns-delete-confirmation--docs">{"Delete confirmation"}</a></td><td>{"Loading, empty, load error, publishing, overlap, too soon, many slots, removal pending/failure, booked meanwhile. E02 Flow 4, MD1/MD6\u2013MD7."}</td></tr>
+    <tr><td>{"E02-S02-T01 #47: verify Stripe onboarding requirements"}</td><td>{"Research deliverable in E02, no separate screen"}</td><td>{"PayoutStatus documents the resulting states"}</td><td>{"Research is recorded in E02 \u201c#47 \u2014 Stripe onboarding requirements\u201d; runtime integration, sandbox validation and release prerequisites remain. This is not a claim that tracker #47 is closed."}</td></tr>
+  </tbody>
+</table>
+
+## Product rules the interface preserves
+
+<table tabIndex={0} aria-label="Product rules the interface preserves" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Rule"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Profile first; only one checklist item with an available action is primary."}</td><td>{"E02 Flow 1; POSTEP Q-SC1"}</td></tr>
+    <tr><td>{"Prices are USD, whole-dollar input from $5 to $1,000 for both 25 and 50 minutes; public display preserves meaningful cents when supplied."}</td><td>{"E02 MD2, P17; "}<code>{"PriceList"}</code>{" accepts formatted strings"}</td></tr>
+    <tr><td>{"A slot reserves 50 minutes. The mentee chooses the session duration at booking, outside E02."}</td><td>{"E02 MD1"}</td></tr>
+    <tr><td>{"Show the viewer's time zone, preserve instants in UTC, and require two hours of lead time."}</td><td>{"E02 MD6\u2013MD7, D16"}</td></tr>
+    <tr><td>{"A published profile can exist before it is bookable. Show \u201cNot taking bookings yet\u201d; never invent a booking action in E02."}</td><td>{"E02 MD4\u2013MD5"}</td></tr>
+    <tr><td>{"Put \u201cAdd a slot\u201d above \u201cUpcoming slots\u201d."}</td><td>{"POSTEP P-SCR5, approved by Rafa\u0142; spec Flow 4 order still needs reconciliation"}</td></tr>
+    <tr><td>{"Public work establishes trust; no ratings, employer prestige or video cues."}</td><td>{"N01\u2013N02; R01.7; A03/A06/A08"}</td></tr>
+  </tbody>
+</table>
+
+## Source files
+
+<table tabIndex={0} aria-label="Source files" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Purpose"}</th><th scope="col">{"Existing source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Setup composition and subpart"}</td><td><code>{"packages/ui/src/components/mentors/{SetupChecklist,SetupItem,BookableStatusLine}.tsx"}</code></td></tr>
+    <tr><td>{"Stripe state presentation"}</td><td><code>{"packages/ui/src/components/payments/PayoutStatus.tsx"}</code></td></tr>
+    <tr><td>{"Public profile presentation"}</td><td><code>{"packages/ui/src/components/mentors/{MentorProfileHeader,PublicWorkLinks,PriceList,TextOnlyNote,NotBookableNotice}.tsx"}</code></td></tr>
+    <tr><td>{"Availability"}</td><td><code>{"packages/ui/src/components/availability/{SlotList,SlotRow}.tsx"}</code></td></tr>
+    <tr><td>{"Full-screen examples and state maps"}</td><td><code>{"packages/ui/src/screens/e02/*.stories.tsx"}</code>{" and adjacent "}<code>{".mdx"}</code></td></tr>
+    <tr><td>{"Storybook-only composition helpers"}</td><td><code>{"packages/ui/.storybook/blocks/{public-profile,stripe-banner,screen}.tsx"}</code>{", "}<code>{"fixtures.ts"}</code></td></tr>
+    <tr><td>{"Implementation contract"}</td><td><code>{".ai/specs/2026-10-18-mentor-setup.md"}</code></td></tr>
+  </tbody>
+</table>
+
+## Work remaining in the product
+
+Implement E02's profile/pricing, Stripe, and availability phases with their migrations, services, ports/adapters, authorization and real endpoints. Use the existing `CrudForm` `textarea` and `select` support; it is already implemented and should not be added again. Sources: E02 Implementation Plan; POSTEP stage 3 batch 5.
+
+Create the app layouts, the public-profile `not-found.tsx`, core's `formatMoney` and the colocated `LocalTime` formatter. Storybook supplies formatted strings; it does not implement those app responsibilities. Confirm the real contact destination for blocked/failed payout setup before passing `contactHref`. Record P-SCR5 in the E02 specification. Sources: E02 UI/UX and P17; POSTEP “Do zrobienia poza design systemem”.
+
+At E04, add the booking action and keep it visible above the fold even with a long profile. The current narrow public profile puts prices after the description; no booking control exists yet. Source: POSTEP P-DV decisions and E02 MD5. See [What is missing](?path=/docs/design-system-what-is-missing--docs).

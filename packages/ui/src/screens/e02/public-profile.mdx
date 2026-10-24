@@ -1,0 +1,34 @@
+import { Canvas, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./public-profile.stories";
+
+<Meta of={Stories} />
+
+# Public profile
+
+`/mentors/[id]`, public kit. Source: E02 Flow 2 step 4, MD4. Every state below is a full-screen story with
+the real site header. The page frame (P-SCR1) and the page title (P-SCR2) are proposals approved by Rafał; the app
+has no layouts yet.
+
+## What the screen is for
+
+Letting a mentee judge a mentor by their work and prices, and see whether they can book.
+
+## Built from
+
+**Site header** and the **Detail view** pattern (Mentor profile header, Public work links, Price list, Text-only note, Not bookable notice).
+
+## State map
+
+| Screen state | Story | Source |
+|---|---|---|
+| Bookable, signed out | *Bookable* | E02 Flow 2 |
+| Not taking bookings yet | *Not bookable* | MD4 |
+| Signed in as a mentee | *Signed in* | E01 header |
+| Many links | *Many links* | E02 Flow 2 |
+| Not found or no access (404) | *Not found* | E02 Flow 2, P-DV3 |
+| Long name, 320 px | *Narrow* | P-L1 |
+
+Loading: rendered on the server. Empty: not applicable (a saved profile has every field).
+
+<Canvas of={Stories.NotBookable} />

@@ -1,0 +1,107 @@
+import { Meta } from "@storybook/addon-docs/blocks";
+
+<Meta title="Design system/Usage and accessibility" />
+
+# Usage and accessibility
+
+Use the component's documented keyboard behaviour and the existing form/pattern wiring.
+An accessibility addon pass is one check; focus order, meaningful text and actual task
+completion still need browser inspection (prompt stages 2 and 5).
+
+`P-*`, `B*`, `Q*` and F2/F3 below resolve to the approved decisions in `packages/ui/POSTEP.md`;
+E01/E02 are `.ai/specs/2026-10-17-accounts-and-roles.md` and
+`.ai/specs/2026-10-18-mentor-setup.md`. WCAG references use
+[WCAG 2.2](https://www.w3.org/TR/WCAG22/); overlay behaviour follows
+[APG Alert Dialog](https://www.w3.org/WAI/ARIA/apg/patterns/alertdialog/).
+
+## Keyboard and focus
+
+<table tabIndex={0} aria-label="Keyboard and focus" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Rule"}</th><th scope="col">{"Check in the product"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Use native buttons for actions and anchors for navigation. Every control has a name matching its visible purpose."}</td><td>{"Enter follows View public page; Enter/Space activates a button. Show password remains a named toggle."}</td><td>{"WCAG 2.1.1, 2.5.3, 4.1.2; P-PF1; POSTEP Link as Button decision"}</td></tr>
+    <tr><td>{"Keep visual and DOM order aligned. Do not use positive "}<code>{"tabIndex"}</code>{" to repair layout."}</td><td>{"Tab follows the form, Cancel, then Save."}</td><td>{"WCAG 1.3.2, 2.4.3; P-C2"}</td></tr>
+    <tr><td>{"Keep a visible focus outline, including inside overlays; do not clip it."}</td><td>{"B3 uses "}<code>{"ring"}</code>{", a full outline and offset; inspect both themes."}</td><td>{"B3; WCAG 2.4.7, 2.4.11; T5"}</td></tr>
+    <tr><td>{"Every target is at least 24 \u00d7 24 CSS px. Icon dimensions do not define the hit target."}</td><td>{"Check compact row actions and the password visibility button at 320 px."}</td><td>{"WCAG 2.5.8; prompt stage 2"}</td></tr>
+    <tr><td>{"Modal confirmation traps focus, starts on the safe cancel action, closes on Escape and returns focus to its trigger when that trigger survives."}</td><td>{"Remove slot; after deletion, check the remaining list/page focus rather than focusing a removed row."}</td><td>{"APG Alert Dialog/Dialog; Delete confirmation pattern; E02 Flow 4"}</td></tr>
+    <tr><td>{"Explain disabled actions in visible text; colour or hover is insufficient."}</td><td>{"Stripe and slots stay locked until a profile exists; booked slots explain why removal is unavailable."}</td><td>{"B2; E02 MD10, MD11; WCAG 3.3.2"}</td></tr>
+    <tr><td>{"Keep the table scroll container in the Tab order."}</td><td>{"At 320 px the users table can be horizontally scrolled from the keyboard."}</td><td>{"POSTEP Table decision; WCAG 2.1.1"}</td></tr>
+  </tbody>
+</table>
+
+## Full-page error screen
+
+<table tabIndex={0} aria-label="Full-page error screen" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Rule"}</th><th scope="col">{"Check in the product"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td><strong>{"P-ERR3, proposal approved by Rafał:"}</strong>{" every full application screen has exactly one visible "}<code>{"h1"}</code>{"; component fragments and stories are exempt."}</td><td>{"The /error screen has one h1, Something went wrong."}</td><td>{"P-ERR3; prompt stage 3, P-SCR2; WCAG 2.4.6"}</td></tr>
+    <tr><td><strong>{"P-ERR4, proposal approved by Rafał:"}</strong>{" use the page metadata title "}<code>{"Something went wrong"}</code>{"; the application layout adds its existing "}<code>{" · DevMentor"}</code>{" suffix."}</td><td>{"The browser tab reads Something went wrong · DevMentor, matching layout.tsx's title.template."}</td><td>{"P-ERR4; packages/app/src/app/layout.tsx"}</td></tr>
+    <tr><td><strong>{"P-ERR4, proposal approved by Rafał:"}</strong>{" keep the existing solid, token-based visible focus outline on the recovery link and other interactive elements."}</td><td>{"Tab shows the approved 2 px outline with offset in both themes."}</td><td>{"P-ERR4; B3; WCAG 2.4.7"}</td></tr>
+    <tr><td><strong>{"P-ERR4, proposal approved by Rafał:"}</strong>{" do not move focus programmatically to "}<code>{"main"}</code>{" on /error; ordinary navigation starts at the top of the page."}</td><td>{"The first keyboard interaction follows the normal document order; no scripted focus announcement is added."}</td><td>{"P-ERR4; PO decision 2026-10-22"}</td></tr>
+  </tbody>
+</table>
+
+## Forms and announcements
+
+<table tabIndex={0} aria-label="Forms and announcements" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Rule"}</th><th scope="col">{"Check in the product"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Give each input a visible label. Placeholders give examples only; connect hints/errors using "}<code>{"aria-describedby"}</code>{"."}</td><td>{"Price for 25 minutes (USD); public-work URL example."}</td><td>{"WCAG 1.3.1, 3.3.2; P-C7; F2, Q-CF1; P-SCR6"}</td></tr>
+    <tr><td>{"Required inputs use "}<code>{"required"}</code>{"; optional labels include \u201c(optional)\u201d."}</td><td>{"Do not rely on an asterisk or colour."}</td><td>{"P-F1; WCAG 3.3.2, 4.1.2"}</td></tr>
+    <tr><td>{"Validate on blur once a field has a value or visible error; validate all on submit and focus the first invalid field. Revalidate an erroneous field during typing."}</td><td>{"Correcting a field removes its error before a click can be lost to a moving submit button."}</td><td>{"P-F2, F2, Q-CF1 and the recorded integration regression"}</td></tr>
+    <tr><td>{"Retain entered data after validation, server and network errors. Explain what happened and how to proceed."}</td><td>{"Profile values survive a failed Save."}</td><td>{"prompt Form pattern; F2; WCAG 3.3.1, 3.3.3"}</td></tr>
+    <tr><td>{"Prevent duplicate submission. Announce pending work; show success only after server confirmation."}</td><td>{"Publishing slot\u2026 changes to the server result, not an optimistic success."}</td><td>{"F2; Q4; P-C4; WCAG 4.1.3"}</td></tr>
+    <tr><td>{"Use polite status for loading/success and an alert for urgent errors; skeleton blocks stay hidden from assistive technology."}</td><td>{"Announce Loading slots once, without reading each skeleton; keep the error remedy visible."}</td><td>{"P-LD3; public Notice API; WCAG 4.1.3"}</td></tr>
+    <tr><td>{"Password fields allow paste and password managers; reuse PasswordField's visibility control."}</td><td>{"No autocomplete blocking or custom keyboard challenge."}</td><td>{"E01 AD6/UI/UX; P-PF1; WCAG 3.3.8"}</td></tr>
+  </tbody>
+</table>
+
+## Colour, movement and text
+
+<table tabIndex={0} aria-label="Colour, movement and text" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Rule"}</th><th scope="col">{"Check in the product"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Use semantic tokens, not palette values. Maintain 4.5:1 for text and 3:1 for essential interface boundaries/focus."}</td><td>{"Recalculate actual foreground/background pairs in both themes after a token change. Decorative separators have only the documented T7 exception."}</td><td>{"T1, T5, T7; WCAG 1.4.3, 1.4.11"}</td></tr>
+    <tr><td>{"Pair status colour with text or a meaningful icon. Build hierarchy using type size/weight."}</td><td>{"Open, Booked, Incomplete and Blocked remain understandable without colour."}</td><td>{"Q2; R01.5, Z2; WCAG 1.4.1"}</td></tr>
+    <tr><td>{"Respect reduced motion, including spinner and skeleton loops. Avoid decorative motion."}</td><td>{"Durations become zero and loading loops stand still under "}<code>{"prefers-reduced-motion"}</code>{"."}</td><td>{"Q4; P-LD2; A01; WCAG 2.3.3"}</td></tr>
+    <tr><td>{"Use meaningful headings, link text and direct English. Keep essential instructions outside tooltips."}</td><td>{"Public work links identify their destination; the Stripe country consequence is visible."}</td><td>{"P-PP3, P-PP4; E02 Flow 3; WCAG 2.4.4, 2.4.6, 3.3.2"}</td></tr>
+    <tr><td>{"Use mono only for code, file names, paths and configuration; use tabular digits for prices/hours."}</td><td>{"Descriptions and status labels use the normal text roles."}</td><td>{"R01.2, Z3; Q4; P-PP5"}</td></tr>
+  </tbody>
+</table>
+
+## Layout at 320, 768 and 1440 px
+
+<table tabIndex={0} aria-label="Layout at 320, 768 and 1440 px" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Width / condition"}</th><th scope="col">{"Required behaviour"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"320 px"}</td><td>{"One column with "}<code>{"px-page-gutter"}</code>{"; long actions can become full width. Wrap long content without hiding the main action or field error."}</td><td>{"P-L1; P-C5; WCAG 1.4.10"}</td></tr>
+    <tr><td>{"768 px"}</td><td>{"Forms remain one column. Do not create a second field column for visual balance."}</td><td>{"P-L2"}</td></tr>
+    <tr><td>{"1440 px"}</td><td>{"Centre the "}<code>{"max-w-content"}</code>{" page frame; running text uses "}<code>{"max-w-text"}</code>{"."}</td><td>{"P-L3, P-L4"}</td></tr>
+    <tr><td>{"Detail page"}</td><td>{"Keep status and main information/action early; at wider widths prices may use the approved side column."}</td><td>{"P-DV1, P-DV2; Detail view pattern"}</td></tr>
+    <tr><td>{"Both themes"}</td><td>{"Set the theme on "}<code>{"html"}</code>{", then inspect the confirmation dialog, its scrim and all focus/error states."}</td><td>{"prompt rule 9; P-TH1; B3"}</td></tr>
+    <tr><td>{"Longer translation or enlarged text"}</td><td>{"Allow the approved 30% text reserve and wrapping; inspect at narrow width and zoom."}</td><td>{"P-C5; WCAG 1.4.4, 1.4.10"}</td></tr>
+  </tbody>
+</table>
+
+## Product rules the interface protects
+
+The server remains authoritative. These messages explain a rule; hiding a button alone
+is never authorization (E01 access control; E02 MD11).
+
+<table tabIndex={0} aria-label="Product rules the interface protects" className="focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2">
+  <thead><tr><th scope="col">{"Rule"}</th><th scope="col">{"Visible consequence"}</th><th scope="col">{"Source"}</th></tr></thead>
+  <tbody>
+    <tr><td>{"Public discovery/profile browsing does not require signing in; booking does. GitHub is primary, email/password is the fallback."}</td><td>{"Keep both sign-in paths, return intent and public navigation in the account flow."}</td><td>{"brief D13; E01 flows"}</td></tr>
+    <tr><td>{"Mentor access requires a single-use invitation; an account may hold both roles."}</td><td>{"No open mentor registration or mutually exclusive role switch."}</td><td>{"brief D14; E01 invitation flow"}</td></tr>
+    <tr><td>{"A saved mentor profile is public before bookability. Stripe readiness is required to book."}</td><td>{"Show Not taking bookings yet; do not infer readiness from returning from Stripe."}</td><td>{"E02 MD4, MD7, MD9; D05"}</td></tr>
+    <tr><td>{"Profile first, then Stripe and slots."}</td><td>{"Setup checklist explains each locked step."}</td><td>{"E02 MD10"}</td></tr>
+    <tr><td>{"One area, two prices in USD, whole-dollar entry within approved bounds."}</td><td>{"Offer only TypeScript, React, Python; label 25/50-minute prices and USD."}</td><td>{"E02 MD2, MD3"}</td></tr>
+    <tr><td>{"A slot reserves 50 minutes and must start at least two hours ahead; overlaps and removal of booked slots are rejected."}</td><td>{"Name the time zone, state Open/Booked and show the server's rejection with a remedy."}</td><td>{"E02 MD1, MD6, MD11; D16"}</td></tr>
+    <tr><td>{"Text-only help, no ratings, no urgency promises or subscriptions."}</td><td>{"Show Text sessions only on the public profile and trust public work rather than invented popularity."}</td><td>{"N01, N02; D01, D03, D16; A03, A05\u2013A08"}</td></tr>
+    <tr><td>{"Cancellation, refunds, no-shows and disputes are handled externally in 1.0."}</td><td>{"Do not add self-service dispute/refund screens while building an account/setup page."}</td><td>{"brief D12; POSTEP scope"}</td></tr>
+  </tbody>
+</table>
+
+E03–E06 screens and behaviour remain outside the approved E01/E02 implementation scope.
+Consult [What is missing](?path=/docs/design-system-what-is-missing--docs) before extending it
+(POSTEP scope decision).

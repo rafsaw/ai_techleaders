@@ -1,0 +1,135 @@
+import { Canvas, Controls, Meta, Unstyled } from "@storybook/addon-docs/blocks";
+
+import { EmptyState } from "@devmentor/ui/backend/feedback/EmptyState";
+import { DoDont } from "../../.storybook/blocks/stories";
+import * as EmptyStories from "./empty.stories";
+
+<Meta of={EmptyStories} />
+
+# Empty state
+
+```tsx
+import { EmptyState } from "@devmentor/ui/backend/feedback/EmptyState"
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription, EmptyContent } from "@devmentor/ui/components/empty"
+```
+
+`EmptyState` is the shared renderer (AGENTS.md: the only empty renderer); it is built from the
+shadcn `base-nova` `Empty` parts, restyled with DevMentor tokens. Use `EmptyState` unless you
+need a layout it does not offer.
+
+## 1. What it is for
+
+An empty state tells the user why a list has nothing in it and what to do next, so an empty
+screen does not look broken.
+
+## 2. When to use
+
+- `/mentor/slots` with no upcoming slots: *No upcoming slots* / *Mentees can only book times you publish.* (E02 UI/UX).
+- `/backend/users` with no users: *No users yet* / *Create the first one with the form.* (through `DataTable`'s `emptyState`).
+- Any list that can be empty before the user creates something.
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| A filtered list with no results | a separate "no results for these filters" state with **Clear filters** (with E03) | prompt, List with filters; Q6 |
+| A step that is not available yet (*Locked*) | the setup item's description and badge | E02 Flow 1 |
+| Loading | `Skeleton` or `LoadingMessage` | — |
+| A load error | *Error state* | — |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| `Empty` | yes | left-aligned column (prompt, What to avoid: "everything centred"; R01.1), `py-component`, no frame of its own: the panel or list gives it (P-E1, proposal approved by Rafał) |
+| `EmptyMedia` | optional | icon box (`variant="icon"`); not used in E01/E02 |
+| `EmptyTitle` | yes | `text-row-title`, the role of the rows it replaces (P-E2, proposal approved by Rafał): what is missing |
+| `EmptyDescription` | yes | `text-body`, `muted-foreground`: why, or what happens when it fills |
+| `EmptyContent` | optional | the next step, when it is not already on the page |
+
+## 5. Variants
+
+| Variant | When | Source |
+|---|---|---|
+| Text only | the next step is already visible (the slot form above the list) | E02 UI/UX `/mentor/slots` |
+| With action | the next step is on another page (a link styled as a button) | prompt, Content: "empty states: why and the next step" |
+| With icon box | not in E01/E02; keep for later lists | — |
+
+<Canvas of={EmptyStories.Variants} />
+
+## 6. States
+
+An empty state is not interactive; its action has the states of Button. Hover, pressed,
+disabled, loading, selected and error do not apply.
+
+<Canvas of={EmptyStories.States} />
+
+## 7. Behaviour and accessibility
+
+- Plain text in reading order: title, description, action. It is page content, not a live region; it replaces the list in the same place.
+- The action is a real link (`<a>` or `<Link>` with `buttonVariants`) when it goes to another page, and a button when it acts here (WCAG 4.1.2). Story *Long content, narrow* tests that one Tab reaches it.
+- If the list became empty after an action (the last slot removed), the action's own result tells it; the empty state does not announce itself.
+
+## 8. Content
+
+- Title: what is missing, as a short phrase (*No upcoming slots*, *No users yet*).
+- Description: why it matters or what fills it, one sentence (*Mentees can only book times you publish.*).
+- Action: verb and object (*Publish slots*, P-C3).
+- Never a joke or an illustration in place of the next step (Q5: direct tone).
+- Long text wraps within `max-w-text`.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | text wraps; the action stays left, under the text |
+| 768 px, 1440 px | left-aligned where the list would be, text within `max-w-text` |
+
+<Canvas of={EmptyStories.LongContentNarrow} />
+
+## 10. API
+
+| Component | Props | Default | Description |
+|---|---|---|---|
+| `EmptyState` | `title: string`, `description?: string`, `action?: ReactNode` | — | the shared renderer |
+| `Empty`, `EmptyHeader`, `EmptyContent` | `<div>` props | — | layout parts |
+| `EmptyMedia` | `variant?: "default" \| "icon"`, `<div>` props | `"default"` | icon box |
+| `EmptyTitle`, `EmptyDescription` | `<div>` props | — | text |
+| `DataTable` `emptyState` | `EmptyStateProps` | `{ title: "Nothing here yet" }` | always pass your own: the default says neither why nor what next |
+
+<Controls of={EmptyStories.Playground} />
+
+## 11. Code
+
+Minimal:
+
+```tsx
+<EmptyState title="No upcoming slots" description="Mentees can only book times you publish." />
+```
+
+From the product (`/backend/users`, through `DataTable`):
+
+```tsx
+<DataTable
+  columns={columns}
+  rows={rows}
+  getRowId={(user) => user.id}
+  emptyState={{ title: "No users yet", description: "Create the first one with the form." }}
+/>
+```
+
+## 12. Do and don't
+
+<Unstyled>
+  <DoDont
+    doExample={<EmptyState title="No upcoming slots" description="Mentees can only book times you publish." />}
+    doText="Say what is missing and why it matters, where the list would be."
+    dontExample={<EmptyState title="Nothing here yet" />}
+    dontText="No reason and no next step: the user cannot tell an empty list from a broken one (prompt, Content)."
+  />
+</Unstyled>
+
+## 13. Related
+
+- Confused with: "no results for filters" (with E03), **Error state**, a *Locked* setup item.
+- Used in: `DataTable`, `SlotList` (stage 3), Slots screen (empty state).

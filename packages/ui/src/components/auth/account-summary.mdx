@@ -1,0 +1,113 @@
+import { ArgTypes, Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./account-summary.stories";
+
+<Meta of={Stories} />
+
+# Account summary
+
+`import { AccountSummary } from "@devmentor/ui/components/auth/AccountSummary"`
+
+E01 product component for `/account`, signed-in area (shadcn kit): `Card`, `Alert`, `Badge`,
+`Separator`; the page passes its `CrudForm` for the display name.
+
+## 1. What it is for
+
+It shows a person the name others see (and lets them change it) next to the facts about their
+account they cannot change here.
+
+## 2. When to use
+
+- `/account` only (E01 UI/UX).
+
+## 3. When not to use
+
+| Situation | Use instead |
+|---|---|
+| A public profile | `MentorProfileHeader` (E02, batch 3) |
+| A list of users | `DataTable` on `/backend/users` |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| Card + title *Account* | yes | `role="heading"`, level 2 |
+| Welcome notice | `welcome` | `Alert role="status"` (E01 Flow 1) |
+| Name form | yes | `children`: `CrudForm` with `resetOnSuccess={false}` (E01 UI/UX) |
+| Separator | yes | between what can and cannot change |
+| Details | yes | `dl`: Email, Roles (badges `secondary`), Sign-in methods |
+
+## 5. Variants
+
+None. Welcome is a state (`welcome`).
+
+## 6. States (data states)
+
+| State | Story |
+|---|---|
+| Default (one role, one method) | *Playground* |
+| Welcome | *Welcome* |
+| Many: every role and method | *All roles and methods* |
+| Error: save failed | *Save failed* |
+| Long content, 320 px | *Long content, narrow* |
+| Loading | not applicable: the page renders on the server with the data (E01 F5) |
+| Empty | not applicable: every account has an email, a role and a method |
+
+## 7. Behaviour and accessibility
+
+- Read-only values are text in a description list, not disabled fields (P-C6, WCAG 1.3.1).
+- Roles are badges with text (Q2); lower case, as stored.
+
+## 8. Content
+
+Labels *Email*, *Roles*, *Sign-in methods*; methods *GitHub*, *Email and password* (E01).
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | full width; a long address breaks anywhere; badges wrap |
+| 768 px, 1440 px | `max-w-text` |
+
+<Canvas of={Stories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Description |
+|---|---|---|
+| `email` | `string` | from `AccountDto` |
+| `roles` | `readonly string[]` | from `AccountDto` |
+| `signInMethods` | `{ github: boolean; password: boolean }` | from `AccountDto` |
+| `welcome` | `boolean` | `?welcome=1` |
+| `children` | `ReactNode` | the name form |
+
+<Controls of={Stories.Playground} exclude={["roles", "signInMethods"]} />
+
+Object and array props are documented read-only here; edit them in the standalone Playground
+Controls panel. This avoids the documentation object inspector's invalid list markup
+(P-AUD3, proposal approved by Rafał; WCAG 1.3.1).
+
+<ArgTypes of={Stories.Playground} include={["roles", "signInMethods"]} />
+
+## 11. Code
+
+```tsx
+<AccountSummary email={account.email} roles={account.roles} signInMethods={account.signInMethods} welcome={welcome}>
+  <CrudForm schema={accountUpdateSchema} fields={[{ name: "displayName", label: "Display name" }]}
+    initialValues={{ displayName: account.displayName }} resetOnSuccess={false} onSubmit={save} />
+</AccountSummary>
+```
+
+`resetOnSuccess` on `CrudForm` is E01 Phase 1 work (platform F2); the hook already supports it.
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| Show the email as text | a disabled email field | P-C6 |
+| One card with a separator | a card per section | prompt, What to avoid: card in card |
+
+## 13. Related
+
+- Built from: **Card**, **Alert**, **Badge**, **Separator**, `CrudForm`.
+- Used in: Account screen.

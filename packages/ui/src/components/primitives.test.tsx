@@ -73,7 +73,7 @@ describe("presentation primitives", () => {
     }
   });
 
-  it("forwards button events, disabled state and link rendering", () => {
+  it("forwards button events and disabled state and preserves styled link semantics", () => {
     const onClick = vi.fn();
     const { rerender } = render(<Button className="custom" onClick={onClick}>Save</Button>);
     expect(screen.getByRole("button")).toHaveClass("custom", "bg-primary");
@@ -83,8 +83,12 @@ describe("presentation primitives", () => {
     expect(screen.getByRole("button")).toBeDisabled();
     fireEvent.click(screen.getByRole("button"));
     expect(onClick).toHaveBeenCalledOnce();
-    rerender(<Button nativeButton={false} render={<a href="/users" />}>Users</Button>);
-    expect(screen.getByRole("button", { name: "Users" })).toHaveAttribute("href", "/users");
+    rerender(<a href="/users" className={buttonVariants({ variant: "outline", size: "sm" })}>Users</a>);
+    const link = screen.getByRole("link", { name: "Users" });
+    expect(link).toHaveAttribute("href", "/users");
+    expect(link).toHaveClass("border-input", "h-button-sm");
+    expect(link).not.toHaveAttribute("role");
+    expect(screen.queryByRole("button", { name: "Users" })).not.toBeInTheDocument();
     for (const variant of ["default", "secondary", "destructive", "outline", "ghost", "link"] as const) {
       expect(buttonVariants({ variant })).toBeTruthy();
     }

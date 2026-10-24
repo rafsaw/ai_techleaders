@@ -1,0 +1,146 @@
+import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as SchemaFormStories from "./schema-form.stories";
+
+<Meta of={SchemaFormStories} />
+
+# Schema form
+
+```tsx
+import { SchemaForm } from "@devmentor/ui/frontend/forms/SchemaForm"
+import { useSchemaForm } from "@devmentor/ui/forms/useSchemaForm"
+```
+
+Public kit (F3) on the shared form core (F2, `useSchemaForm`). `CrudForm` uses the same hook
+since this batch, with its API unchanged (Z-1), so both kits validate, map server errors and
+block double submits the same way.
+
+## 1. What it is for
+
+A schema form lets a signed-out visitor fill a short form that is checked with the same rules as
+the server, and tells them exactly what to fix without losing what they typed.
+
+## 2. When to use
+
+- `/sign-in` email form, `/sign-up`, `/confirm-email` (E01 Phase 2).
+- Any public form posting to `/api/*` through `apiCall` with a shared Zod schema.
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| A signed-in or `/backend` form | `CrudForm` | Q1, AGENTS.md |
+| A single action without fields (**Accept invitation**) | a `<form>` with `SubmitButton` | E01 Flow 3 |
+| Fields the kit does not have (select, textarea) | not in the public kit yet (What is missing) | — |
+
+## 4. Anatomy
+
+| Part | Required | Notes |
+|---|---|---|
+| `<form noValidate>` | yes | one column, `max-w-text`, `gap-between-groups` |
+| `children` | optional | above the fields, before typing: the N03 `Notice` (E01 Flow 2) |
+| Form error | on a non-field failure | `Notice variant="error"` |
+| Fields | yes | `TextField` or `PasswordField` per `fields[].type` |
+| Submit | yes | `SubmitButton`, full width (P-F4, proposal approved by PO(Rafał)) |
+
+## 5. Variants
+
+None. The fields come from `fields`; the three E01 forms:
+
+<Canvas of={SchemaFormStories.Variants} />
+
+## 6. States
+
+| State | Story | What the visitor sees | Source |
+|---|---|---|---|
+| Idle | *Playground* | fields, notice, **Sign in** | — |
+| Field left with a value | *Validate on blur* | that field's error, or none when fixed | prompt, Form pattern; P-F2, proposal approved by PO(Rafał) |
+| Submitted with errors | *Client errors* | every error; focus on the first invalid field; nothing sent | prompt, Form pattern; platform F2 |
+| Pending | *Pending* | button disabled, *Signing in…*; a second press does nothing | P-C4, prompt Form pattern |
+| Server field error | *Server field error* | the message on its field, focus there | API envelope `fieldErrors` |
+| Server error | *Server error* | error notice (*Email or password is incorrect*), values kept | E01 sign-in |
+| No network | *No network* | `apiCall`'s message, values kept | `apiCall` |
+| Success | *Playground* | `onSuccess(data)` after the server answers, e.g. navigate to `data.redirectTo` | E01 F5, Q4 |
+
+<Canvas of={SchemaFormStories.ClientErrors} />
+<Canvas of={SchemaFormStories.ServerError} />
+
+## 7. Behaviour and accessibility
+
+- Labels always visible; errors linked to their inputs (`aria-invalid`, `aria-describedby`, E01 UI/UX).
+- After a failed submit, focus moves to the first invalid field in screen order (prompt, Form pattern; F2). A form-level error is `role="alert"` and read at once.
+- Validation on leaving a field runs only once the field has a value or already shows an error, so tabbing through an empty form does not paint it red (P-F2, proposal approved by PO(Rafał)).
+- Cmd/Ctrl+Enter submits (same as `CrudForm`).
+- Values stay after a failure; after success they stay too by default (`resetOnSuccess={false}`), because a public form navigates away (P-F3, proposal approved by PO(Rafał)).
+- `noValidate`: the schema's messages replace the browser's.
+
+## 8. Content
+
+- Submit: verb and object (*Sign in*, *Create account*, *Confirm*), pending in *-ing* form (P-C3, P-C4).
+- Error messages come from the shared schema and the server; write them as what to do.
+- Notices above the fields carry rules the visitor needs before typing (N03, AD6).
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | one column, full width, submit full width |
+| 768 px | one column (P-L, stage 1) |
+| 1440 px | one column within `max-w-text`, inside the page's centred content |
+
+<Canvas of={SchemaFormStories.NoNetwork} />
+
+## 10. API
+
+| Prop | Type | Default | Description |
+|---|---|---|---|
+| `schema` | `ZodType` | — | the route's schema |
+| `fields` | `{ name, label, type?: "text" \| "email" \| "password", hint?, autoComplete?, placeholder? }[]` | — | in screen order |
+| `initialValues` | `Partial<Record<name, string>>` | `""` for every field | |
+| `submitLabel` | `string` | — | verb and object |
+| `pendingLabel` | `string` | — | *-ing* form |
+| `onSubmit` | `(values) => Promise<ApiResult<T>>` | — | usually `apiCall` |
+| `onSuccess` | `(data: T) => void` | — | after the server confirms |
+| `resetOnSuccess` | `boolean` | `false` | clear the fields after success |
+| `children` | `ReactNode` | — | above the fields |
+
+`useSchemaForm(options)` returns `{ values, setValue, fieldErrors, formError, isSubmitting,
+handleBlur, handleSubmit, handleKeyDown }` (platform F2, plus `handleBlur`).
+
+<Controls of={SchemaFormStories.Playground} />
+
+## 11. Code
+
+```tsx
+<SchemaForm
+  schema={signInSchema}
+  fields={[
+    { name: "email", label: "Email", type: "email", autoComplete: "email" },
+    { name: "password", label: "Password", type: "password", hint: null },
+  ]}
+  submitLabel="Sign in"
+  pendingLabel="Signing in…"
+  onSubmit={(values) => apiCall("/api/auth/sign-in", { method: "POST", body: values })}
+  onSuccess={({ redirectTo }) => window.location.assign(redirectTo)}
+>
+  <Notice title="Password reset is not available yet.">…</Notice>
+</SchemaForm>
+```
+
+`email_not_confirmed` needs **Resend confirmation**: the form shows the server's message, and
+the page adds the resend form next to it (stage 3, `SignInOptions`).
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| Keep what the visitor typed after an error | clear the form on failure | they would type a 15-character password again (prompt, Form pattern) |
+| Show success after `onSuccess` | navigate on click before the server answers | Q4: no success before the server |
+| Pass the route's schema | a second, client-only schema | errors must match the server's (F2) |
+
+These pairs are text because each needs a submitted form; see stories *Server error* and *Pending*.
+
+## 13. Related
+
+- Confused with: `CrudForm` (signed-in kit, same hook).
+- Used in: Form pattern (public, stage 3), `/sign-in`, `/sign-up`, `/confirm-email`.
