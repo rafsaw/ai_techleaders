@@ -50,3 +50,6 @@ next-env.d.ts
 
 # storybook
 storybook-static/
+
+# storybook prototype copies (lesson materials, not product code)
+packages/ui/.storybook/public/prototypes/

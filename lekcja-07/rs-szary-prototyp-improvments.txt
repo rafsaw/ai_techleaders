@@ -1,0 +1,15 @@
+Please update the existing grey mentor onboarding prototype to add a visible progress indicator at the top of the screen, similar to a stepper.
+
+Show the main stages: Invitation → Sign in → Accept invitation → Profile → Stripe → Slots → Ready.
+
+The indicator should:
+- Show the current stage and completed stages.
+- Remain visible throughout the onboarding flow.
+- Be informational, not a way to skip required steps.
+- Work with the existing simulated states and navigation.
+- Preserve the approved E01 behavior: after accepting the invitation, navigate to the home page with the success notice.
+- Keep the Test state controls separate from the product flow.
+
+Do not change business rules, scope, specifications, design system or application code. Update only the grey prototype and its documentation.
+
+After the change, verify the complete happy path in the browser and report the result. Do not commit.
