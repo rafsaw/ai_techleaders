@@ -11,15 +11,16 @@ Rozpisz mapę ekranów dla przepływu, z którego powstanie klikalny prototyp.
 Niczego jeszcze nie buduj. Twoim wynikiem jest plik z mapą i lista luk
 w specyfikacji.
 
-# Materiały (uzupełnij)
+# Materiały
 
-- Przepływ: {{np. Epik 01, konta i role: logowanie GitHubem i mailem,
-  rejestracja, weryfikacja maila, strony startowe ról i brak dostępu}}
-- Brief: {{ścieżka}}
-- Backlog i specyfikacje: {{ścieżki}}
-- Persony z lekcji 4: {{ścieżka do personas.md albo „brak”}}
-- Design system: {{pakiet, Storybook i plik dla agentów z lekcji 6}}
-- Gdzie zapisać mapę: {{np. prototypes/konta-i-role/mapa-ekranow.md}}
+- Brief: .ai/specs/product-brief.md
+- Backlog i specyfikacje: .ai/specs/backlog.md i
+  .ai/specs/2026-10-17-accounts-and-roles.md
+- Persony i badania: .ai/specs/research/ (personas.md, jeśli jest,
+  wywiady i decyzje)
+- Design system: packages/ui (komponenty w packages/ui/src,
+  Storybook w packages/ui/.storybook), zasady dla agentów w AGENTS.md
+- Gdzie zapisać mapę: lekcja-07/mapa-ekranow.md
 
 # Jak pracujesz
 
