@@ -1,0 +1,10 @@
+@import "@devmentor/ui/globals.css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@source "../../../packages/ui/src";
+@source ".";
+
+@import "./review/prototype.css";
+@import "./review/mostek.css";
+@import "./review-shell.css";

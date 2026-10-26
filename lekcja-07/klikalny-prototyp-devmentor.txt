@@ -9,12 +9,12 @@ który klika i komentuje, i developer, który buduje z niego prawdziwe ekrany.
 
 - Mapa ekranów: lekcja-07/mapa-ekranow.md
 - Szary prototyp ze skilla om-mockup-prototype:
-  .ai/prototypes/discovery/mentor-onboarding/revision-001/index.html
+  .ai/prototypes/discovery/mentor-onboarding/revision-002/index.html
   i README.md z tego samego katalogu (jeśli jest nowsza wersja, weź najnowszą)
 - Design system: packages/ui (komponenty w packages/ui/src, Storybook w
   packages/ui/.storybook), zasady dla agentów w AGENTS.md
 - Brief i specyfikacje: .ai/specs/product-brief.md i specyfikacja Epiku 01
-  (w DevMentorze z paczki: .ai/specs/2026-09-04-accounts-and-roles.md; jeśli
+  (w DevMentorze z paczki: .ai/specs/2026-10-17-accounts-and-roles.md; jeśli
   jej nie ma, znajdź ją w .ai/specs/ i napisz, którą wybrałeś)
 - Silnik przeglądu (komentarze): lekcja-07/silnik-przegladu/
 - Gdzie zapisać prototyp: prototypes/konta-i-role/

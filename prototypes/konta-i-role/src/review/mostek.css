@@ -1,0 +1,25 @@
+/* Bridge: the names the review engine uses, pointed at the DevMentor design-system tokens
+   (packages/ui/src/styles/globals.css). Nothing here is a new colour. The font variables are not
+   redefined: the design system already defines --font-geist-sans and --font-geist-mono. */
+:root, .dark {
+  --font-size-overline: var(--text-meta);
+  --radius-sm: var(--radius-control);
+  --radius-md: var(--radius-control);
+  --radius-lg: var(--radius-panel);
+  --radius-xl: var(--radius-panel);
+  /* The engine's pins and highlights: the design system has no accent colour (A01), so the main action colour. */
+  --accent-indigo: var(--primary);
+  --accent-indigo-foreground: var(--primary-foreground);
+  --shadow-xs: none;
+  --shadow-sm: none;
+  --shadow-md: var(--shadow-overlay);
+  --shadow-xl: var(--shadow-overlay);
+  --shadow-focus: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+  --status-success-icon: var(--success);
+  --status-warning-icon: var(--warning);
+  --status-warning-border: var(--warning);
+  --status-warning-bg: var(--muted);
+  --status-warning-text: var(--foreground);
+  --z-index-sticky: 100; --z-index-dropdown: 200; --z-index-overlay: 300;
+  --z-index-modal: 400; --z-index-toast: 500; --z-index-top: 600;
+}
