@@ -4,6 +4,7 @@
 - Depends on: E01 [`2026-10-17-accounts-and-roles.md`](./2026-10-17-accounts-and-roles.md) (the `mentor` role, sessions, page guards, `(app)` area). Platform catalog [`2026-10-17-platform-primitives.md`](./2026-10-17-platform-primitives.md) is cited as "platform P*n*/F*n*". **This spec holds the final contracts for P5 (`assertOwner`), P13 (onboarding half) and P17, and builds P14's signature-only `webhookHandler` wrapper.** P14's inbox (event-ID deduplication) stays provisional for E04. The catalog keeps only status and a pointer here, changed in the same PR.
 - Design authority: `.ai/specs/product-brief.md` (D03–D06, D12, D16, R01, N01, N02)
 - Research: one shared pass for the three stories and #47 (section "Research"). It is #47's deliverable.
+- Grey prototype (mentor onboarding, source of the questions at the end): `.ai/prototypes/discovery/mentor-onboarding/revision-002/`
 - Status: **draft for review** (gate answered by the PO 2026-10-18; joint E01/E02 review revised the same day; grilling decisions G1–G12 applied 2026-10-18; implementation and the real Stripe test-mode run remain outstanding)
 
 ## 📝 TLDR
@@ -713,3 +714,27 @@ Each step leaves the app working and names its tests. Unit tests are colocated; 
    - set `booked_at` through the test database → *Booked* row with no button, and a forced `DELETE` → 409
    - one real-DB race test: two concurrent publishes 30 minutes apart → exactly one stored
 8. **Documentation:** `BACKWARD_COMPATIBILITY.md` (routes; `LocalTime` is still colocated); the run log. Move this spec to `.ai/specs/implemented/` after Phase 3's full gate. Update the platform catalog's P5/P13/P17 status, and P14's wrapper, to "implemented".
+
+## 📝 Open questions and prototype observation
+
+Source: `.ai/specs/research/walkthroughs/2026-10-27-mentor-onboarding-session-001/report.md` (grey prototype `.ai/prototypes/discovery/mentor-onboarding/revision-002/`). Nothing below is a requirement or changes a decision.
+
+### Open question from E01
+
+- After a mentor is redirected to `/mentor` (accounts Flow 3, SM-AC8b), should the message "Invitation accepted. You're now a mentor." also be shown? E01 shows it on `/` (`.ai/specs/2026-10-17-accounts-and-roles.md`, SM-AC8a). Undecided. Owner: product owner.
+
+### Prototype observation (not a persona hypothesis)
+
+- In the grey prototype, the notice "Back from Stripe. Stripe is checking your details." stays above "You are bookable. / Payouts confirmed" (report finding 2, observed by the main agent in the screenshot). Question for this spec: can the `?stripe=returned` banner and a `ready` payout status be shown together? No criterion is added.
+
+### Questions to verify (synthetic hypotheses, not requirements)
+
+- **[SYNTHETIC]** Do mentors stop at identity and payout details before a first booking, and what, short of a booking, would make this step feel safe? (findings 1 and 11; D05, A04)
+- **[SYNTHETIC]** How do first-time mentors set two prices when the 20% commission is marked provisional, with and without a reference range? (finding 5; D06, MD2)
+- **[SYNTHETIC]** What do mentors expect to happen after "ready": how a mentee finds them, what a booking looks like and when money arrives? (finding 6)
+- **[SYNTHETIC]** Do mentors expect the public page to work before they can be booked? (finding 7; MD4)
+- **[SYNTHETIC]** Do mentors expect an email when Stripe finishes instead of pressing **Check status**? (finding 8; MD9)
+- **[SYNTHETIC]** How many slots do mentors type by hand before they give up on a missing repeat option? (finding 9; recurring slots are a Non-goal)
+- **[SYNTHETIC]** When would a mentor with a twenty-minute limit stop during setup? (finding 14)
+
+Findings 12 (notes after a session, D01) and 13 (listing beside strangers, D04) concern the brief and a future listing spec; they stay in the report.

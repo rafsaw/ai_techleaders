@@ -1,0 +1,276 @@
+# Browser walk log (agent-browser 0.35.2, isolated session, local file:// URL)
+# Four scripted walks, run after the two fixes described in README.md. Last run of each.
+
+## w1
+== Walk 1: happy path (GitHub), invitation to bookable
+screenshot 01-entry-invitation-email.png
+PASS entry heading | observed: Invitation email
+click link 'Open the invitation link'
+PASS invite screen signed out | observed: You're invited to mentor on DevMentor
+PASS no Accept offered while signed out | observed: 
+screenshot 02-invite-signed-out.png
+click button 'Sign in'
+PASS sign-in screen | observed: Sign in
+click button 'Continue with GitHub'
+PASS returned to invite after sign-in (returnTo) | observed: You're invited to mentor on DevMentor
+PASS GitHub public-name notice shown once | observed: Your GitHub name is shown publicly on DevMentor. You can change it in Account settings.
+Dismiss
+screenshot 03-invite-ready-accept.png
+click button 'Accept as Ada Kowalska (ada@example.test)'
+PASS accept -> home (L01) | observed: ('DevMentor', '#home')
+PASS success notice | observed: Invitation accepted. You're now a mentor.
+PASS GitHub notice gone after navigation | observed: Invitation accepted. You're now a mentor.
+screenshot 04-home-accepted.png
+click link 'Mentor setup'
+PASS mentor setup | observed: Mentor setup
+PASS notice cleared after leaving home | observed: 
+PASS not bookable: profile and stripe | observed: Not bookable yet: finish your profile and Stripe.
+PASS stripe locked | observed: 
+screenshot 05-mentor-setup-initial.png
+click link 'Create your profile'
+PASS profile form | observed: Create your profile
+click button 'Save profile'
+PASS empty submit blocked with summary | observed: The profile was not saved. Fix 5 fields below.
+screenshot 06-profile-errors.png
+fill 'Description'='Staff engineer, 12 years of TypeScript.'
+fill 'Links to public work'='https://github.com/example-ada\nhttp://bad'
+fill 'Price for 25 minutes'='3'
+fill 'Price for 50 minutes'='70'
+select 'Area'='typescript'
+click button 'Save profile'
+PASS line-specific link error | observed: Line 2: use a full https:// link.
+PASS price error | observed: Enter an amount from 5 to 1,000.
+fill 'Links to public work'='https://github.com/example-ada\nhttps://example.test/blog'
+fill 'Price for 25 minutes'='40'
+click button 'Save profile'
+PASS saved -> setup | observed: ('Mentor setup', 'Profile saved.')
+PASS status still not bookable: Stripe only | observed: Not bookable yet: finish Stripe.
+screenshot 07-profile-saved.png
+click link 'View public page'
+PASS public page shows not taking bookings | observed: 
+PASS public page no ratings | observed: 
+screenshot 08-public-not-bookable.png
+click link 'Back to Mentor setup'
+click link 'Set up payouts'
+PASS stripe country page | observed: Payouts with Stripe
+click button 'Continue to Stripe'
+PASS country required | observed: Choose a country.
+select 'Country'='Poland'
+click button 'Continue to Stripe'
+PASS stripe stand-in | observed: Stripe onboarding (stand-in)
+screenshot 09-stripe-standin.png
+click button 'Leave before finishing'
+PASS incomplete state | observed: 
+screenshot 10-stripe-incomplete.png
+click link 'Continue with Stripe'
+click button 'Submit my details'
+PASS checking state | observed: 
+PASS status line still not bookable | observed: Not bookable yet: finish Stripe.
+screenshot 11-stripe-checking.png
+click button 'Check status'
+PASS bookable after Stripe (brief definition), no slots | observed: ('You are bookable.', 'You have no upcoming slots, so mentees have nothing to pick.')
+screenshot 12-bookable-no-slots.png
+click link 'Publish slots'
+
+## w2
+== Walk 1 (cont.): slots
+PASS on slots page | observed: Slots
+fill 'Start date'='2026-11-02'
+fill 'Start time'='11:00'
+click button 'Add slot'
+PASS too-soon slot rejected | observed: Choose a start at least 2 hours from now (after Mon 2 Nov 2026, 12:00).
+screenshot 13-slot-too-soon.png
+fill 'Start date'='2026-11-03'
+fill 'Start time'='14:00'
+click button 'Add slot'
+PASS slot added and listed | observed: MM-DD.
+
+Start time
+
+24-hour format HH:MM. At least 2 hours from now, and at least 50 minutes away from your other slots.
+
+Add slot
+Back to Mentor setup
+Your upcoming slots
+Tue 3 Nov 2026, 14:00 Remove
+fill 'Start date'='2026-11-03'
+fill 'Start time'='14:30'
+click button 'Add slot'
+PASS slots <50 min apart rejected | observed: Slots must start at least 50 minutes apart.
+fill 'Start date'='2026-11-03'
+fill 'Start time'='15:30'
+click button 'Add slot'
+screenshot 14-slots-list.png
+click button 'Remove slot Tue 3 Nov 2026, 15:30'
+PASS removed | observed: 
+fill 'Start date'='2026-11-04'
+fill 'Start time'='09:00'
+click button 'Add slot'
+click button 'Mark first open slot as booked'
+PASS booked slot has no Remove | observed: 
+screenshot 15-slot-booked.png
+click link 'Back to Mentor setup'
+PASS availability line counts | observed: You have 2 upcoming slots.
+screenshot 16-bookable-with-slots.png
+click link 'View public page'
+PASS public bookable state | observed: 
+screenshot 17-public-bookable.png
+== navigation: browser back/forward, unknown fragment
+PASS browser back -> mentor setup | observed: Mentor setup
+PASS browser forward -> public page | observed: #public
+PASS unknown fragment recovery | observed: Page not found in this prototype
+screenshot 18-unknown-fragment.png
+click link 'Back to the start of the flow'
+PASS recovery link -> start | observed: Invitation email
+== Reset
+PASS signed-in before reset | observed: Mentor setup
+click button 'Reset simulation'
+PASS reset -> start | observed: ('Invitation email', '#email')
+PASS reset clears session (Sign in link back) | observed: Sign in
+PASS reset announced | observed: Simulation reset to the invitation email.
+PASS after reset mentor page requires sign-in | observed: Sign in
+screenshot 19-after-reset-guard.png
+
+## w3
+== Walk 3: edge states
+click button 'Reset simulation'
+click link 'Open the invitation link'
+click button 'Sign in'
+fill 'Email address'='not-an-email'
+click submit button 'Sign in' (form button[type=submit])
+PASS email validation, summary | observed: Enter an email address like name@example.test.
+screenshot 20-signin-validation.png
+fill 'Email address'='ada@example.test'
+fill 'Password'='wrong'
+click submit button 'Sign in' (form button[type=submit])
+PASS wrong password message | observed: Fix the following: Email or password is incorrect.
+fill 'Email address'='jan@example.test'
+fill 'Password'='demo-password'
+click submit button 'Sign in' (form button[type=submit])
+PASS wrong-address: no Accept button | observed: You're invited to mentor on DevMentor
+
+This invitation was sent to ada@example.test. It works once.
+
+You are signed in as jan@example.test, but this invitation was sent to ada@example.test. It can onl
+screenshot 21-invite-wrong-address.png
+click button 'Ask for a new invitation'
+PASS ask-for-new-invitation guidance | observed: Write to team@example.test (fictitious address) and name the address you want to use.
+click button 'Sign out and use another account'
+PASS signed out on invite | observed: 
+-- create account path with the invited address
+click button 'Create account'
+fill 'Email address'='ada@example.test'
+fill 'Password'='short'
+click submit button 'Create account' (form button[type=submit])
+PASS password length error | observed: Use at least 8 characters.
+fill 'Password'='long-enough-pw'
+click submit button 'Create account' (form button[type=submit])
+PASS confirm screen | observed: Check your email
+screenshot 22-confirm-email.png
+click button 'Open the confirmation link'
+PASS back at invite signed in via returnTo | observed: You're invited to mentor on DevMentor
+
+This invitation was sent to ada@example.test. It works once.
+
+Accept as ada (ada@example.test)
+-- accept: race lost, then error, then success
+select 'Result of the next Accept'='race'
+click button 'Accept as ada'
+PASS race lost -> invalid message | observed: This invitation is not valid
+screenshot 23-invite-race-lost.png
+click button 'Reset simulation'
+click link 'Open the invitation link'
+select 'Invitation link'='invalid'
+PASS invalid link message with recovery | observed: This invitation is not valid
+screenshot 24-invite-invalid.png
+click button 'Reset simulation'
+click link 'Open the invitation link'
+click button 'Sign in'
+click button 'Continue with GitHub'
+select 'Result of the next Accept'='fail'
+click button 'Accept as Ada'
+PASS accept failure keeps Accept for retry | observed: Something went wrong and the invitation was not accepted. Try again.
+screenshot 25-invite-accept-error.png
+select 'Result of the next Accept'='ok'
+click button 'Accept as Ada'
+PASS retry succeeds | observed: Invitation accepted. You're now a mentor.
+-- accepted invitation cannot be reused
+PASS single-use: reopening is invalid | observed: This invitation is not valid
+-- already mentor (marta)
+click button 'Reset simulation'
+click link 'Open the invitation link'
+click button 'Sign in'
+fill 'Email address'='marta@example.test'
+fill 'Password'='demo-password'
+click submit button 'Sign in' (form button[type=submit])
+PASS already mentor message | observed: You're invited to mentor on DevMentor
+
+This invitation was sent to ada@example.test. It works once.
+
+You are already a mentor with marta@example.test. This invitation is not needed.
+Open Mentor setup
+
+screenshot 26-invite-already-mentor.png
+-- permission denied for a mentee
+click button 'Reset simulation'
+click link 'Open the invitation link'
+click button 'Sign in'
+click button 'Continue with GitHub'
+PASS mentee sees no-access | observed: You don't have access to this page
+screenshot 27-no-access.png
+-- Stripe failure + blocked + contact
+click button 'Reset simulation'
+click link 'Open the invitation link'
+click button 'Sign in'
+click button 'Continue with GitHub'
+click button 'Accept as Ada'
+click link 'Mentor setup'
+click link 'Create your profile'
+select 'Area'='python'
+fill 'Description'='Python.'
+fill 'Links to public work'='https://example.test/a'
+fill 'Price for 25 minutes'='25'
+fill 'Price for 50 minutes'='45'
+click button 'Save profile'
+click link 'Set up payouts'
+select 'Country'='Germany'
+select 'Continue to Stripe'='fail'
+click button 'Continue to Stripe'
+PASS stripe unreachable error, setup unchanged | observed: We couldn't reach Stripe. Nothing was changed. Try again.
+screenshot 28-stripe-start-failed.png
+select 'Continue to Stripe'='ok'
+click button 'Continue to Stripe'
+click button 'Submit my details'
+select 'Check status'='blocked'
+click button 'Check status'
+PASS blocked state | observed: Not bookable yet: finish Stripe.
+click button 'Contact the DevMentor team'
+PASS contact panel | observed: Write to team@example.test (fictitious address) and mention your Stripe setup.
+screenshot 29-stripe-blocked.png
+
+## w4
+== Walk 4: keyboard, focus, narrow viewport
+click button 'Reset simulation'
+click link 'Open the invitation link'
+PASS heading focused after navigation | observed: H1
+click button 'Sign in'
+fill 'Email address'='jan@example.test'
+fill 'Password'='x'
+PASS Enter submits form; error summary focused and announced (role=alert) | observed: err-summary
+PASS invalid fields marked aria-invalid or summary only | observed: summary: Fix the following: Email or password is incorrect.
+PASS Tab moves focus through reachable controls | observed: ['f-password', 'Sign in', 'Test state (not part of the pr', 'ValidUsed, revoked, expired or', 'Ada (invited address)Jan (anot', 'SuccessInvitation just used by']
+PASS focus visible (keyboard) outline | observed: solid 3px
+screenshot 30-keyboard-focus.png
+click button 'Continue with GitHub'
+PASS Accept operable with keyboard | observed: Invitation accepted. You're now a mentor.
+-- narrow viewport
+click link 'Mentor setup'
+PASS no horizontal scroll at 375px (setup) | observed: (375, 375)
+screenshot 31-narrow-setup.png
+click link 'Create your profile'
+PASS no horizontal scroll at 375px (profile) | observed: (375, 375)
+PASS action buttons visible at 375px | observed: 
+screenshot 32-narrow-profile.png
+-- no network/storage
+PASS no storage used | observed: 0
+network requests: [{"headers": {"sec-ch-ua": "\"Not:A-Brand\";v=\"8\", \"Chromium\";v=\"156\"", "sec-ch-ua-mobile": "?0", "sec-ch-ua-platform": "\"Linux\""}, "method": "GET", "mimeType": "text/html", "requestId": "1BADC071D147677FC84FF93C97F2DA13", "resourceType": "Document", "responseHeaders": {"Content-Type": "text

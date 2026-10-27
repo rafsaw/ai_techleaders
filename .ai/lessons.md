@@ -368,3 +368,9 @@ Keep prose CSS out of Unstyled component previews; overriding anchor colours the
 broke the primary LinkButton contrast. Record cross-frame axe best-practice findings
 explicitly instead of disabling rules.
 **Applies to:** `packages/ui/.storybook/blocks/documentation.tsx`, `preview.css`.
+
+### 2026-10-27 — `next build` fails under a coding agent, passes in CI
+
+**Context:** local `npm run build` compiled, then exited 1 with `SecurityFatalError: Your version of Next.js is affected by a known security vulnerability`, while CI's Build job on the same lockfile (next 16.4.0, Node 22.23.3) passed.
+**Lesson:** Next 16.4.0 defaults `experimental.agentUpgrade` to `'security'`. During `next build` it queries the npm advisory API; when it detects a coding agent (e.g. `CLAUDECODE` env var) and the installed version is affected, it stops the command once (retry allowed for 5 minutes via a receipt in `.next/cache`). In CI no agent is detected, so the check returns early and the build passes silently. CI green does not mean the version is unaffected: `npm audit` reports next `16.0.0–16.4.0` critical (GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r, GHSA-673q-mjm6-r5xr). Do not disable the check; decide on the upgrade separately.
+**Applies to:** `packages/app` build, `npm run build` run by agents, Next.js version policy.

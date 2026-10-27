@@ -1,0 +1,12 @@
+{
+  "name": "konta-i-role-prototype",
+  "private": true,
+  "type": "module",
+  "description": "Clickable prototype of Epic 01 (accounts and access), built from @devmentor/ui. Not part of the app or the workspaces.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  }
+}

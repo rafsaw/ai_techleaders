@@ -1,0 +1,13 @@
+# Fix 001 walk log: AFTER the fix (current index.html).
+# Playwright (Chromium), file:// URL, 1280 px.
+PASS A1 checking state shows checking | observed: Back from Stripe. Stripe is checking your details. /// Mentor setup Ada Kowalska Sign out ✓ Invitation (completed) ✓ Sign in (completed) ✓ Accept invitation (completed) ✓ Profile (completed) 5 Stripe (current step) 6 Slots (not started) 7 Ready (not started) Step 5 of 7: Stripe. Progress only; use the page below to continue. Back from Stripe. Stripe is 
+PASS A1 no bookable claim while checking
+PASS A2 after check: bookable + payouts confirmed
+PASS A3 no 'Stripe is checking' anywhere once confirmed | observed: notices=[]
+PASS A4 no stale checking status region
+PASS A5 stepper present | observed: ✓ Invitation (completed)|✓ Sign in (completed)|✓ Accept invitation (completed)|✓ Profile (completed)|✓ Stripe (completed)|6 Slots (current step)|7 Ready (not started)|1. Profile Saved Edit profile View public page|2. Payouts with Stripe Payouts confirmed|3. Slots No upcoming slots Publish slots
+PASS B1 blocked: no 'Stripe is checking' | observed: notices=[]
+PASS B2 blocked: not bookable
+PASS B3 blocked: contact action present
+PASS C1 round trip keeps clean status | observed: Discovery prototype. Simulated data. Nothing here is saved or sent. Reset simulation DevMentor Mentor setup Ada Kowalska Sign out ✓ Invitation (completed) ✓ Sign in (completed) ✓ Accept invitation (completed) ✓ Profile (completed) ✓ Stripe (completed) 6 Slots (current step) 7 Ready (not started) Step 6 of 7: Slots. Progress only; use the page below to continue. Mentor setup You are bookable. Public page: /mentors/demo-mentor You have no upcoming slots, so mentees have nothing to pick. 1. Profile
+ALL PASSED

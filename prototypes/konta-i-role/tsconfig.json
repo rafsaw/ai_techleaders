@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "allowJs": false,
+    "types": ["vite/client"],
+    "paths": { "zod": ["../../packages/ui/node_modules/zod"] }
+  },
+  "include": ["src", "vite.config.ts", "vitest.config.ts"]
+}

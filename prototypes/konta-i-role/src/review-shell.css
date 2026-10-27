@@ -1,0 +1,90 @@
+/* The page around the screens: review bar, screen labels and the classes the engine builds its
+   controls from. Tokens only (spacing, radius, text and colour roles from packages/ui). */
+body { background: var(--background); color: var(--foreground); }
+
+.doc-toolbar {
+  position: sticky; top: 0; z-index: var(--z-index-sticky);
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-in-group);
+  padding: var(--spacing-in-group) var(--spacing-page-gutter);
+  background: var(--card); color: var(--card-foreground); border-bottom: 1px solid var(--border);
+}
+.doc-title { font-size: var(--text-label); font-weight: 600; }
+.doc { padding: var(--spacing-section) var(--spacing-page-gutter); display: flex; flex-direction: column; gap: var(--spacing-component); }
+.doc-head h1 { font-size: var(--text-page-title); line-height: var(--text-page-title--line-height); font-weight: 600; }
+.doc-head p { font-size: var(--text-body); color: var(--muted-foreground); max-width: 48rem; }
+.screen { scroll-margin-top: var(--spacing-section); }
+.screen-meta { margin-bottom: var(--spacing-in-group); }
+.screen-meta h2 { font-size: var(--text-section-title); line-height: var(--text-section-title--line-height); font-weight: 600; }
+.screen-meta p { font-size: var(--text-meta); color: var(--muted-foreground); }
+.frame { border: 1px solid var(--border); border-radius: var(--radius-panel); overflow: hidden; background: var(--background); }
+.notes { margin-top: var(--spacing-in-group); font-size: var(--text-meta); color: var(--muted-foreground); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--spacing-in-group);
+  height: var(--spacing-button-sm); padding-inline: var(--spacing-button-x-sm);
+  border: 1px solid transparent; border-radius: var(--radius-button);
+  background: transparent; color: var(--foreground);
+  font: inherit; font-size: var(--text-label); font-weight: 500; line-height: 1; white-space: nowrap;
+  cursor: pointer; text-decoration: none; list-style: none;
+}
+.btn:hover { background: var(--accent); }
+.btn:focus-visible, .segmented button:focus-visible, .screen-nav a:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.btn:disabled { cursor: not-allowed; background: var(--disabled); color: var(--disabled-foreground); }
+.btn-outline { border-color: var(--input); }
+.btn-primary, .btn-primary:hover { background: var(--primary); color: var(--primary-foreground); }
+.btn-ghost { background: transparent; }
+.btn-sm { height: var(--spacing-button-sm); }
+summary.btn::-webkit-details-marker { display: none; }
+
+.segmented { display: inline-flex; border: 1px solid var(--input); border-radius: var(--radius-button); overflow: hidden; }
+.segmented button {
+  height: var(--spacing-button-sm); padding-inline: var(--spacing-button-x-sm);
+  border: 0; background: transparent; color: var(--foreground); font: inherit; font-size: var(--text-label); font-weight: 500; cursor: pointer;
+}
+.segmented button[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); }
+
+.bar-menu { position: relative; }
+.bar-panel {
+  position: absolute; top: 100%; left: 0; z-index: var(--z-index-dropdown);
+  margin-top: var(--spacing-in-group); min-width: 16rem; max-width: calc(100vw - 2 * var(--spacing-page-gutter)); max-height: 70vh; overflow: auto;
+  background: var(--popover); color: var(--popover-foreground);
+  border: 1px solid var(--border); border-radius: var(--radius-panel); box-shadow: var(--shadow-overlay);
+  padding: var(--spacing-panel-compact);
+}
+.screen-nav { display: flex; flex-direction: column; gap: var(--spacing-in-group); }
+.screen-nav a { color: var(--foreground); font-size: var(--text-label); text-decoration: underline; text-underline-offset: 4px; }
+.scenario-panel { display: flex; flex-direction: column; gap: var(--spacing-between-groups); }
+.scenario-field { display: flex; flex-direction: column; gap: var(--spacing-in-group); }
+
+.toast {
+  background: var(--card); color: var(--card-foreground); border: 1px solid var(--border);
+  border-radius: var(--radius-panel); padding: var(--spacing-panel-compact); font-size: var(--text-body); box-shadow: var(--shadow-overlay);
+}
+.input, .anno-composer textarea { font: inherit; }
+.row { display: flex; align-items: center; gap: var(--spacing-in-group); }
+.t-card-title { font-size: var(--text-row-title); font-weight: 600; }
+.t-overline { font-size: var(--text-meta); color: var(--muted-foreground); }
+.t-hint { font-size: var(--text-meta); color: var(--muted-foreground); }
+.badge { display: inline-flex; align-items: center; border: 1px solid var(--border); border-radius: var(--radius-pill); padding-inline: var(--spacing-badge-x); font-size: var(--text-meta); }
+.badge-warning { border-color: var(--warning); }
+body.proto-focus .doc { gap: 0; padding: 0; }
+body.proto-focus .frame { border-radius: 0; }
+.frame [tabindex="-1"]:focus { outline: none; }
+.proto-toolbar { flex-wrap: wrap; }
+body.proto-focus .doc { padding-bottom: calc(var(--spacing-section) + var(--spacing-button-lg)); }
+/* A tall bar would cover most of a phone screen, so it scrolls away there. */
+@media (max-width: 47.99rem) {
+  .doc-toolbar { position: relative; }
+  .bar-menu { position: static; }
+  .bar-panel { left: var(--spacing-page-gutter); right: var(--spacing-page-gutter); width: auto; min-width: 0; max-width: none; }
+}
+.btn.proto-back { display: none; background: var(--card); }
+body.proto-focus .btn.proto-back { display: inline-flex; }
+.scenario-panel { min-width: 0; width: 22rem; gap: var(--spacing-component); }
+.scenario-group { display: flex; flex-direction: column; gap: var(--spacing-between-groups); border: 0; padding: 0; margin: 0; min-width: 0; }
+.scenario-group legend { margin-bottom: var(--spacing-in-group); }
+.scenario-buttons { display: flex; flex-wrap: wrap; gap: var(--spacing-in-group); }
+.scenario-field select { width: 100%; }
+@media (max-width: 47.99rem) { .scenario-panel { width: auto; } }
+.note { border: 1px solid var(--border); border-radius: var(--radius-panel); background: var(--card); color: var(--card-foreground); padding: var(--spacing-panel-compact); display: flex; flex-direction: column; gap: var(--spacing-in-group); max-width: 60rem; }
+.note strong { color: var(--foreground); }

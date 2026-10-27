@@ -1,0 +1,154 @@
+{
+  "format": "discovery-prototype-v1",
+  "skill": "om-mockup-prototype",
+  "slug": "mentor-onboarding",
+  "revision": 1,
+  "revisionPath": ".ai/prototypes/discovery/mentor-onboarding/revision-001",
+  "previousRevision": null,
+  "brief": ".ai/specs/product-brief.md",
+  "flow": "mentor onboarding",
+  "panelReport": null,
+  "verification": "passed",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "a0ef3efe4426a20adf72f751aae601900bf19a58f94c2f0d758ea151a397506f"
+    },
+    {
+      "path": "evidence/01-entry-invitation-email.png",
+      "sha256": "7881bb1084ff32133fb887098ce9c684959ea11ee3b8c57ed40ca60ed9b5c92b"
+    },
+    {
+      "path": "evidence/02-invite-signed-out.png",
+      "sha256": "13808d5e5a99eeb6226f113d033e82ce3e8d719d6c912afe95c838c6ebf6e18a"
+    },
+    {
+      "path": "evidence/03-invite-ready-accept.png",
+      "sha256": "ce21f620696801340af4e8ded9ada9947adaaa171efb8c38bce2599b8cfd31d0"
+    },
+    {
+      "path": "evidence/04-home-accepted.png",
+      "sha256": "6b9e699394eace5c07950febdcae09c0b6a4872a33e683667b4eecf4914067dc"
+    },
+    {
+      "path": "evidence/05-mentor-setup-initial.png",
+      "sha256": "5bae5552f1b8ff7240bea5d7781b43f8f8035a7bd9ab2c488b00f9b0435eda31"
+    },
+    {
+      "path": "evidence/06-profile-errors.png",
+      "sha256": "9a2713465c60d9513966d2aba30ce1479b71d4a06f013d1a03e53eda224e02d0"
+    },
+    {
+      "path": "evidence/07-profile-saved.png",
+      "sha256": "b0ea60ca33763b93b05c6411502a94caa7a71ec5de63622ecf5c4d17e0c1fea5"
+    },
+    {
+      "path": "evidence/08-public-not-bookable.png",
+      "sha256": "9c40c417d94cce45c119188018f6c0833c234f07a8f0ae416a1a1ff96eba3dcc"
+    },
+    {
+      "path": "evidence/09-stripe-standin.png",
+      "sha256": "60c2a040989f2e4779764cef3d600606f018fcbd5f4272fead3207d4eef11b4d"
+    },
+    {
+      "path": "evidence/10-stripe-incomplete.png",
+      "sha256": "a3ccd9204599f5ea45e301e939ac50791af212dba4685710e3fb34411473800b"
+    },
+    {
+      "path": "evidence/11-stripe-checking.png",
+      "sha256": "26fa62f9a3bfecd07f9774e109d761f93b7bb5e94447623569adf60fad6d000b"
+    },
+    {
+      "path": "evidence/12-bookable-no-slots.png",
+      "sha256": "ab9aafb41eb5dc92a1b04b03eab68c6399aab7534445e6f2ce439741459d4ab2"
+    },
+    {
+      "path": "evidence/13-slot-too-soon.png",
+      "sha256": "047c2ec6f98120c0e8c4cfacb7d351ecc605a13a772b5e2409ee68bc5c5e3325"
+    },
+    {
+      "path": "evidence/14-slots-list.png",
+      "sha256": "4d8998a58d2666894d356219a66ef98d8bc765cb99c530df1338604c7e5af225"
+    },
+    {
+      "path": "evidence/15-slot-booked.png",
+      "sha256": "4d9bd130b050bada45a924553793d66db4494f478fdc12b79d10a9f2c24e90ab"
+    },
+    {
+      "path": "evidence/16-bookable-with-slots.png",
+      "sha256": "8bd6549c1b879d3b9d07e948966e5e49702794fe5c6db075aace10b22e669eb6"
+    },
+    {
+      "path": "evidence/17-public-bookable.png",
+      "sha256": "1a35def8b7dcc17732a3d35f15280a295fa5035194587d908209245991d2acc1"
+    },
+    {
+      "path": "evidence/18-unknown-fragment.png",
+      "sha256": "69d5adac9f293bf8a7170f1f3e84178f8301c96fb70739ba25b4f8dd85c59bf5"
+    },
+    {
+      "path": "evidence/19-after-reset-guard.png",
+      "sha256": "0c0b5df9b796bcea43f9deecd933d15eaccb7662c25567255c06f2237c3adf61"
+    },
+    {
+      "path": "evidence/20-signin-validation.png",
+      "sha256": "21ccab575c6c98236b5de5fc06617eec3e97562a83f87d9f6ba3fc56fec5faf1"
+    },
+    {
+      "path": "evidence/21-invite-wrong-address.png",
+      "sha256": "cdda69db98141556e91ad5d2459b153181fc9c1c084f76cb161b37ad4506a86d"
+    },
+    {
+      "path": "evidence/22-confirm-email.png",
+      "sha256": "1b2f5de5bcd1a34a7fd922c502cfead7fb78bbe2764d23c08605a353cebd9e6e"
+    },
+    {
+      "path": "evidence/23-invite-race-lost.png",
+      "sha256": "7d3ba605d701d24eccbc3c024f6f9dde5064a9da993e438a5d4d3b0f3d60bad2"
+    },
+    {
+      "path": "evidence/24-invite-invalid.png",
+      "sha256": "d5ceb0a85e4064824dd446d2df27042cfc4b578be19c33adf5034b305aef0470"
+    },
+    {
+      "path": "evidence/25-invite-accept-error.png",
+      "sha256": "1853ff469110cac75458e503aaa7012372760043d7c0f883226df1e6e4a57e2d"
+    },
+    {
+      "path": "evidence/26-invite-already-mentor.png",
+      "sha256": "9f8d5e6716e5791e2ace3d44406a1c3c529e7b02f6024e8baf5f8716f9b0fb7f"
+    },
+    {
+      "path": "evidence/27-no-access.png",
+      "sha256": "a0d01cf0727e90e9570162dcccde4394be10c4a1e23ab71eaa94f36c637201e4"
+    },
+    {
+      "path": "evidence/28-stripe-start-failed.png",
+      "sha256": "48a474434fc1adb5e2a55994929e69d9183d0faa5bac445caaffb1218d39db89"
+    },
+    {
+      "path": "evidence/29-stripe-blocked.png",
+      "sha256": "66521a8f684dead73ba9d39844bef3d24959d679a130b7872841247293dc1fd8"
+    },
+    {
+      "path": "evidence/30-keyboard-focus.png",
+      "sha256": "39fd2be2f492a2948b24eff9b7b905d73da72f432a37b7f75c69099b33ff3531"
+    },
+    {
+      "path": "evidence/31-narrow-setup.png",
+      "sha256": "ee9047f0287d2d7849cdb8532f57263cd9c132e7daaea17e6c42cbfbf5ffa311"
+    },
+    {
+      "path": "evidence/32-narrow-profile.png",
+      "sha256": "8a8b4f3cfa0756629f67de9728609fc89264e86ef62de3bdf18b202be0b8b3bf"
+    },
+    {
+      "path": "evidence/browser-walk.log",
+      "sha256": "3e0a7ddf5e431d047ce7a3ea20da5ec1cd6cc639c18e9df864133e97c9db3516"
+    },
+    {
+      "path": "index.html",
+      "sha256": "0ea275340d2d44ac6c5d3ccb013638715eba0c5b581bb0b8ef93111ee4e56c61"
+    }
+  ]
+}

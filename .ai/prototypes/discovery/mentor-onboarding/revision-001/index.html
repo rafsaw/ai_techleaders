@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mentor onboarding prototype</title>
+<style>
+  :root { --ink:#1a1a1a; --muted:#595959; --line:#b3b3b3; --soft:#f2f2f2; --paper:#fff; --alert:#262626; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; color:var(--ink); background:#e6e6e6; }
+  a { color:var(--ink); }
+  :focus-visible { outline:3px solid #000; outline-offset:2px; }
+  .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .banner { background:#333; color:#fff; padding:.4rem 1rem; display:flex; gap:1rem; align-items:center; justify-content:space-between; flex-wrap:wrap; font-size:.9rem; }
+  .banner button { background:#fff; color:#000; border:1px solid #fff; padding:.25rem .75rem; cursor:pointer; }
+  .site-header { background:var(--paper); border-bottom:1px solid var(--line); padding:.6rem 1rem; display:flex; gap:1rem; align-items:center; flex-wrap:wrap; }
+  .site-header .brand { font-weight:700; text-decoration:none; margin-right:auto; }
+  .site-header nav { display:flex; gap:1rem; align-items:center; flex-wrap:wrap; }
+  .wrap { max-width:46rem; margin:1rem auto; padding:0 1rem; }
+  main { background:var(--paper); border:1px solid var(--line); padding:1.25rem; }
+  h1 { font-size:1.5rem; margin:0 0 .75rem; }
+  h2 { font-size:1.15rem; margin:1.25rem 0 .5rem; }
+  h1:focus { outline:none; }
+  p { margin:.5rem 0; }
+  .muted { color:var(--muted); }
+  .btn { display:inline-block; font:inherit; padding:.45rem .9rem; border:2px solid #000; background:#000; color:#fff; cursor:pointer; text-decoration:none; }
+  .btn.secondary { background:#fff; color:#000; }
+  .btn[disabled], .btn[aria-disabled="true"] { opacity:.5; cursor:not-allowed; }
+  .row { display:flex; gap:.75rem; flex-wrap:wrap; margin:.9rem 0 .25rem; align-items:center; }
+  .field { margin:.9rem 0; }
+  .field label { display:block; font-weight:600; margin-bottom:.2rem; }
+  .field .hint { color:var(--muted); font-size:.9rem; margin:0 0 .25rem; }
+  input, select, textarea { font:inherit; width:100%; padding:.4rem .5rem; border:1px solid #666; background:#fff; color:#000; }
+  textarea { min-height:6rem; }
+  input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] { border:2px solid #000; background:#f7f7f7; }
+  .error { font-weight:600; margin:.25rem 0 0; }
+  .error::before { content:"Error: "; }
+  .summary, .notice { border:2px solid #000; padding:.6rem .8rem; margin:.75rem 0; background:var(--soft); }
+  .notice { display:flex; gap:.75rem; align-items:flex-start; justify-content:space-between; }
+  .notice button { font:inherit; padding:.15rem .6rem; border:1px solid #000; background:#fff; cursor:pointer; }
+  .card { border:1px solid var(--line); padding:.8rem 1rem; margin:.6rem 0; background:#fafafa; }
+  .card h3 { margin:0 0 .25rem; font-size:1rem; }
+  .badge { display:inline-block; border:1px solid #000; padding:0 .5rem; font-size:.85rem; }
+  .status-line { border-left:6px solid #000; background:var(--soft); padding:.6rem .9rem; margin:.5rem 0 1rem; font-weight:600; }
+  .stub { border:2px dashed #666; padding:.6rem .8rem; background:#fff; margin:.75rem 0; }
+  ul.plain { padding-left:1.1rem; }
+  .tabs { display:flex; gap:.5rem; margin:.5rem 0; }
+  .tabs button[aria-pressed="true"] { background:#000; color:#fff; }
+  .tabs button { font:inherit; padding:.3rem .8rem; border:2px solid #000; background:#fff; cursor:pointer; }
+  details.test { margin-top:1.25rem; background:#fff; border:1px dashed #666; padding:.6rem .9rem; }
+  details.test summary { cursor:pointer; font-weight:600; }
+  details.test .field { margin:.5rem 0; }
+  details.test label { font-weight:400; }
+  footer.boundary { font-size:.85rem; color:var(--muted); margin-top:1rem; }
+  pre.mail { white-space:pre-wrap; font:inherit; background:var(--soft); border:1px solid var(--line); padding:.75rem; }
+  @media (max-width:480px) { main { padding:.9rem; } .row .btn { width:100%; text-align:center; } }
+</style>
+</head>
+<body>
+<div class="banner" role="region" aria-label="Prototype controls">
+  <span>Discovery prototype. Simulated data. Nothing here is saved or sent.</span>
+  <button type="button" id="reset">Reset simulation</button>
+</div>
+<header class="site-header">
+  <a class="brand" href="#home">DevMentor</a>
+  <nav id="nav" aria-label="Main"></nav>
+</header>
+<div class="wrap">
+  <div id="notices"></div>
+  <main id="main" tabindex="-1"></main>
+  <details class="test" id="test">
+    <summary>Test state (not part of the product)</summary>
+    <p class="muted">Controls for reaching edge states. Fictitious accounts all use the password <code>demo-password</code>: ada@example.test (the invited address), jan@example.test (another address), marta@example.test (already a mentor).</p>
+    <div class="field"><label for="t-invite">Invitation link</label>
+      <select id="t-invite"><option value="valid">Valid</option><option value="invalid">Used, revoked, expired or forged</option></select></div>
+    <div class="field"><label for="t-github">Account used by "Continue with GitHub"</label>
+      <select id="t-github"><option value="ada">Ada (invited address)</option><option value="jan">Jan (another address)</option></select></div>
+    <div class="field"><label for="t-accept">Result of the next Accept</label>
+      <select id="t-accept"><option value="ok">Success</option><option value="race">Invitation just used by someone else</option><option value="fail">Server error</option></select></div>
+    <div class="field"><label for="t-stripe-start">Result of the next "Continue to Stripe"</label>
+      <select id="t-stripe-start"><option value="ok">Works</option><option value="fail">Stripe cannot be reached</option></select></div>
+    <div class="field"><label for="t-stripe-check">Result of the next "Check status"</label>
+      <select id="t-stripe-check"><option value="ready">Payouts confirmed</option><option value="blocked">Stripe blocks the account</option></select></div>
+    <div class="row"><button type="button" class="btn secondary" id="t-book">Mark first open slot as booked</button></div>
+  </details>
+  <footer class="boundary">Not simulated here: the public mentor listing, slot picking and payment, the session screen, operator screens, cancellations and refunds, password reset. Names, addresses and prices are fictitious.</footer>
+</div>
+<div id="status" class="sr-only" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  "use strict";
+  var NOW = new Date(2026, 10, 2, 10, 0, 0); // simulated current time: Mon 2 Nov 2026, 10:00
+  var INVITE_EMAIL = "ada@example.test";
+  var PASSWORD = "demo-password";
+  var COUNTRIES = ["United States", "United Kingdom", "Germany", "Poland", "Canada", "Switzerland"];
+  var AREAS = { typescript: "TypeScript", react: "React", python: "Python" };
+  var FIXTURES = {
+    "ada@example.test": { name: "Ada Kowalska", email: "ada@example.test", roles: ["mentee"] },
+    "jan@example.test": { name: "Jan Nowak", email: "jan@example.test", roles: ["mentee"] },
+    "marta@example.test": { name: "Marta Zielinska", email: "marta@example.test", roles: ["mentee", "mentor"] }
+  };
+
+  var S, ui;
+  function fresh() {
+    S = { user: null, accounts: {}, inviteUsed: false, profile: null, stripe: "none", country: "", slots: [], nextSlotId: 1 };
+    ui = { busy: null, errors: null, values: {}, signinMode: "signin", returnTo: null, notices: [], pendingEmail: null, acceptError: null, stripeError: null, contact: false, slotMsg: null };
+    Object.keys(FIXTURES).forEach(function (k) { S.accounts[k] = { password: PASSWORD, user: JSON.parse(JSON.stringify(FIXTURES[k])) }; });
+  }
+
+  function h(tag, attrs) {
+    var e = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) {
+      var v = attrs[k];
+      if (v === false || v == null) return;
+      if (k === "class") e.className = v;
+      else if (k.indexOf("on") === 0) e.addEventListener(k.slice(2), v);
+      else if (v === true) e.setAttribute(k, "");
+      else e.setAttribute(k, v);
+    });
+    Array.prototype.slice.call(arguments, 2).forEach(function add(kid) {
+      if (Array.isArray(kid)) return kid.forEach(add);
+      if (kid == null || kid === false) return;
+      e.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+    });
+    return e;
+  }
+  function $(id) { return document.getElementById(id); }
+  function say(msg) { var s = $("status"); s.textContent = ""; setTimeout(function () { s.textContent = msg; }, 20); }
+  function tv(id) { return $(id).value; }
+  function go(route) { if (location.hash === "#" + route) render(); else location.hash = route; }
+  function link(route, text, cls) { return h("a", { href: "#" + route, class: cls }, text); }
+  function btn(text, onclick, cls, extra) { return h("button", Object.assign({ type: "button", class: "btn " + (cls || ""), onclick: onclick }, extra || {}), text); }
+
+  function isMentor() { return !!S.user && S.user.roles.indexOf("mentor") >= 0; }
+  function stripeReady() { return S.stripe === "ready"; }
+  function bookable() { return !!S.profile && stripeReady(); }
+  function fmtSlot(v) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(v);
+    var d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]);
+    var days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    var mons = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return days[d.getDay()] + " " + d.getDate() + " " + mons[d.getMonth()] + " " + d.getFullYear() + ", " + m[4] + ":" + m[5];
+  }
+
+  /* ---------- chrome ---------- */
+  function renderNav() {
+    var nav = $("nav"); nav.textContent = "";
+    if (isMentor()) nav.append(link("mentor", "Mentor setup"));
+    if (S.user) {
+      nav.append(h("span", {}, S.user.name));
+      nav.append(h("button", { type: "button", class: "btn secondary", onclick: signOut }, "Sign out"));
+    } else {
+      nav.append(link("signin", "Sign in"));
+    }
+  }
+  function renderNotices(route) {
+    ui.notices = ui.notices.filter(function (n) {
+      if (n.route && n.route !== route) return false;
+      if (n.once && n.seen && n.shownOn !== route) return false;
+      return true;
+    });
+    var box = $("notices"); box.textContent = "";
+    ui.notices.forEach(function (n) {
+      if (n.once && !n.seen) { n.seen = true; n.shownOn = route; }
+      box.append(h("div", { class: "notice", role: "status" },
+        h("span", {}, n.text),
+        n.dismiss && h("button", { type: "button", onclick: function () { ui.notices = ui.notices.filter(function (x) { return x !== n; }); renderNotices(route); } }, "Dismiss")));
+    });
+  }
+  function signOut() {
+    S.user = null; ui.notices = ui.notices.filter(function (n) { return n.id !== "accepted"; });
+    say("Signed out.");
+    var r = currentRoute();
+    if (r === "invite") render(); else go("home");
+  }
+
+  /* ---------- routing ---------- */
+  var SCREENS = {};
+  function currentRoute() { return location.hash.replace(/^#/, "") || "email"; }
+  function render(focusId) {
+    var route = currentRoute();
+    var main = $("main"); main.textContent = "";
+    renderNav(); renderNotices(route);
+    var fn = SCREENS[route];
+    if (!fn) fn = SCREENS.notfound;
+    main.append(fn());
+    var target = (focusId && $(focusId)) || main.querySelector("h1");
+    if (target) { if (!target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1"); target.focus(); }
+    document.title = (main.querySelector("h1") ? main.querySelector("h1").textContent + " - " : "") + "Mentor onboarding prototype";
+  }
+  window.addEventListener("hashchange", function () { ui.errors = null; ui.acceptError = null; ui.stripeError = null; ui.contact = false; ui.slotMsg = null; render(); });
+
+  function needMentor(fn) {
+    return function () {
+      if (!S.user) { ui.returnTo = currentRoute(); return signinRedirect(); }
+      if (!isMentor()) return h("section", {}, h("h1", {}, "You don't have access to this page"),
+        h("p", {}, "This page is for mentors. Mentor accounts are created from an invitation."), h("p", {}, link("home", "Go to the home page")));
+      return fn();
+    };
+  }
+  function signinRedirect() {
+    setTimeout(function () { go("signin"); }, 0);
+    return h("section", {}, h("h1", {}, "Sign in required"), h("p", {}, "Taking you to the sign-in page."));
+  }
+
+  /* ---------- screens ---------- */
+  SCREENS.notfound = function () {
+    return h("section", {}, h("h1", {}, "Page not found in this prototype"),
+      h("p", {}, "This address is not part of the mentor onboarding flow."),
+      h("div", { class: "row" }, link("home", "Home", "btn secondary"), link("email", "Back to the start of the flow", "btn secondary")));
+  };
+
+  SCREENS.email = function () {
+    return h("section", {}, h("h1", {}, "Invitation email"),
+      h("p", { class: "muted" }, "Starting point of the flow: an email the operator sent after creating an invitation by hand."),
+      h("pre", { class: "mail" }, "From: DevMentor team\nTo: " + INVITE_EMAIL + "\nSubject: You're invited to mentor on DevMentor\n\nWe'd like you to join DevMentor as a mentor. Open the link, sign in or create an account with this email address (" + INVITE_EMAIL + "), and choose Accept invitation. The link works once and expires on 9 Nov 2026, UTC. If you weren't expecting this, ignore this email."),
+      h("div", { class: "row" }, link("invite", "Open the invitation link", "btn")));
+  };
+
+  SCREENS.invite = function () {
+    var sec = h("section", {});
+    var invalid = tv("t-invite") === "invalid" || S.inviteUsed;
+    if (invalid) {
+      return h("section", {}, h("h1", {}, "This invitation is not valid"),
+        h("p", {}, "It may already have been used, or it may have expired or been withdrawn. Ask the DevMentor team to send a new invitation."),
+        h("div", { class: "row" }, link("home", "Go to the home page", "btn secondary")));
+    }
+    sec.append(h("h1", {}, "You're invited to mentor on DevMentor"));
+    sec.append(h("p", {}, "This invitation was sent to ", h("strong", {}, INVITE_EMAIL), ". It works once."));
+    if (ui.busy === "accept") { sec.append(h("p", { role: "status" }, "Accepting the invitation...")); return sec; }
+    if (ui.acceptError) sec.append(h("div", { class: "summary", role: "alert", id: "err-summary", tabindex: "-1" }, ui.acceptError));
+    var u = S.user;
+    if (!u) {
+      sec.append(h("p", {}, "Sign in, or create an account with the address above, to continue."));
+      sec.append(h("div", { class: "row" },
+        btn("Sign in", function () { ui.signinMode = "signin"; ui.returnTo = "invite"; ui.errors = null; go("signin"); }),
+        btn("Create account", function () { ui.signinMode = "create"; ui.returnTo = "invite"; ui.errors = null; go("signin"); }, "secondary")));
+    } else if (isMentor()) {
+      sec.append(h("div", { class: "notice" }, "You are already a mentor with " + u.email + ". This invitation is not needed."));
+      sec.append(h("div", { class: "row" }, link("mentor", "Open Mentor setup", "btn"), link("home", "Go to the home page", "btn secondary")));
+    } else if (u.email !== INVITE_EMAIL) {
+      sec.append(h("div", { class: "notice" }, "You are signed in as " + u.email + ", but this invitation was sent to " + INVITE_EMAIL + ". It can only be accepted with that address."));
+      sec.append(h("div", { class: "row" },
+        btn("Sign out and use another account", signOut),
+        btn("Ask for a new invitation", function () { ui.contact = true; render("contact-box"); }, "secondary")));
+      if (ui.contact) sec.append(h("div", { class: "stub", id: "contact-box", tabindex: "-1" }, "Write to team@example.test (fictitious address) and name the address you want to use."));
+    } else {
+      sec.append(h("div", { class: "row" }, btn("Accept as " + u.name + " (" + u.email + ")", accept)));
+    }
+    return sec;
+  };
+
+  function accept() {
+    ui.acceptError = null; ui.busy = "accept"; render(); say("Accepting the invitation.");
+    setTimeout(function () {
+      ui.busy = null;
+      var r = tv("t-accept");
+      if (r === "race") { S.inviteUsed = true; ui.acceptError = null; say("This invitation is no longer valid."); render(); return; }
+      if (r === "fail") { ui.acceptError = "Something went wrong and the invitation was not accepted. Try again."; say(ui.acceptError); render("err-summary"); return; }
+      S.user.roles.push("mentor"); S.accounts[S.user.email].user.roles = S.user.roles.slice(); S.inviteUsed = true;
+      ui.notices.push({ id: "accepted", route: "home", text: "Invitation accepted. You're now a mentor." });
+      say("Invitation accepted. You're now a mentor.");
+      go("home");
+    }, 350);
+  }
+
+  SCREENS.signin = function () {
+    var create = ui.signinMode === "create";
+    var e = ui.errors || {}; var v = ui.values;
+    var sec = h("section", {}, h("h1", {}, create ? "Create an account" : "Sign in"));
+    sec.append(h("div", { class: "row" }, btn("Continue with GitHub", githubSignIn)));
+    sec.append(h("p", { class: "muted" }, "or use an email address and password"));
+    sec.append(h("div", { class: "tabs", role: "group", "aria-label": "Email option" },
+      h("button", { type: "button", "aria-pressed": String(!create), onclick: function () { ui.signinMode = "signin"; ui.errors = null; render(); } }, "Sign in"),
+      h("button", { type: "button", "aria-pressed": String(create), onclick: function () { ui.signinMode = "create"; ui.errors = null; render(); } }, "Create account")));
+    if (Object.keys(e).length) {
+      sec.append(h("div", { class: "summary", role: "alert", id: "err-summary", tabindex: "-1" }, "Fix the following: " + Object.keys(e).map(function (k) { return e[k]; }).join(" ")));
+    }
+    var form = h("form", { novalidate: true, onsubmit: function (ev) { ev.preventDefault(); emailSubmit(); } });
+    form.append(field("f-email", "Email address", h("input", { id: "f-email", type: "email", autocomplete: "email", value: v.email || "", "aria-invalid": e.email ? "true" : false, "aria-describedby": e.email ? "f-email-err" : false }), e.email));
+    form.append(field("f-password", create ? "Password (at least 8 characters)" : "Password", h("input", { id: "f-password", type: "password", autocomplete: create ? "new-password" : "current-password", "aria-invalid": e.password ? "true" : false, "aria-describedby": e.password ? "f-password-err" : false }), e.password));
+    form.append(h("div", { class: "row" }, h("button", { type: "submit", class: "btn" }, create ? "Create account" : "Sign in")));
+    sec.append(form);
+    sec.append(h("p", { class: "muted" }, "Password reset is not available in this version."));
+    return sec;
+  };
+  function field(id, label, input, err, hint) {
+    return h("div", { class: "field" }, h("label", { for: id }, label), hint && h("p", { class: "hint", id: id + "-hint" }, hint), input, err && h("p", { class: "error", id: id + "-err" }, err));
+  }
+  function afterSignIn(user, via) {
+    S.user = user;
+    if (via === "github") ui.notices.push({ id: "gh", once: true, dismiss: true, text: "Your GitHub name is shown publicly on DevMentor. You can change it in Account settings." });
+    say("Signed in as " + user.name + ".");
+    var rt = ui.returnTo; ui.returnTo = null;
+    go(rt || "home");
+  }
+  function githubSignIn() {
+    var key = tv("t-github") === "jan" ? "jan@example.test" : "ada@example.test";
+    afterSignIn(S.accounts[key].user, "github");
+  }
+  function emailSubmit() {
+    var email = $("f-email").value.trim(); var pw = $("f-password").value; var e = {};
+    ui.values.email = email;
+    if (!email) e.email = "Enter your email address.";
+    else if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) e.email = "Enter an email address like name@example.test.";
+    if (!pw) e.password = "Enter a password.";
+    else if (ui.signinMode === "create" && pw.length < 8) e.password = "Use at least 8 characters.";
+    if (!Object.keys(e).length && ui.signinMode === "signin") {
+      var acc = S.accounts[email.toLowerCase()];
+      if (!acc || acc.password !== pw) e.form = "Email or password is incorrect.";
+    }
+    if (Object.keys(e).length) { ui.errors = e; say("There are errors in the form."); render("err-summary"); return; }
+    ui.errors = null;
+    if (ui.signinMode === "signin") return afterSignIn(S.accounts[email.toLowerCase()].user, "email");
+    ui.pendingEmail = { email: email.toLowerCase(), password: pw };
+    go("confirm");
+  }
+
+  SCREENS.confirm = function () {
+    var p = ui.pendingEmail;
+    if (!p) return SCREENS.notfound();
+    return h("section", {}, h("h1", {}, "Check your email"),
+      h("p", {}, "We sent a confirmation link to ", h("strong", {}, p.email), ". It expires in 24 hours. Your account is created only after you open it."),
+      h("div", { class: "stub" }, "Simulated email client: the link below stands in for the message."),
+      h("div", { class: "row" }, btn("Open the confirmation link", function () {
+        var name = p.email.split("@")[0];
+        S.accounts[p.email] = { password: p.password, user: { name: name, email: p.email, roles: ["mentee"] } };
+        ui.pendingEmail = null; afterSignIn(S.accounts[p.email].user, "email");
+      }), btn("Back", function () { ui.signinMode = "create"; go("signin"); }, "secondary")));
+  };
+
+  SCREENS.home = function () {
+    var sec = h("section", {}, h("h1", {}, "DevMentor"),
+      h("p", {}, "Paid text help from senior engineers. Sessions are 25 or 50 minutes."),
+      h("div", { class: "stub" }, "Home page: existing page, not prototyped here. It only changes its header and notices."));
+    if (S.user) sec.append(h("p", {}, "Signed in as " + S.user.name + " (" + S.user.email + ")."));
+    else sec.append(h("p", {}, link("signin", "Sign in")));
+    return sec;
+  };
+
+  /* ----- mentor setup ----- */
+  SCREENS.mentor = needMentor(function () {
+    var sec = h("section", {}, h("h1", {}, "Mentor setup"));
+    var missing = [];
+    if (!S.profile) missing.push("your profile");
+    if (!stripeReady()) missing.push("Stripe");
+    sec.append(h("div", { class: "status-line", id: "status-line" },
+      bookable() ? "You are bookable." : "Not bookable yet: finish " + missing.join(" and ") + "."));
+    if (bookable()) {
+      sec.append(h("p", {}, "Public page: ", link("public", "/mentors/demo-mentor")));
+      var open = S.slots.length;
+      sec.append(h("p", { id: "availability-line" }, open === 0 ? "You have no upcoming slots, so mentees have nothing to pick." : "You have " + open + " upcoming slot" + (open === 1 ? "" : "s") + "."));
+    }
+    var list = h("ol", { class: "plain", style: "padding:0;list-style:none" });
+    // profile
+    list.append(card("1. Profile", S.profile ? "Saved" : "Not started", S.profile
+      ? [link("profile", "Edit profile", "btn secondary"), link("public", "View public page", "btn secondary")]
+      : [link("profile", "Create your profile", "btn")]));
+    // stripe
+    var stripeBody;
+    if (!S.profile) stripeBody = card("2. Payouts with Stripe", "Locked: save your profile first.", []);
+    else if (S.stripe === "none") stripeBody = card("2. Payouts with Stripe", "Not started", [link("stripe", "Set up payouts", "btn")]);
+    else if (S.stripe === "incomplete") stripeBody = card("2. Payouts with Stripe", "Incomplete: Stripe needs more details.", [link("stripe-hosted", "Continue with Stripe", "btn")]);
+    else if (S.stripe === "checking") stripeBody = card("2. Payouts with Stripe", "Stripe is checking your details.", [btn("Check status", checkStripe)]);
+    else if (S.stripe === "blocked") stripeBody = card("2. Payouts with Stripe", "Blocked: Stripe cannot enable payouts for this account.", [btn("Contact the DevMentor team", function () { ui.contact = true; render("contact-box"); })]);
+    else stripeBody = card("2. Payouts with Stripe", "Payouts confirmed", []);
+    list.append(stripeBody);
+    // slots
+    var n = S.slots.length, booked = S.slots.filter(function (s) { return s.booked; }).length;
+    list.append(card("3. Slots", !S.profile ? "Locked: save your profile first." : (n === 0 ? "No upcoming slots" : n + " upcoming (" + booked + " booked)"),
+      !S.profile ? [] : [link("slots", n === 0 ? "Publish slots" : "Manage slots", n === 0 ? "btn" : "btn secondary")]));
+    sec.append(list);
+    if (ui.contact) sec.append(h("div", { class: "stub", id: "contact-box", tabindex: "-1" }, "Write to team@example.test (fictitious address) and mention your Stripe setup."));
+    return sec;
+  });
+  function card(title, state, actions) {
+    return h("li", { class: "card" }, h("h3", {}, title), h("p", {}, state), actions.length ? h("div", { class: "row" }, actions) : null);
+  }
+  function checkStripe() {
+    ui.busy = "check"; say("Checking status with Stripe."); render();
+    setTimeout(function () {
+      ui.busy = null; S.stripe = tv("t-stripe-check") === "blocked" ? "blocked" : "ready";
+      say(S.stripe === "ready" ? "Payouts confirmed." : "Stripe blocked the account.");
+      render("status-line");
+    }, 350);
+  }
+
+  /* ----- profile ----- */
+  SCREENS.profile = needMentor(function () {
+    var e = ui.errors || {}; var v = Object.keys(ui.values).length && ui.values.__profile ? ui.values : (S.profile ? S.profile : {});
+    var sec = h("section", {}, h("h1", {}, S.profile ? "Edit profile" : "Create your profile"));
+    sec.append(h("p", { class: "muted" }, "This page is public once saved. It shows your account name (" + S.user.name + "), not ratings."));
+    if (Object.keys(e).length) sec.append(h("div", { class: "summary", role: "alert", id: "err-summary", tabindex: "-1" }, "The profile was not saved. Fix " + Object.keys(e).length + " field" + (Object.keys(e).length === 1 ? "" : "s") + " below."));
+    var form = h("form", { novalidate: true, onsubmit: function (ev) { ev.preventDefault(); saveProfile(); } });
+    var sel = h("select", { id: "p-area", "aria-invalid": e.area ? "true" : false, "aria-describedby": e.area ? "p-area-err" : false }, h("option", { value: "" }, "Choose an area"),
+      Object.keys(AREAS).map(function (k) { return h("option", { value: k, selected: v.area === k }, AREAS[k]); }));
+    form.append(field("p-area", "Area", sel, e.area));
+    var desc = h("textarea", { id: "p-desc", maxlength: "5000", "aria-invalid": e.desc ? "true" : false, "aria-describedby": "p-desc-hint" + (e.desc ? " p-desc-err" : "") }); desc.value = v.desc || "";
+    form.append(field("p-desc", "Description", desc, e.desc, "Plain text. Up to 2,000 characters."));
+    var links = h("textarea", { id: "p-links", "aria-invalid": e.links ? "true" : false, "aria-describedby": "p-links-hint" + (e.links ? " p-links-err" : "") }); links.value = v.links || "";
+    form.append(field("p-links", "Links to public work", links, e.links, "One full https:// link per line, 1 to 5 links."));
+    form.append(field("p-p25", "Price for 25 minutes (USD)", h("input", { id: "p-p25", inputmode: "numeric", value: v.p25 == null ? "" : v.p25, "aria-invalid": e.p25 ? "true" : false, "aria-describedby": "p-p25-hint" + (e.p25 ? " p-p25-err" : "") }), e.p25, "Whole dollars, 5 to 1,000. DevMentor's commission is 20% (provisional)."));
+    form.append(field("p-p50", "Price for 50 minutes (USD)", h("input", { id: "p-p50", inputmode: "numeric", value: v.p50 == null ? "" : v.p50, "aria-invalid": e.p50 ? "true" : false, "aria-describedby": "p-p50-hint" + (e.p50 ? " p-p50-err" : "") }), e.p50, "Whole dollars, 5 to 1,000."));
+    form.append(h("div", { class: "row" }, h("button", { type: "submit", class: "btn" }, "Save profile"), link("mentor", "Cancel", "btn secondary")));
+    sec.append(form);
+    return sec;
+  });
+  function saveProfile() {
+    var vals = { __profile: true, area: $("p-area").value, desc: $("p-desc").value, links: $("p-links").value, p25: $("p-p25").value.trim(), p50: $("p-p50").value.trim() };
+    var e = {};
+    if (!vals.area) e.area = "Choose an area.";
+    var d = vals.desc.trim();
+    if (!d) e.desc = "Write a short description.";
+    else if (d.length > 2000) e.desc = "Use at most 2,000 characters (now " + d.length + ").";
+    var lines = vals.links.split("\n").map(function (l) { return { raw: l.trim() }; });
+    var numbered = vals.links.split("\n").map(function (l, i) { return { n: i + 1, t: l.trim() }; }).filter(function (x) { return x.t; });
+    if (!numbered.length) e.links = "Add at least one link to your public work.";
+    else if (numbered.length > 5) e.links = "Use at most 5 links.";
+    else {
+      var seen = {};
+      for (var i = 0; i < numbered.length && !e.links; i++) {
+        var x = numbered[i], ok = false;
+        try { var u = new URL(x.t); ok = u.protocol === "https:" && x.t.length <= 2048; } catch (err) { ok = false; }
+        if (!ok) e.links = "Line " + x.n + ": use a full https:// link.";
+        else if (seen[x.t]) e.links = "Line " + x.n + ": this link is already listed.";
+        seen[x.t] = true;
+      }
+    }
+    ["p25", "p50"].forEach(function (k) {
+      var t = vals[k];
+      if (!/^\d+$/.test(t)) e[k] = "Enter a whole number of dollars.";
+      else if (+t < 5 || +t > 1000) e[k] = "Enter an amount from 5 to 1,000.";
+    });
+    if (Object.keys(e).length) { ui.errors = e; ui.values = vals; say("The profile was not saved. Fix the errors."); render("err-summary"); return; }
+    ui.errors = null; ui.values = {};
+    S.profile = { area: vals.area, desc: d, links: numbered.map(function (x) { return x.t; }).join("\n"), p25: +vals.p25, p50: +vals.p50 };
+    say("Profile saved.");
+    ui.notices.push({ id: "saved", route: "mentor", text: "Profile saved." });
+    go("mentor");
+  }
+
+  /* ----- stripe ----- */
+  SCREENS.stripe = needMentor(function () {
+    if (!S.profile) return h("section", {}, h("h1", {}, "Payouts with Stripe"), h("p", {}, "Save your profile first."), link("mentor", "Back to Mentor setup", "btn secondary"));
+    var sec = h("section", {}, h("h1", {}, "Payouts with Stripe"),
+      h("p", {}, "Mentees can book you only after Stripe confirms your payout account. Stripe collects your identity and payout details on its own pages."));
+    if (ui.busy === "stripe") { sec.append(h("p", { role: "status" }, "Starting Stripe setup...")); return sec; }
+    if (S.stripe !== "none") {
+      sec.append(h("p", {}, "Your Stripe setup has already started."), link("mentor", "Back to Mentor setup", "btn secondary"));
+      return sec;
+    }
+    if (ui.stripeError) sec.append(h("div", { class: "summary", role: "alert", id: "err-summary", tabindex: "-1" }, ui.stripeError));
+    var e = ui.errors || {};
+    var form = h("form", { novalidate: true, onsubmit: function (ev) { ev.preventDefault(); startStripe(); } });
+    var sel = h("select", { id: "s-country", "aria-invalid": e.country ? "true" : false, "aria-describedby": "s-country-hint" + (e.country ? " s-country-err" : "") }, h("option", { value: "" }, "Choose a country"),
+      COUNTRIES.map(function (c) { return h("option", { value: c, selected: ui.values.country === c }, c); }));
+    form.append(field("s-country", "Country", sel, e.country, "Where you live or where your business is registered. It can't be changed for this Stripe account later."));
+    form.append(h("div", { class: "row" }, h("button", { type: "submit", class: "btn" }, "Continue to Stripe"), link("mentor", "Back to Mentor setup", "btn secondary")));
+    sec.append(form);
+    return sec;
+  });
+  function startStripe() {
+    var c = $("s-country").value;
+    if (!c) { ui.errors = { country: "Choose a country." }; ui.values = {}; say("Choose a country."); render("s-country"); return; }
+    ui.errors = null; ui.values = { country: c }; ui.stripeError = null; ui.busy = "stripe"; say("Starting Stripe setup."); render();
+    setTimeout(function () {
+      ui.busy = null;
+      if (tv("t-stripe-start") === "fail") { ui.stripeError = "We couldn't reach Stripe. Nothing was changed. Try again."; say(ui.stripeError); render("err-summary"); return; }
+      S.country = c; S.stripe = "incomplete"; go("stripe-hosted");
+    }, 350);
+  }
+  SCREENS["stripe-hosted"] = needMentor(function () {
+    if (S.stripe === "none" || !S.profile) return h("section", {}, h("h1", {}, "Stripe setup has not started"), link("stripe", "Set up payouts", "btn"));
+    if (S.stripe === "ready" || S.stripe === "blocked" || S.stripe === "checking") return h("section", {}, h("h1", {}, "Stripe setup is already submitted"), link("mentor", "Back to Mentor setup", "btn secondary"));
+    return h("section", {}, h("h1", {}, "Stripe onboarding (stand-in)"),
+      h("div", { class: "stub" }, "Stand-in for Stripe's own hosted pages, which are not part of this prototype. Country: " + S.country + "."),
+      h("div", { class: "row" },
+        btn("Submit my details", function () { S.stripe = "checking"; ui.notices.push({ id: "back", route: "mentor", text: "Back from Stripe. Stripe is checking your details." }); say("Back from Stripe. Stripe is checking your details."); go("mentor"); }),
+        btn("Leave before finishing", function () { ui.notices.push({ id: "back", route: "mentor", text: "Back from Stripe. Setup is not finished yet." }); say("Back from Stripe. Setup is not finished yet."); go("mentor"); }, "secondary")));
+  });
+
+  /* ----- slots ----- */
+  SCREENS.slots = needMentor(function () {
+    if (!S.profile) return h("section", {}, h("h1", {}, "Slots"), h("p", {}, "Save your profile first."), link("mentor", "Back to Mentor setup", "btn secondary"));
+    var e = ui.errors || {};
+    var sec = h("section", {}, h("h1", {}, "Slots"),
+      h("p", { class: "muted" }, "Simulated current time: " + fmtSlot("2026-11-02T10:00") + ". Times are in your browser's time zone. A slot reserves a 50-minute block; the mentee chooses 25 or 50 minutes later."));
+    if (ui.slotMsg) sec.append(h("div", { class: "notice", role: "status" }, ui.slotMsg));
+    if (e.start) sec.append(h("div", { class: "summary", role: "alert", id: "err-summary", tabindex: "-1" }, "The slot was not added."));
+    var form = h("form", { novalidate: true, onsubmit: function (ev) { ev.preventDefault(); addSlot(); } });
+    form.append(field("sl-date", "Start date", h("input", { id: "sl-date", inputmode: "numeric", placeholder: "2026-11-03", autocomplete: "off", "aria-invalid": e.start ? "true" : false, "aria-describedby": "sl-date-hint" + (e.start ? " sl-time-err" : "") }), null, "Format YYYY-MM-DD."));
+    form.append(field("sl-time", "Start time", h("input", { id: "sl-time", inputmode: "numeric", placeholder: "14:00", autocomplete: "off", "aria-invalid": e.start ? "true" : false, "aria-describedby": "sl-time-hint" + (e.start ? " sl-time-err" : "") }), e.start, "24-hour format HH:MM. At least 2 hours from now, and at least 50 minutes away from your other slots."));
+    form.append(h("div", { class: "row" }, h("button", { type: "submit", class: "btn" }, "Add slot"), link("mentor", "Back to Mentor setup", "btn secondary")));
+    sec.append(form);
+    sec.append(h("h2", {}, "Your upcoming slots"));
+    if (!S.slots.length) sec.append(h("p", {}, "No upcoming slots."));
+    else {
+      var ul = h("ul", { class: "plain" });
+      S.slots.slice().sort(function (a, b) { return a.start < b.start ? -1 : 1; }).forEach(function (s) {
+        ul.append(h("li", { class: "card" }, h("strong", {}, fmtSlot(s.start)), " ",
+          s.booked ? h("span", {}, h("span", { class: "badge" }, "Booked"), " A booked slot can't be removed.")
+            : h("button", { type: "button", class: "btn secondary", "aria-label": "Remove slot " + fmtSlot(s.start), onclick: function () {
+              S.slots = S.slots.filter(function (x) { return x.id !== s.id; }); ui.slotMsg = "Slot removed."; say("Slot removed."); render("main");
+            } }, "Remove")));
+      });
+      sec.append(ul);
+    }
+    return sec;
+  });
+  function toMinutes(v) { var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(v); return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]).getTime() / 60000; }
+  function addSlot() {
+    var d = $("sl-date").value.trim(), tm = $("sl-time").value.trim(); var err = null, v = null;
+    var dm = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d), tmm = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(tm);
+    if (!d || !tm) err = "Enter both a start date and a start time.";
+    else if (!dm || !tmm || new Date(+dm[1], +dm[2] - 1, +dm[3]).getDate() !== +dm[3]) err = "Use a real date like 2026-11-03 and a time like 14:00.";
+    else {
+      v = d + "T" + tm;
+      var t = toMinutes(v), now = NOW.getTime() / 60000;
+      if (t < now + 120) err = "Choose a start at least 2 hours from now (after " + fmtSlot("2026-11-02T12:00") + ").";
+      else if (S.slots.some(function (s) { return Math.abs(toMinutes(s.start) - t) < 50; })) err = "Slots must start at least 50 minutes apart.";
+    }
+    if (err) { ui.errors = { start: err }; say("The slot was not added. " + err); render("err-summary"); return; }
+    ui.errors = null; S.slots.push({ id: S.nextSlotId++, start: v, booked: false });
+    ui.slotMsg = "Slot added: " + fmtSlot(v) + "."; say(ui.slotMsg); render("main");
+  }
+
+  /* ----- public page ----- */
+  SCREENS.public = function () {
+    if (!S.profile) return h("section", {}, h("h1", {}, "Mentor not found"), h("p", {}, "There is no mentor page at this address."), link("home", "Go to the home page", "btn secondary"));
+    var p = S.profile; var name = S.user ? S.user.name : "Ada Kowalska";
+    var sec = h("section", {}, h("h1", {}, name), h("p", {}, h("span", { class: "badge" }, AREAS[p.area])));
+    sec.append(h("p", { style: "white-space:pre-wrap" }, p.desc));
+    sec.append(h("h2", {}, "Public work"));
+    var ul = h("ul", { class: "plain" });
+    p.links.split("\n").forEach(function (l) { ul.append(h("li", {}, l)); });
+    sec.append(ul, h("p", { class: "muted" }, "Links are shown as text in this prototype."));
+    sec.append(h("h2", {}, "Sessions"), h("ul", { class: "plain" }, h("li", {}, "25 min · $" + p.p25), h("li", {}, "50 min · $" + p.p50)), h("p", {}, "Text sessions only."));
+    sec.append(bookable() ? h("div", { class: "stub" }, "Bookable. Slot picking and payment are outside this prototype.") : h("p", { class: "badge" }, "Not taking bookings yet"));
+    sec.append(h("div", { class: "row" }, isMentor() ? link("mentor", "Back to Mentor setup", "btn secondary") : link("home", "Home", "btn secondary")));
+    return sec;
+  };
+
+  /* ---------- wiring ---------- */
+  $("reset").addEventListener("click", function () {
+    fresh();
+    ["t-invite", "t-github", "t-accept", "t-stripe-start", "t-stripe-check"].forEach(function (id) { $(id).selectedIndex = 0; });
+    say("Simulation reset to the invitation email.");
+    if (location.hash === "#email" || !location.hash) render(); else location.hash = "email";
+  });
+  $("t-book").addEventListener("click", function () {
+    var s = S.slots.filter(function (x) { return !x.booked; }).sort(function (a, b) { return a.start < b.start ? -1 : 1; })[0];
+    if (!s) { say("There is no open slot to mark as booked."); return; }
+    s.booked = true; say("First open slot marked as booked."); render();
+  });
+  ["t-invite"].forEach(function (id) { $(id).addEventListener("change", function () { render(); }); });
+  fresh(); render();
+})();
+</script>
+</body>
+</html>
