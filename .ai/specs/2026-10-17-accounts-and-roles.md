@@ -5,6 +5,8 @@
 - Design authority: `.ai/specs/product-brief.md` (D13, D14, N03; the D12 boundary)
 - Research: one shared pass for both specs. It lives in the platform spec, section "Research".
 - Status: **draft for review** (PO revisions, design review and platform grilling 2026-10-18)
+- Prototype: `prototypes/konta-i-role/` (clickable E01 prototype)
+- Screen map: `lekcja-07/mapa-ekranow.md` (approved 2026-10-24; screen ids s01–s14, cited below as `[s01]` …). Acceptance criteria and decisions taken from the map are in "Acceptance criteria (screen map)".
 
 ## 📝 TLDR
 
@@ -76,7 +78,7 @@ Each story keeps its own user flow. None of them is reduced to CRUD on `users`.
       - Otherwise, link it: set `githubId` and `emailConfirmedAt ??= now`.
       - If the account had an unconfirmed password: clear `passwordHash` and delete its open confirmation links (Phase 2).
    3. Otherwise, create a user with `name = github.name?.trim() || github.login` (cut to 100 characters), the email, `emailConfirmedAt = now` and the `mentee` role.
-5. Start a database session (AD2) and clear the OAuth cookie. Redirect to `returnTo`. A **new** account with no `returnTo` lands on `/account?welcome=1`, where the display name shows with a "This is the name others see. You can change it." notice. That makes "editable by the person" visible on first sign-in. On failure, the sign-in page carries the validated `returnTo` into retry/sign-up/email actions; error table paths above are abbreviated and include that parameter when present.
+5. Start a database session (AD2) and clear the OAuth cookie. Redirect to `returnTo`. A **new** account with no `returnTo` lands on `/account?welcome=1`, where the display name shows with a "This is the name others see. You can change it." notice. That makes "editable by the person" visible on first sign-in. When a safe `returnTo` is present, the same one-time notice appears on that destination page instead (SM-AC7). On failure, the sign-in page carries the validated `returnTo` into retry/sign-up/email actions; error table paths above are abbreviated and include that parameter when present.
 
 ### Flow 2: email and password with confirmation (#35)
 
@@ -88,7 +90,7 @@ Each story keeps its own user flow. None of them is reduced to CRUD on `users`.
 | An unconfirmed account | Replace the display name and password hash, **delete** earlier links, and send a new link. The last registration wins; earlier links stop working. |
 | A confirmed account | Hash the submitted password anyway and discard it, so timing matches the other paths. Send an "you already have an account — sign in with GitHub or your password" email. No reset is offered (N03). |
 
-In every case the response is "Check your inbox at *email*". If sending failed, it adds "We couldn't send the email — try again". Sending is not retried in the background. Every attempt reserves rate-limit rule 4 (3 per address per hour), including failed sends. When that rule is exhausted, sign-up creates no pending account or confirmation link, changes no credentials/display name, deletes no earlier links and sends nothing. It answers with the same `emailSent: false` response for every email state, so nothing leaks and existing pending credentials/links remain usable. SMTP acceptance means the message was submitted, not that inbox delivery was confirmed.
+In every case the response is "Check your inbox at *email*". If sending failed, it shows "We couldn't send the email. Please try again later." (SM-AC3). Sending is not retried in the background. Every attempt reserves rate-limit rule 4 (3 per address per hour), including failed sends. When that rule is exhausted, sign-up creates no pending account or confirmation link, changes no credentials/display name, deletes no earlier links and sends nothing. It answers with the same `emailSent: false` response for every email state, so nothing leaks and existing pending credentials/links remain usable. SMTP acceptance means the message was submitted, not that inbox delivery was confirmed.
 
 **Credential concurrency invariant (mandatory).** Registration, email confirmation and GitHub linking serialize on the same user row. Registration may compute a password hash before the transaction, but must lock the user (`FOR UPDATE`) and re-read confirmation state before writing it. A confirmed account's password is never changed by registration, even if registration first observed it as unconfirmed. Confirmation/resend lock the user before its token rows; GitHub linking uses the same order and deletes pending links when claiming an unconfirmed account. For a new email, let the unique email constraint decide the insert, then retry account resolution in a fresh transaction on conflict. Re-registration may invalidate only still-pending credentials/tokens. Token consumption, email confirmation and session creation commit together. No SMTP call or cookie emission happens inside an uncommitted transaction. The guarantees rest on the `FOR UPDATE` user lock plus the database constraints (unique email, unique `github_id`, conditional token consumption). Unit tests assert the lock calls, their order and the re-read; there are no interleaving race tests for registration (see Step 2.7).
 
@@ -101,7 +103,7 @@ In every case the response is "Check your inbox at *email*". If sending failed, 
 | Valid, and the token's `email` still equals the account email | "Enter your password to confirm *email*" with a password field and a **Confirm** button. |
 | Expired | "This link has expired." Sign in to get a new one: the `email_not_confirmed` response offers Resend. |
 | Used, and the address is confirmed | "Your address is already confirmed — sign in." |
-| Unknown, tampered, or replaced by a newer link | "This link isn't valid. If you registered more than once, use the link in the most recent email." |
+| Unknown, tampered, replaced by a newer link, or invalidated because GitHub claimed the account (AD3) | "This link isn't valid. Sign in to continue." with a link to `/sign-in` (SM-AC6). |
 
 **Confirm** sends `POST /api/auth/confirm-email {token, password, returnTo}`. In one transaction it:
 
@@ -416,7 +418,7 @@ The three-area rule comes from platform PD2/F4: public pages use the Tailwind ki
 | The same GitHub user signs in twice at once | The unique `github_id` and `email` constraints mean one insert wins. The loser re-reads and reuses the winner, so no duplicate is created (AC 3 of #34). |
 | The operator renames, or GitHub changes the name | The display name never changes after creation, except from `/account`. |
 | A sign-up for an email that already exists | Same response as a new email; Flow 2 chooses confirmation or informational email while rule 4 permits it. An exhausted allowance preserves pending credentials/links, sends nothing and returns the same `emailSent: false` response for every email state. |
-| SMTP fails at sign-up | The account exists. "We couldn't send the email — try again" offers resend through sign-in. |
+| SMTP fails at sign-up | The account exists. "We couldn't send the email. Please try again later." offers resend through sign-in. |
 | A confirmation link prefetched by a scanner | Nothing changes: the GET only inspects the token (AD7). |
 | An attacker pre-registers someone else's email | The owner receives a link but cannot confirm, because they don't know the attacker's password. Registering themselves replaces the hash and deletes the attacker's link while rule 4 permits; once exhausted, pending credentials/links stay unchanged until the allowance resets. If the owner uses GitHub instead, AD3 claims the still-unconfirmed account and wipes the attacker's password. |
 | Registration races with confirmation or GitHub claiming | Both serialize on the user. A replacement that loses the race sees the newly confirmed state and changes no password. The owner's confirmed credentials remain usable; an attacker's pending password cannot be installed afterward. |
@@ -435,6 +437,51 @@ The three-area rule comes from platform PD2/F4: public pages use the Tailwind ki
 | The database is down during principal resolution | 500 on APIs, the minimal `/error` screen on pages; that screen and its layout/header need no identity/DB lookup. Other routes fail closed. |
 | Brute force on sign-in | 429 `rate_limited`: "Too many attempts. Try again later". `Retry-After` remains an HTTP header; no client countdown. |
 | A cookie stolen from a signed-out browser | Sign-out deletes the row, so the stolen token stops working immediately. This is a property of AD2. |
+
+## 📝 Acceptance criteria (screen map)
+
+Criteria and decisions from `lekcja-07/mapa-ekranow.md` (approved 2026-10-24), each tagged with its screen id. `SM-ACn` numbers follow the review proposal accepted by the PO on 2026-10-27; `SM-AC15` was rejected (see "Not adopted"). Each criterion is verified in the phase that ships its feature; this section changes no implementation step. Source labels: **existing** = already required elsewhere in this spec or the backlog; **map** = decision recorded in the map (`Lnn`/`Onn`).
+
+- **SM-AC1** [s01, s02] A signed-in visitor opening `/sign-in` or `/sign-up` is redirected to the safe `returnTo`, otherwise to `/`. (map L06)
+- **SM-AC2** [s01, s06] When a request is rejected because the database session has expired, the sign-in page shows the banner "Your session expired. Sign in again." and keeps the safe `returnTo`. On `/account`, unsaved name changes are discarded. How the sign-in screen learns about the expiry is an implementation detail; this spec prescribes no new URL parameter. (map L07)
+- **SM-AC3** [s03] When the confirmation email was not sent (SMTP failure, or rule 4 exhausted), `/sign-up/check-email` shows "We couldn't send the email. Please try again later." and a way back to `/sign-up`. It states no cause and no countdown, and adds no retry control. Resend through sign-in is unchanged (existing, #35 AC 3). (map L09, O3; existing Flow 2)
+- **SM-AC4** [s01] Resend from `/sign-in`, two separate outcomes:
+  - sending fails (SMTP): "We couldn't send the email. Please try again later." (map s01 state, O3)
+  - rule 4 exhausted, answered 429: "Too many attempts. Try again later", with no countdown. (existing, API Contracts and Rules)
+- **SM-AC5** [s03] `/sign-up/check-email` without the `email` parameter redirects to `/sign-up`. (map L22)
+- **SM-AC6** [s04] An unknown, tampered, replaced or GitHub-claimed confirmation link shows "This link isn't valid. Sign in to continue." with a link to `/sign-in`. This is a wording change only; behavior follows existing Flow 2 and AD3. (map L11, O6; wording accepted by the PO 2026-10-27)
+- **SM-AC7** [s05, s06] After a new account's first GitHub sign-in, a one-time `Notice` says the display name is public and can be changed in Account settings. It appears on `/account?welcome=1` when there is no `returnTo`, otherwise on the `returnTo` page (for example the invitation). It never appears in both places, and not again after a reload or a later sign-in. The remembering mechanism is left to implementation. (map L16, O5)
+- **SM-AC8a** [s05, s07] While E01 runs standalone, accepting an invitation navigates to `/` and shows "Invitation accepted. You're now a mentor.". E01 creates no `/mentor` page. (map L01; existing Flow 3 step 3)
+- **SM-AC8b** [s05, s07] From E02 Phase 1 the accept client navigates to `/mentor` and both personalized headers show **Mentor setup** for accounts with `mentor`. (existing: Flow 3 step 3, UI/UX Header row, E02 Flow 1 step 1). Whether the message from SM-AC8a also appears after that redirect is an open question owned by E02 (`.ai/specs/2026-10-18-mentor-setup.md`), not a requirement here.
+- **SM-AC9** [s07] Header on `/`: signed out shows **Sign in**; signed in shows the display name (link to `/account`) and **Sign out**; an operator also sees **Backend**. `/` has no mentee dashboard and no listing placeholder. (existing UI/UX Header and home rows; map L02)
+- **SM-AC10** [s05, s07] A failed sign-out leaves the user on the current page with the existing design-system error and no navigation. (existing Account and sign-out; map L08)
+- **SM-AC11** [s06] Saving a changed display name shows "Name saved", and the field keeps the saved value. (map L10; existing `resetOnSuccess={false}`)
+- **SM-AC12** [s06] After accepting an invitation, `/account` lists both `mentee` and `mentor`, and a second GitHub sign-in with the same account creates no duplicate. No separate screens or messages. (existing #34 AC 3, #36 AC 3; map L19)
+- **SM-AC13** [s08, s11] A signed-in account without `operator` opening `/backend` gets the neutral 404 with a link to `/`. A signed-out visitor is redirected to `/sign-in` with `returnTo=/backend`. API authorization is independent of the UI (401/403). (map L05; existing AD4)
+- **SM-AC14** [s05] A test asserts that no page, route or CLI command grants `mentor` outside verified invitation acceptance (#36 AC 4). The criterion has no screen. (existing Flow 3 step 4 and Phase 3 step 4; map L03)
+- **SM-AC16** [s12] `/error?code=internal_error` shows a generic error screen without identity lookup or database access, also when the database is down. (existing: UI/UX `/error` row, Phase 1 step 4). No additional link requirement is added.
+- **SM-AC17** [s01, s02] Technical form failures (429, network failure, server error) use one shared error pattern and are not duplicated per screen. The 429 text is the one in SM-AC4. (map L21; existing rate-limit rules)
+
+**Existing rules tagged with their screens** (no new requirement): [s01] Flow 1 callback outcomes, the Flow 2 sign-in table and #34 AC 1/AC 4, #35 AC 3; [s02] #35 AC 1, AD6, N03; [s04] #35 AC 2/AC 4, AD7; [s05] Flow 3 page states and #36 AC 1–AC3, AD5; [s06] #34 AC 2; [s08] AD4; [s14] the Flow 1 callback table (the screen is a prototype simulation).
+
+### Not adopted (decisions recorded)
+
+- **SM-AC15 (rejected by the PO, 2026-10-27).** Production emails are not required to state the invitation's expiry date in UTC. The existing expiry (14 days, new expiry on `resend`) and the 24-hour confirmation expiry stay as written. [s13]
+- **Email texts from the map (section 3a) are approved for the prototype only** and are not production templates (map L12). [s13]
+- **Backend contents and the user-creation form are not specified here** (map L17, L18). E01 changes only the access gate (AD4). [s08, s09]
+- **No `/mentor` page or slot in E01** (map L20). `/mentor` belongs to E02. The `returnTo` requirement stays. [s10]
+- **No team contact address is fixed here** (map L04). Brief Q13 stays a release condition (Risks). [s05]
+- **The invitation CLI contract after a failed send is unchanged** (map L14, O2): the hash stays committed, the CLI exits nonzero and the operator runs `resend`. The map lists this as an open technical question.
+- **Outside this spec:** syncing Issues #34–#36 (O1), the design-system `Valid` story (O7), prototype control c16 (O9) and the release conditions Q13/Q05 (O10, already in Risks).
+
+### Prototype notes (not product requirements)
+
+- The map hides the **Mentor setup** link in the E01 prototype (O8). That limits the prototype only. The product behavior is SM-AC8a and SM-AC8b.
+- Screens s13 (demo mailbox) and s14 (simulated GitHub) exist only in the prototype.
+
+### Follow-up (not applied)
+
+- **Map correction, c03.** Control c03 says an exhausted address limit shows the neutral "We couldn't send the email…" message on resend in s01. That contradicts the s01 `[D]` state for 429 and this spec (SM-AC4: 429 shows "Too many attempts. Try again later"). The PO kept the spec; the map and prototype are to be corrected later and were not changed in this edit.
 
 ## 📝 Risks & Impact Review
 
@@ -681,7 +728,7 @@ Each step leaves the app working and is verified by the tests it names. A step t
    - Integration:
      - sign up, then the message in Mailpit
      - signing in before confirming is refused, then Resend sends a second message
-     - opening the first link → "not valid… use the most recent email"
+     - opening the first link → "This link isn't valid. Sign in to continue."
      - opening the newest link, entering the password and pressing Confirm → full browser navigation to `returnTo` (`/` by default), with the signed-in header and `/account` showing "Email and password"
      - password sign-in fully navigates to its validated destination with refreshed identity; failed sign-in/confirmation stays on the current page
      - after exhausting rule 4, further sign-ups preserve the existing pending password and link, which still confirm successfully; no extra mail or pending account/link is created
@@ -710,3 +757,12 @@ Each step leaves the app working and is verified by the tests it names. A step t
    - Exactly four real-DB race tests: two matching sessions accepting one invitation; accept vs revoke; accept vs resend; two concurrent `invite create` commands for one email. Assert at most one open invitation and one role grant, no acceptance with a revoked/rotated token when that operation wins, and no role removal when acceptance wins first. The one-open-email constraint prevents multiple valid open invitations for the same verified account address.
    - Capture delivery/status evidence without raw tokens or URLs. No page/route/CLI offers open mentor registration.
 5. **Documentation:** the operator runbook documents create/revoke/resend, confirming the engineer's sign-in address before create, fixed expiry, verified-email matching, delivery failure, accepted-invitation limits, code rollback and secret-free output; record the PO supersession of issue #46. Include the run log. Move **only this accounts spec** to `.ai/specs/implemented/` after Phase 3's full gate. Keep the platform catalog active until its provisional E02–E05 entries are implemented, explicitly deferred or transferred to their consuming specs; E01 completion is not completion of those features.
+
+## 📝 Questions to verify (synthetic hypotheses, not requirements)
+
+Source: `.ai/specs/research/walkthroughs/2026-10-27-mentor-onboarding-session-001/report.md` (grey mentor-onboarding prototype `.ai/prototypes/discovery/mentor-onboarding/revision-002/`). Every item is `[SYNTHETIC]`: a persona hypothesis, not evidence, not a requirement and no change to a decision. Numbers are the report's finding numbers.
+
+- **[SYNTHETIC]** Does the invitation text tell an engineer what a mentor does, who else is on the list and what is in it for them? (finding 4; screen [s13]; settles A04 and the operator wording in Q13)
+- **[SYNTHETIC]** Is landing on `/` after accepting the invitation, with no visible next step, enough for a new mentor? Decision L01 stands until a real first-click check. (finding 3; screen [s07]; settles SA2 and L01)
+- **[SYNTHETIC]** Do mentors accept that the name taken from GitHub is public? (finding 7; screens [s05], [s06]; settles D13. The part about the public page before bookability belongs to E02.)
+- **[SYNTHETIC]** What does a mentor without GitHub do after losing the password? (finding 10; screens [s01], [s02]; settles N03)
