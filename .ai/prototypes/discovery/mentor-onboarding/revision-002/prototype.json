@@ -192,7 +192,43 @@
     },
     {
       "path": "index.html",
-      "sha256": "df7380c08d29a0f195ef611ac1985c583b1f6ebb9fd6d6a2828bb4f3b40b5396"
+      "sha256": "b72f931dff1a8feed88a2e9335da9923ddddd82b0096c283943904cc0aaf43b0"
+    },
+    {
+      "path": "fix-001-stripe-status.md",
+      "sha256": "c4f29fc5aa853bd46286eb30fb0c71ede4c28314a81ed34a40955d1e8bf34a36"
+    },
+    {
+      "path": "evidence/fix-001-stripe-status/after-F02-bookable-clean.png",
+      "sha256": "747ec5b96dda6e9d9ca15350430746777a83c3451817d4f109e4d0be9d4549e5"
+    },
+    {
+      "path": "evidence/fix-001-stripe-status/after-F03-blocked-clean.png",
+      "sha256": "6de39927d908a7eb6275660bf5711e615fff01c83f697bfd9fd1d849122a156c"
+    },
+    {
+      "path": "evidence/fix-001-stripe-status/before-F01-checking.png",
+      "sha256": "265c8b4333b5434f07dbd5d4068e66620a457564d9a8393646b59a993e3bca1c"
+    },
+    {
+      "path": "evidence/fix-001-stripe-status/before-F02-bookable-contradiction.png",
+      "sha256": "5e8451dce95803f4949a176812acec365759592d3d1da7041e5e416f583bcc70"
+    },
+    {
+      "path": "evidence/fix-001-stripe-status/before-F03-blocked-contradiction.png",
+      "sha256": "e5ad1b6044fa540e116f71ed5bcdf242a1b763335101f2dfba4852251e086e90"
+    },
+    {
+      "path": "evidence/fix-001-stripe-status/walk-after.log",
+      "sha256": "e551fc8003dd3e3df689b1d5b0a14f0236d2d1b8dc7208816ab961df8d3310d8"
+    },
+    {
+      "path": "evidence/fix-001-stripe-status/walk-before.log",
+      "sha256": "4e1fccd2445b110d64787d01484fbaff2e8d5056d8dcb91cd590e204ec9914d8"
+    },
+    {
+      "path": "evidence/fix-001-stripe-status/walk-fix-001.mjs",
+      "sha256": "af7160d0d75949d2041e73b6655263722d01d368f395f028951f13bbb4da5263"
     }
   ]
 }

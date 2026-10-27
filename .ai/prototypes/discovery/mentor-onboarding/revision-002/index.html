@@ -422,6 +422,8 @@
     ui.busy = "check"; say("Checking status with Stripe."); render();
     setTimeout(function () {
       ui.busy = null; S.stripe = tv("t-stripe-check") === "blocked" ? "blocked" : "ready";
+      // The "Back from Stripe. Stripe is checking..." banner describes a past state; drop it once the check has an answer.
+      ui.notices = ui.notices.filter(function (n) { return n.id !== "back"; });
       say(S.stripe === "ready" ? "Payouts confirmed." : "Stripe blocked the account.");
       render("status-line");
     }, 350);

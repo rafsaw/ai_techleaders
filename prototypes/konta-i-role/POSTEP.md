@@ -7,9 +7,10 @@ Etapy 0–3, po każdym czekamy na „dalej”. W nowej sesji zacznij od tego pl
 |---|---|---|
 | 0. Plan | **zakończony**, decyzje D1–D3 rozstrzygnięte | 2026-10-25 |
 | 1. Szkielet i ścieżka bez błędów | **zakończony** | 2026-10-25 |
-| 2. Stany, role i scenariusze | **gotowy, czeka na „dalej”** | 2026-10-25 |
-| 2. Stany, role, scenariusze | nierozpoczęty | |
-| 3. Uczciwość i sprawdzenie | nierozpoczęty | |
+| 2. Stany, role i scenariusze | **zakończony** (zapisany 2026-10-25 jako „gotowy, czeka na «dalej»”; opis wykonanych prac niżej w sekcji „Etap 2”) | 2026-10-25 |
+| 3. Uczciwość i sprawdzenie | **zakończony** (notatki, README, 82 testy, sprawdzenie w przeglądarce; sekcja „Etap 3”) | najpóźniej 2026-10-26 (commit `a8528f5`) |
+
+Uwaga o historii: do 2026-10-27 tabela miała dwa wiersze „Etap 2” i wiersz „Etap 3: nierozpoczęty”, choć sekcje „Etap 2: co jest zrobione” i „Etap 3: co jest zrobione” opisywały wykonane prace. Tabela została ujednolicona z tymi opisami; treść sekcji i ograniczeń („Nie sprawdzone i ograniczenia”, „Otwarte luki”) nie była zmieniana. Stan potwierdzony 2026-10-27: `npx vitest run` w tym katalogu, 3 pliki, 82 testy przechodzą. Wyników przejść Playwright (axe, kliknięcia, klawiatura) nie powtarzano; ich skryptów nie ma w repozytorium.
 
 ## Decyzje (D1–D3, PO)
 
