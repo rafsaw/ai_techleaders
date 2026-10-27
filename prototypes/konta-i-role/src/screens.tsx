@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { Alert, AlertTitle } from "@devmentor/ui/components/alert";
-import { SignInOptions, N03_BODY, N03_TITLE, type GithubErrorCode } from "@devmentor/ui/components/auth/SignInOptions";
+import { N03_BODY, N03_TITLE } from "@devmentor/ui/components/auth/SignInOptions";
 import { AccountSummary } from "@devmentor/ui/components/auth/AccountSummary";
 import { ConfirmEmailPanel, type ConfirmEmailState } from "@devmentor/ui/components/auth/ConfirmEmailPanel";
 import { InvitationPanel, type InvitationState } from "@devmentor/ui/components/auth/InvitationPanel";
@@ -15,38 +15,18 @@ import { cn } from "@devmentor/ui/lib/utils";
 
 import { formatUtc } from "./data";
 import { Frame, ScreenSection } from "./Frame";
-import { githubHref, signInHref, signUpHref } from "./routes";
-import { accountSchema, emailConfirmSchema, signInSchema, signUpSchema } from "./schemas";
+import { signInHref, signUpHref } from "./routes";
+import { HomeVariants } from "./home-variants";
+import { SignInVariants } from "./signin-variants";
+import { accountSchema, emailConfirmSchema, signUpSchema } from "./schemas";
 import {
-  acceptInvitation, confirmEmail, githubCallback, identityOf, inspectInvitation, inspectLink, navigate, resendConfirmation,
-  saveDisplayName, SESSION_EXPIRED_MESSAGE, signOut, signInWithEmail, signUp, useSim, userOf,
+  acceptInvitation, confirmEmail, githubCallback, identityOf, inspectInvitation, inspectLink, navigate,
+  saveDisplayName, SESSION_EXPIRED_MESSAGE, signOut, signUp, useSim, userOf,
 } from "./sim";
 
 // Public-name notice that shows once after the first GitHub sign-in (PO L16, O5). GAP LD12: the design
 // system has no story for it on the invitation page; on the account page AccountSummary has its own.
 const PUBLIC_NAME_NOTICE = "This is the name others see. You can change it in Account settings.";
-
-/** s01 /sign-in */
-function SignIn() {
-  const p = useSim().params.s01 ?? {};
-  return (
-    <Frame title="Sign in">
-      {/* GAP LD06/LD15: the design system has no banner for an expired session. */}
-      {p.error === "session_expired" ? <Notice title={SESSION_EXPIRED_MESSAGE} /> : null}
-      <SignInOptions
-        githubHref={githubHref(p.returnTo)}
-        error={p.error === "session_expired" ? undefined : (p.error as GithubErrorCode | undefined)}
-        email={{
-          schema: signInSchema,
-          signIn: (values) => signInWithEmail(values, p.returnTo),
-          resend: (values) => resendConfirmation(values, p.returnTo),
-          onSignedIn: navigate,
-          signUpHref: signUpHref(p.returnTo),
-        }}
-      />
-    </Frame>
-  );
-}
 
 /** s02 /sign-up */
 function SignUp() {
@@ -224,17 +204,6 @@ function Account() {
       >
         <AccountNameForm key={user.id} displayName={user.displayName} />
       </AccountSummary>
-    </Frame>
-  );
-}
-
-/** s07 / */
-function Home() {
-  const sim = useSim();
-  return (
-    <Frame title="DevMentor">
-      {sim.homeNotice ? <Notice variant="success" title={sim.homeNotice} /> : null}
-      <p className="text-body">Text-based mentoring with senior engineers in TypeScript, React and Python.</p>
     </Frame>
   );
 }
@@ -432,13 +401,13 @@ function GithubAuthorize() {
 export function Screens() {
   return (
     <>
-      <ScreenSection id="s01"><SignIn /></ScreenSection>
+      <ScreenSection id="s01"><SignInVariants /></ScreenSection>
       <ScreenSection id="s02"><SignUp /></ScreenSection>
       <ScreenSection id="s03"><CheckEmail /></ScreenSection>
       <ScreenSection id="s04"><ConfirmEmail /></ScreenSection>
       <ScreenSection id="s05"><Invitation /></ScreenSection>
       <ScreenSection id="s06"><Account /></ScreenSection>
-      <ScreenSection id="s07"><Home /></ScreenSection>
+      <ScreenSection id="s07"><HomeVariants /></ScreenSection>
       <ScreenSection id="s08"><Backend /></ScreenSection>
       <ScreenSection id="s11"><NotFound /></ScreenSection>
       <ScreenSection id="s12"><ErrorPage /></ScreenSection>

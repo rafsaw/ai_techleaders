@@ -5,6 +5,7 @@ import { NativeSelect, NativeSelectOption } from "@devmentor/ui/components/nativ
 
 import { DAY, GITHUB_IDENTITIES, HOUR, IDENTITY_LABELS } from "./data";
 import { SCREENS } from "./routes";
+import { setVariant, useVariant, variantsOf } from "./variants";
 import {
   chooseGithubIdentity, clearInbox, navigate, reset, setClockOffset, setScenario, switchAccount, useSim, type Scenario,
 } from "./sim";
@@ -72,6 +73,9 @@ export function ReviewBar() {
   const sim = useSim();
   const { scenario } = sim;
   const [dark, setDark] = useState(initialDark);
+  const screen = sim.currentScreen;
+  const variants = variantsOf(screen);
+  const variant = useVariant(screen);
 
   // The menus are native <details>: close them when the person picks a screen or clicks elsewhere.
   useEffect(() => {
@@ -111,6 +115,16 @@ export function ReviewBar() {
       <a className="btn btn-outline btn-sm" href="#s13">
         Demo inbox ({sim.mails.length})
       </a>
+      {variants.length > 0 ? (
+        <div className="segmented" role="group" aria-label={`${screen} layout`}>
+          <span className="text-label px-2 self-center">{screen} layout</span>
+          {variants.map((option) => (
+            <button key={option.id} type="button" aria-pressed={variant === option.id} title={option.summary} onClick={() => setVariant(screen, option.id)}>
+              {option.id}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <details className="bar-menu">
         <summary className="btn btn-outline btn-sm">Scenarios</summary>
         <div className="bar-panel scenario-panel">
