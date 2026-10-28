@@ -73,6 +73,11 @@ None. The fields come from `fields`; the three E01 forms:
 - Cmd/Ctrl+Enter submits (same as `CrudForm`).
 - Values stay after a failure; after success they stay too by default (`resetOnSuccess={false}`), because a public form navigates away (P-F3, proposal approved by PO(Rafał)).
 - `noValidate`: the schema's messages replace the browser's.
+- One request at a time: a second submit while one runs is ignored, even in the same turn (a
+  double click, Enter plus click). Unmounting aborts the running request through `signal` and
+  drops its result (F2, E01 Phase 2).
+- Technical failures (429, network, server error) share the one form-level error; a 429 always
+  reads *Too many attempts. Try again later*, with no countdown (`failureMessage`, SM-AC17).
 
 ## 8. Content
 
@@ -99,7 +104,7 @@ None. The fields come from `fields`; the three E01 forms:
 | `initialValues` | `Partial<Record<name, string>>` | `""` for every field | |
 | `submitLabel` | `string` | — | verb and object |
 | `pendingLabel` | `string` | — | *-ing* form |
-| `onSubmit` | `(values) => Promise<ApiResult<T>>` | — | usually `apiCall` |
+| `onSubmit` | `(values, { signal }) => Promise<ApiResult<T>>` | — | usually `apiCall`; pass `signal` on, it aborts when the form unmounts |
 | `onSuccess` | `(data: T) => void` | — | after the server confirms |
 | `resetOnSuccess` | `boolean` | `false` | clear the fields after success |
 | `children` | `ReactNode` | — | above the fields |
@@ -120,7 +125,7 @@ handleBlur, handleSubmit, handleKeyDown }` (platform F2, plus `handleBlur`).
   ]}
   submitLabel="Sign in"
   pendingLabel="Signing in…"
-  onSubmit={(values) => apiCall("/api/auth/sign-in", { method: "POST", body: values })}
+  onSubmit={(values, { signal }) => apiCall("/api/auth/sign-in", { method: "POST", body: values, signal })}
   onSuccess={({ redirectTo }) => window.location.assign(redirectTo)}
 >
   <Notice title="Password reset is not available yet.">…</Notice>

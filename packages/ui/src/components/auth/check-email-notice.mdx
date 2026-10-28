@@ -1,0 +1,99 @@
+import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./check-email-notice.stories";
+
+<Meta of={Stories} />
+
+# Check email notice
+
+`import { CheckEmailNotice } from "@devmentor/ui/components/auth/CheckEmailNotice"`
+
+E01 product component for the outcome of sending a confirmation email (Flow 2). Tailwind only
+(F3), so public pages may use it. Extracted in E01 Phase 2 when it got its second consumer.
+
+## 1. What it is for
+
+It tells the person where the confirmation link went and how long it works, or that it could not
+be sent, in one sentence.
+
+## 2. When to use
+
+- `/sign-up/check-email`, after `POST /api/auth/sign-up` (`emailSent` from the response).
+- On `/sign-in`, after **Resend confirmation** (inside **Sign-in options**).
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| The address is already confirmed (resend) | a `Notice` *Your address is already confirmed — sign in.* | E01 Flow 2 |
+| Too many attempts (429) | the form's error, *Too many attempts. Try again later* | E01 API Contracts |
+
+## 4. Anatomy
+
+| Part | Required | Notes | Source |
+|---|---|---|---|
+| Notice, `success` | sent | *Check your inbox at …*, the address breaks anywhere | E01 Flow 2 |
+| Expiry line | sent | *The link expires in 24 hours.* | E01 UI/UX |
+| Notice, `error` | not sent | *We couldn't send the email. Please try again later.* | SM-AC3, SM-AC4 |
+
+## 5. Variants
+
+`emailSent` true or false.
+
+## 6. States (data states)
+
+| State | Story |
+|---|---|
+| Sent | *Playground* |
+| Not sent | *Not sent* |
+| Long address, 320 px | *Long content, narrow* |
+| Loading, empty, many | not applicable: shown after the server answered |
+
+<Canvas of={Stories.NotSent} />
+
+## 7. Behaviour and accessibility
+
+- Sent is `role="status"`, not sent `role="alert"` (Notice).
+- The not-sent variant names no cause (SMTP or the per-address limit) and no countdown, and has no
+  retry control of its own (SM-AC3). The address is not repeated there.
+
+## 8. Content
+
+Copy from E01 Flow 2 and SM-AC3/SM-AC4 (`CHECK_EMAIL_EXPIRY`, `EMAIL_NOT_SENT`).
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | a long address wraps anywhere |
+| 768 px, 1440 px | the page sets the width |
+
+<Canvas of={Stories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Description |
+|---|---|---|
+| `email` | `string` | the address from the API response |
+| `emailSent` | `boolean` | from the API response |
+| `className` | `string` | layout spacing |
+
+<Controls of={Stories.Playground} />
+
+## 11. Code
+
+```tsx
+<CheckEmailNotice email={email} emailSent={searchParams.sent !== "0"} />
+```
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| One sentence, the same for every address | "This address already has an account" | E01 Flow 2: never reveal which emails exist |
+| Say "try again later" | a countdown or the limit's cause | SM-AC3 |
+
+## 13. Related
+
+- Built from: **Notice**.
+- Used in: **Sign-in options** (resend), the Check email screen.

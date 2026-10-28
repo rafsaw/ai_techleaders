@@ -73,7 +73,15 @@ describe("UI area lint rules (platform PD2/F3)", () => {
   const publicPage = "packages/app/src/app/(frontend)/sign-in/page.tsx";
   const publicKit = "packages/ui/src/frontend/feedback/Notice.tsx";
   const publicDomainComponent = "packages/ui/src/components/auth/SiteHeader.tsx";
-  const publicArea = [publicPage, "packages/app/src/app/site-header.tsx", "packages/app/src/app/welcome-notice.tsx", publicKit, publicDomainComponent];
+  // Phase 2 public pieces: the form kit, the sign-up and check-email components and a page's
+  // colocated client form.
+  const publicFormKit = "packages/ui/src/frontend/forms/SchemaForm.tsx";
+  const signUpForm = "packages/ui/src/components/auth/SignUpForm.tsx";
+  const publicArea = [
+    publicPage, "packages/app/src/app/site-header.tsx", "packages/app/src/app/welcome-notice.tsx", publicKit, publicDomainComponent,
+    publicFormKit, signUpForm, "packages/ui/src/components/auth/CheckEmailNotice.tsx",
+    "packages/app/src/app/(frontend)/sign-up/sign-up-form.tsx", "packages/app/src/app/(frontend)/confirm-email/page.tsx",
+  ];
 
   it.each(publicArea.flatMap((file) => [
     [file, "@devmentor/ui/components/button"],
@@ -86,6 +94,11 @@ describe("UI area lint rules (platform PD2/F3)", () => {
     [file, "@devmentor/ui/components/mentors/SetupChecklist"],
     // A path that only starts like an allowed component.
     [file, "@devmentor/ui/components/auth/SiteHeaderWithCard"],
+    [file, "@devmentor/ui/components/auth/SignUpFormCard"],
+    // The signed-in form and its shadcn field primitives.
+    [file, "@devmentor/ui/components/field"],
+    [file, "@devmentor/ui/components/input"],
+    [file, "@base-ui/react/field"],
   ]))("rejects the public-area file %s importing %s", async (file, dependency) => {
     expect(await importErrors(file, dependency)).toHaveLength(1);
   });
@@ -95,6 +108,16 @@ describe("UI area lint rules (platform PD2/F3)", () => {
     [file, "@devmentor/ui/components/auth/SignInOptions"],
     [file, "@devmentor/ui/components/auth/WelcomeNotice"],
     [file, "@devmentor/ui/components/mentors/PriceList"],
+    [file, "@devmentor/ui/components/auth/SignUpForm"],
+    [file, "@devmentor/ui/components/auth/CheckEmailNotice"],
+    [file, "@devmentor/ui/components/auth/ConfirmEmailPanel"],
+    [file, "@devmentor/ui/frontend/forms/SchemaForm"],
+    [file, "@devmentor/ui/frontend/forms/TextField"],
+    [file, "@devmentor/ui/frontend/forms/PasswordField"],
+    [file, "@devmentor/ui/frontend/forms/SubmitButton"],
+    [file, "@devmentor/ui/frontend/actions/LinkButton"],
+    [file, "@devmentor/ui/forms/useSchemaForm"],
+    [file, "@devmentor/ui/forms/field-errors"],
     [file, "@devmentor/ui/api/apiCall"],
     [file, "@devmentor/ui/lib/utils"],
   ]))("allows the public-area file %s importing %s", async (file, dependency) => {
@@ -106,6 +129,11 @@ describe("UI area lint rules (platform PD2/F3)", () => {
     [publicKit, "./LinkButton"],
     [publicDomainComponent, "../button"],
     [publicDomainComponent, "./AccountSummary"],
+    // A relative path cannot smuggle a primitive in through the kit or a domain component.
+    [publicFormKit, "../../components/input"],
+    [publicFormKit, "./TextField"],
+    [signUpForm, "./SignInOptions"],
+    [signUpForm, "../../backend/forms/CrudForm"],
   ])("rejects relative imports in public ui code: %s importing %s", async (file, dependency) => {
     expect(await importErrors(file, dependency)).toHaveLength(1);
   });

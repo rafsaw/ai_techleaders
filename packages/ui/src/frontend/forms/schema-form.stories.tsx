@@ -75,7 +75,10 @@ export const Playground: Story = {
     await fillSignIn(canvas);
     await userEvent.click(canvas.getByRole("button", { name: "Sign in" }));
     await waitFor(() => expect(args.onSuccess).toHaveBeenCalledWith({ redirectTo: "/account" }));
-    await expect(args.onSubmit).toHaveBeenCalledWith({ email: "ada@example.com", password: "correct horse battery staple" });
+    await expect(args.onSubmit).toHaveBeenCalledWith(
+      { email: "ada@example.com", password: "correct horse battery staple" },
+      { signal: expect.any(AbortSignal) }
+    );
   },
 };
 

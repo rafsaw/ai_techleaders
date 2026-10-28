@@ -36,6 +36,8 @@ import * as C33 from "../../components/mentors/public-work-links.stories";
 import * as C34 from "../../components/mentors/price-list.stories";
 import * as C35 from "../../components/mentors/text-only-note.stories";
 import * as C36 from "../../components/mentors/not-bookable-notice.stories";
+import * as C37 from "../../components/auth/sign-up-form.stories";
+import * as C38 from "../../components/auth/check-email-notice.stories";
 
 <Meta title="Design system/Components" />
 
@@ -354,6 +356,30 @@ The catalog groups compound parts with their parent: FieldShell in Text field, S
 <Unstyled>
   <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
     <Story of={C25.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Sign-up form
+
+**Group:** Product/E01 Accounts and access. Create an email account with N03 and the password rule before typing. Source: E01 Flow 2, AD6, N03.
+
+[Documentation and API](?path=/docs/product-e01-accounts-and-access-sign-up-form--docs) · Import: `@devmentor/ui/components/auth/SignUpForm`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C37.Playground} inline autoplay={false} />
+  </div>
+</Unstyled>
+
+## Check email notice
+
+**Group:** Product/E01 Accounts and access. Where the confirmation link went, or that it could not be sent. Source: E01 Flow 2, SM-AC3, SM-AC4.
+
+[Documentation and API](?path=/docs/product-e01-accounts-and-access-check-email-notice--docs) · Import: `@devmentor/ui/components/auth/CheckEmailNotice`.
+
+<Unstyled>
+  <div className="docs-story rounded-panel border border-border bg-background p-panel-compact text-foreground">
+    <Story of={C38.Playground} inline autoplay={false} />
   </div>
 </Unstyled>
 

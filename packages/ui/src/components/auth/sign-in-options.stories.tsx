@@ -60,7 +60,14 @@ export const SessionExpired: Story = {
 };
 
 /** Error: the four GitHub banners from ?error= (P-N1). Cancel is info, failures are errors. */
-export const GithubCancelled: Story = { args: { error: "github_cancelled" } };
+export const GithubCancelled: Story = {
+  args: { error: "github_cancelled" },
+  play: async ({ canvas }) => {
+    // Phase 2: the banner links to the email form and puts the focus in its first field.
+    await userEvent.click(canvas.getByRole("link", { name: "sign in with email" }));
+    await expect(canvas.getByRole("textbox", { name: "Email" })).toHaveFocus();
+  },
+};
 export const GithubFailed: Story = {
   args: { error: "github_failed" },
   play: async ({ canvas }) => {
@@ -96,6 +103,36 @@ export const EmailNotConfirmed: Story = {
     await userEvent.click(await canvas.findByRole("button", { name: "Resend confirmation" }));
     await expect(await canvas.findByText("Check your inbox at ada@example.com")).toBeVisible();
     await expect(args.email!.resend).toHaveBeenCalledOnce();
+  },
+};
+
+/** Resend outcomes: not sent (SMTP), and the address allowance used up (429), no countdown (SM-AC4). */
+export const ResendNotSent: Story = {
+  args: {
+    email: {
+      ...email,
+      signIn: fn(async () => fail("email_not_confirmed", "Confirm your email first")),
+      resend: fn(async () => ({ ok: true as const, data: { emailSent: false, alreadyConfirmed: false } })),
+    },
+  },
+  play: async ({ canvas }) => {
+    await signIn(canvas);
+    await userEvent.click(await canvas.findByRole("button", { name: "Resend confirmation" }));
+    await expect(await canvas.findByText("We couldn't send the email. Please try again later.")).toBeVisible();
+  },
+};
+export const ResendRateLimited: Story = {
+  args: {
+    email: {
+      ...email,
+      signIn: fn(async () => fail("email_not_confirmed", "Confirm your email first")),
+      resend: fn(async () => fail("rate_limited", "Too many attempts. Try again later")),
+    },
+  },
+  play: async ({ canvas }) => {
+    await signIn(canvas);
+    await userEvent.click(await canvas.findByRole("button", { name: "Resend confirmation" }));
+    await expect(await canvas.findByText("Too many attempts. Try again later")).toBeVisible();
   },
 };
 

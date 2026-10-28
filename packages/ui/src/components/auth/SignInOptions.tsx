@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, type MouseEvent } from "react";
 import type { z } from "zod";
 
 import type { ApiResult } from "@devmentor/ui/api/types";
-import { LinkButton } from "@devmentor/ui/frontend/actions/LinkButton";
+import { CheckEmailNotice } from "@devmentor/ui/components/auth/CheckEmailNotice";
+import { failureMessage } from "@devmentor/ui/forms/field-errors";
+import { LinkButton, linkButtonVariants } from "@devmentor/ui/frontend/actions/LinkButton";
 import { Notice } from "@devmentor/ui/frontend/feedback/Notice";
 import { SchemaForm } from "@devmentor/ui/frontend/forms/SchemaForm";
 import { SubmitButton } from "@devmentor/ui/frontend/forms/SubmitButton";
 
 // /sign-in (E01 UI/UX): GitHub first, then the email form with the N03 notice beside it, then
 // the link to sign-up. Public kit only (F3). Copy from 2026-10-17-accounts-and-roles.md.
+// SignUpForm imports the N03 copy from here, so this module must never import SignUpForm.
 // Docs: sign-in-options.mdx.
 
 export type GithubErrorCode = "github_cancelled" | "github_failed" | "github_no_verified_email" | "github_email_taken";
@@ -39,6 +42,8 @@ export const SIGN_IN_ERRORS: Record<SignInErrorCode, { variant: "info" | "error"
   session_expired: { variant: "info", title: "Your session expired.", body: "Sign in again." },
 };
 
+export const ALREADY_CONFIRMED = "Your address is already confirmed — sign in.";
+
 export const N03_TITLE = "Password reset is not available yet.";
 export const N03_BODY =
   "Save your password in a password manager, or use GitHub sign-in. If you forget an email-only account's password, you cannot recover access in version 1.0.";
@@ -55,7 +60,8 @@ export interface SignInOptionsProps {
   email?: {
     /** The route's schema for email and password (`signInSchema`, without `returnTo`). */
     schema: z.ZodType<Credentials, Credentials>;
-    signIn: (values: Credentials) => Promise<ApiResult<{ redirectTo: string }>>;
+    /** `signal` aborts when the form unmounts. */
+    signIn: (values: Credentials, options: { signal: AbortSignal }) => Promise<ApiResult<{ redirectTo: string }>>;
     resend: (values: Credentials) => Promise<ResendResult>;
     onSignedIn: (redirectTo: string) => void;
     /** `/sign-up`, with returnTo. */
@@ -63,9 +69,26 @@ export interface SignInOptionsProps {
   };
 }
 
-function ErrorBanner({ code }: { code?: string }) {
+export const EMAIL_SECTION_ID = "sign-in-email";
+
+function ErrorBanner({ code, onEmail }: { code?: string; onEmail?: (event: MouseEvent<HTMLAnchorElement>) => void }) {
   const entry = code && code in SIGN_IN_ERRORS ? SIGN_IN_ERRORS[code as SignInErrorCode] : undefined;
   if (!entry) return null;
+  // Phase 2: a cancelled GitHub sign-in offers the email form as a live link (E01 UI/UX). It is
+  // a real fragment link, so it works without JavaScript; with it, focus lands on the email field.
+  if (code === "github_cancelled" && onEmail) {
+    return (
+      <Notice variant={entry.variant} title={entry.title}>
+        <p>
+          {entry.body}, or{" "}
+          <a href={`#${EMAIL_SECTION_ID}`} onClick={onEmail} className={linkButtonVariants({ variant: "link" })}>
+            sign in with email
+          </a>
+          .
+        </p>
+      </Notice>
+    );
+  }
   return (
     <Notice variant={entry.variant} title={entry.title}>
       {entry.body}
@@ -81,6 +104,7 @@ function ResendConfirmation({ credentials, resend }: { credentials: Credentials;
       className="flex flex-col items-start gap-in-group"
       onSubmit={async (event) => {
         event.preventDefault();
+        if (pending) return;
         setPending(true);
         setResult(await resend(credentials));
         setPending(false);
@@ -89,16 +113,10 @@ function ResendConfirmation({ credentials, resend }: { credentials: Credentials;
       <SubmitButton variant="outline" pending={pending} pendingLabel="Resending…">
         Resend confirmation
       </SubmitButton>
-      {result && !result.ok ? <Notice variant="error" title={result.error.message} /> : null}
-      {result?.ok && result.data.alreadyConfirmed ? (
-        <Notice title="Your address is already confirmed — sign in." />
-      ) : null}
+      {result && !result.ok ? <Notice variant="error" title={failureMessage(result.error)} /> : null}
+      {result?.ok && result.data.alreadyConfirmed ? <Notice title={ALREADY_CONFIRMED} /> : null}
       {result?.ok && !result.data.alreadyConfirmed ? (
-        result.data.emailSent ? (
-          <Notice variant="success" title={`Check your inbox at ${credentials.email}`}>The link expires in 24 hours.</Notice>
-        ) : (
-          <Notice variant="error" title="We couldn't send the email — try again" />
-        )
+        <CheckEmailNotice email={credentials.email} emailSent={result.data.emailSent} />
       ) : null}
     </form>
   );
@@ -106,17 +124,27 @@ function ResendConfirmation({ credentials, resend }: { credentials: Credentials;
 
 export function SignInOptions({ githubHref, error, email }: SignInOptionsProps) {
   const [unconfirmed, setUnconfirmed] = useState<Credentials>();
+  const emailSection = useRef<HTMLElement>(null);
+  function focusEmail(event: MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    emailSection.current?.querySelector<HTMLInputElement>('input[name="email"]')?.focus();
+  }
   return (
     <div data-slot="sign-in-options" className="flex w-full max-w-text flex-col gap-component">
       <div className="flex flex-col gap-between-groups">
-        <ErrorBanner code={error} />
+        <ErrorBanner code={error} onEmail={email ? focusEmail : undefined} />
         <LinkButton href={githubHref} className="w-full">
           Sign in with GitHub
         </LinkButton>
       </div>
       {email ? (
-        <section aria-labelledby="sign-in-email" className="flex flex-col gap-between-groups border-t border-border pt-component">
-          <h2 id="sign-in-email" className="text-section-title">
+        <section
+          ref={emailSection}
+          id={EMAIL_SECTION_ID}
+          aria-labelledby={`${EMAIL_SECTION_ID}-heading`}
+          className="flex flex-col gap-between-groups border-t border-border pt-component"
+        >
+          <h2 id={`${EMAIL_SECTION_ID}-heading`} className="text-section-title">
             Sign in with email
           </h2>
           <SchemaForm
@@ -127,8 +155,8 @@ export function SignInOptions({ githubHref, error, email }: SignInOptionsProps) 
             ]}
             submitLabel="Sign in"
             pendingLabel="Signing in…"
-            onSubmit={async (values) => {
-              const result = await email.signIn(values);
+            onSubmit={async (values, options) => {
+              const result = await email.signIn(values, options);
               setUnconfirmed(!result.ok && result.error.code === "email_not_confirmed" ? values : undefined);
               return result;
             }}

@@ -5,10 +5,12 @@ import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import type { ApiResult } from "../../api/types";
 import { AccountSummary } from "./AccountSummary";
+import { CHECK_EMAIL_EXPIRY, CheckEmailNotice, EMAIL_NOT_SENT } from "./CheckEmailNotice";
 import { ConfirmEmailPanel } from "./ConfirmEmailPanel";
 import { InvitationPanel } from "./InvitationPanel";
 import { GITHUB_ERRORS, SIGN_IN_ERRORS, SignInOptions } from "./SignInOptions";
 import { SiteHeader } from "./SiteHeader";
+import { DISPLAY_NAME_HINT, INVITED_NOTICE, SignUpForm } from "./SignUpForm";
 import { WELCOME_TITLE, WelcomeNotice } from "./WelcomeNotice";
 
 const credentials = z.object({ email: z.email("Enter a valid email address"), password: z.string().min(1, "Enter your password") });
@@ -65,14 +67,110 @@ describe("SignInOptions", () => {
     expect(await screen.findByText("Check your inbox at ada@example.com")).toBeVisible();
     expect(resend).toHaveBeenCalledWith({ email: "ada@example.com", password: "correct horse battery" });
     fireEvent.click(screen.getByRole("button", { name: "Resend confirmation" }));
-    expect(await screen.findByText("We couldn't send the email — try again")).toBeVisible();
+    expect(await screen.findByText("We couldn't send the email. Please try again later.")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Resend confirmation" }));
     expect(await screen.findByText("Your address is already confirmed — sign in.")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Resend confirmation" }));
     expect(await screen.findByText("Too many attempts. Try again later")).toBeVisible();
+    // Every 429 reads the same, whatever the server's wording (SM-AC4, SM-AC17).
+    resend.mockResolvedValueOnce(fail("rate_limited", "Retry after 3600 s"));
+    fireEvent.click(screen.getByRole("button", { name: "Resend confirmation" }));
+    await waitFor(() => expect(screen.getAllByRole("alert").at(-1)).toHaveTextContent("Too many attempts. Try again later"));
 
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     await waitFor(() => expect(screen.queryByRole("button", { name: "Resend confirmation" })).not.toBeInTheDocument());
+  });
+});
+
+describe("SignInOptions: resend in flight", () => {
+  it("sends one resend at a time", async () => {
+    const resend = vi.fn().mockReturnValue(new Promise(() => {}));
+    const signIn = vi.fn().mockResolvedValue(fail("email_not_confirmed", "Confirm your email first"));
+    render(<SignInOptions githubHref="/g" email={{ schema: credentials, signIn, resend, onSignedIn: vi.fn(), signUpHref: "/sign-up" }} />);
+    fillAndSignIn();
+    const form = (await screen.findByRole("button", { name: "Resend confirmation" })).closest("form")!;
+    fireEvent.submit(form);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Resending…" })).toBeDisabled());
+    fireEvent.submit(form);
+    expect(resend).toHaveBeenCalledOnce();
+  });
+});
+
+describe("SignInOptions: cancelled GitHub sign-in (Phase 2)", () => {
+  it("links the cancelled banner to the email form and moves focus to the email field", async () => {
+    const signIn = vi.fn().mockResolvedValue({ ok: true, data: { redirectTo: "/" } });
+    render(<SignInOptions githubHref="/g" error="github_cancelled" email={{ schema: credentials, signIn, resend: vi.fn(), onSignedIn: vi.fn(), signUpHref: "/sign-up" }} />);
+    expect(screen.getAllByRole("status")[0]).toHaveTextContent("GitHub sign-in was cancelled.Try again, or sign in with email.");
+    const link = screen.getByRole("link", { name: "sign in with email" });
+    expect(link).toHaveAttribute("href", "#sign-in-email");
+    expect(screen.getByRole("region", { name: "Sign in with email" })).toHaveAttribute("id", "sign-in-email");
+    expect(fireEvent.click(link)).toBe(false);
+    expect(screen.getByRole("textbox", { name: "Email" })).toHaveFocus();
+    // The request gets the form's abort signal.
+    fillAndSignIn();
+    await waitFor(() => expect(signIn).toHaveBeenCalledWith({ email: "ada@example.com", password: "correct horse battery" }, { signal: expect.any(AbortSignal) }));
+  });
+
+  it("keeps the Phase 1 wording without the email form", () => {
+    render(<SignInOptions githubHref="/g" error="github_cancelled" />);
+    expect(screen.getByRole("status")).toHaveTextContent(/^GitHub sign-in was cancelled\.Try again$/);
+    expect(screen.queryByRole("link", { name: "sign in with email" })).not.toBeInTheDocument();
+  });
+});
+
+describe("CheckEmailNotice", () => {
+  it("says where the link went and for how long, or that it could not be sent", () => {
+    const { rerender } = render(<CheckEmailNotice email="ada@example.com" emailSent />);
+    expect(screen.getByRole("status")).toHaveTextContent(`Check your inbox at ada@example.com${CHECK_EMAIL_EXPIRY}`);
+    rerender(<CheckEmailNotice email="ada@example.com" emailSent={false} className="x" />);
+    expect(screen.getByRole("alert")).toHaveTextContent(/^We couldn't send the email\. Please try again later\.$/);
+    expect(screen.getByRole("alert")).toHaveClass("x");
+    expect(screen.queryByText(/ada@example.com/)).not.toBeInTheDocument();
+    expect(EMAIL_NOT_SENT).toBe("We couldn't send the email. Please try again later.");
+  });
+});
+
+describe("SignUpForm", () => {
+  const schema = z.object({
+    displayName: z.string().trim().min(1, "Enter a display name"),
+    email: z.email("Enter a valid email address"),
+    password: z.string().min(15, "Use at least 15 characters"),
+  });
+
+  function fill() {
+    fireEvent.change(screen.getByRole("textbox", { name: "Display name" }), { target: { value: "Ada" } });
+    fireEvent.change(screen.getByRole("textbox", { name: "Email" }), { target: { value: "ada@example.com" } });
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "correct horse battery" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+  }
+
+  it("shows N03 and the password rule before typing, and moves on only after the server answers", async () => {
+    let finish!: (result: ApiResult<{ email: string; emailSent: boolean }>) => void;
+    const submit = vi.fn().mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+    const onSignedUp = vi.fn();
+    render(<SignUpForm schema={schema} submit={submit} onSignedUp={onSignedUp} signInHref="/sign-in?returnTo=%2Faccount" />);
+    expect(screen.getByRole("status")).toHaveTextContent("Password reset is not available yet.");
+    expect(screen.queryByText(INVITED_NOTICE)).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Display name" })).toHaveAccessibleDescription(DISPLAY_NAME_HINT);
+    expect(screen.getByLabelText("Password")).toHaveAttribute("autocomplete", "new-password");
+    expect(screen.getByLabelText("Password")).toHaveAccessibleDescription(/at least 15 characters/);
+    expect(screen.getByRole("link", { name: "Sign in instead" })).toHaveAttribute("href", "/sign-in?returnTo=%2Faccount");
+    fill();
+    expect(screen.getByRole("button", { name: "Creating account…" })).toBeDisabled();
+    expect(onSignedUp).not.toHaveBeenCalled();
+    finish({ ok: true, data: { email: "ada@example.com", emailSent: false } });
+    await waitFor(() => expect(onSignedUp).toHaveBeenCalledWith({ email: "ada@example.com", emailSent: false }));
+  });
+
+  it("explains the invitation address and shows failures without moving on", async () => {
+    const submit = vi.fn().mockResolvedValue(fail("rate_limited", "Too many attempts. Try again later"));
+    const onSignedUp = vi.fn();
+    render(<SignUpForm schema={schema} submit={submit} onSignedUp={onSignedUp} signInHref="/sign-in" invited />);
+    expect(screen.getAllByRole("status")[0]).toHaveTextContent(INVITED_NOTICE);
+    fill();
+    expect(await screen.findByRole("alert")).toHaveTextContent("Too many attempts. Try again later");
+    expect(onSignedUp).not.toHaveBeenCalled();
+    expect(screen.getByRole("textbox", { name: "Email" })).toHaveValue("ada@example.com");
   });
 });
 
@@ -92,11 +190,30 @@ describe("ConfirmEmailPanel", () => {
   it.each([
     ["expired", "status", "This link has expired.Sign in to get a new one."],
     ["used", "status", "Your address is already confirmed — sign in."],
-    ["invalid", "alert", "This link isn't valid.If you registered more than once, use the link in the most recent email."],
+    ["invalid", "alert", "This link isn't valid.Sign in to continue."],
   ] as const)("explains the %s state and links to sign-in", (status, role, text) => {
     render(<ConfirmEmailPanel state={{ status }} signInHref="/sign-in?returnTo=%2F" confirm={{ schema, submit: vi.fn(), onConfirmed: vi.fn() }} />);
     expect(screen.getByRole(role)).toHaveTextContent(text);
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in?returnTo=%2F");
+  });
+
+  it("keeps the form after a wrong password, and swaps it for the reason when the link stopped working", async () => {
+    const submit = vi.fn()
+      .mockResolvedValueOnce(fail("invalid_credentials", "Email or password is incorrect"))
+      .mockResolvedValueOnce(fail("not_found", "Your address is already confirmed. Sign in"));
+    const onConfirmed = vi.fn();
+    render(<ConfirmEmailPanel state={{ status: "valid", email: "ada@example.com" }} signInHref="/sign-in" confirm={{ schema, submit, onConfirmed }} />);
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "wrong horse battery" } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Email or password is incorrect");
+    expect(screen.getByLabelText("Password")).toHaveValue("wrong horse battery");
+    expect(submit).toHaveBeenCalledWith({ password: "wrong horse battery" }, { signal: expect.any(AbortSignal) });
+
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Your address is already confirmed. Sign in"));
+    expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in");
+    expect(onConfirmed).not.toHaveBeenCalled();
   });
 });
 

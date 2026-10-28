@@ -16,7 +16,7 @@ Creating an email account, with the password rule and the no-reset warning (N03)
 
 ## Built from
 
-**Site header**, **Notice**, **Schema form**, **Password field**, **Link button**. Pattern: **Form**.
+**Site header**, **Sign-up form** (Notice, Schema form, Password field, Link button). Pattern: **Form**.
 
 ## State map
 
@@ -25,6 +25,7 @@ Creating an email account, with the password rule and the no-reset warning (N03)
 | Default: N03 and the 15-character rule visible | *Default* | E01 UI/UX, AD6 |
 | From an invitation: which address to use, returnTo kept | *From invitation* | E01 UI/UX, platform P6 |
 | Success → /sign-up/check-email after the server answers | *Success* | E01 Flow 2, Q4 |
+| Not sent → /sign-up/check-email?…&sent=0 | *Not sent* | SM-AC3 |
 | Creating account | *Pending* | Form pattern |
 | Validation, focus on the first error | *Invalid* | Form pattern |
 | Too many attempts (429) | *Rate limited* | E01 edge cases |

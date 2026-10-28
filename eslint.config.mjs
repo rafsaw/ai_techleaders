@@ -23,9 +23,11 @@ const appBoundary = {
 // public files may not use relative imports, so no wrapper can pull a
 // primitive in transitively. Signed-in and backend areas use shadcn freely.
 const tailwindDomainComponents = [
+  "auth/CheckEmailNotice",
   "auth/ConfirmEmailPanel",
   "auth/InvitationPanel",
   "auth/SignInOptions",
+  "auth/SignUpForm",
   "auth/SiteHeader",
   "auth/WelcomeNotice",
   "mentors/MentorProfileHeader",
