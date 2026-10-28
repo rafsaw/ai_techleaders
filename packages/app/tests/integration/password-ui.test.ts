@@ -247,7 +247,7 @@ describe("password accounts UI", () => {
     expect(await headerText()).toContain(ada.name);
   });
 
-  it("shows an expired link as expired and a tampered one as not valid, without a referrer", async () => {
+  it("shows an expired link as expired and a tampered one as not valid, as a no-referrer, no-store, noindex page", async () => {
     const signUp = await fetch(`${baseURL}/api/auth/sign-up`, {
       method: "POST",
       headers: { "content-type": "application/json", "x-devmentor-csrf": "1" },
@@ -258,9 +258,15 @@ describe("password accounts UI", () => {
     const [link] = await confirmationLinks(bob.email);
     expect(link!.searchParams.get("returnTo")).toBe("/account");
 
+    // Token page (platform P8): no referrer, no caching, no indexing. A plain
+    // GET only inspects the link, so it spends none of the address's budget.
     const page = await fetch(onApp(link!));
     expect(page.headers.get("referrer-policy")).toBe("no-referrer");
-    expect(await page.text()).toContain('<meta name="referrer" content="no-referrer"/>');
+    expect(page.headers.get("cache-control")).toBe("private, no-store");
+    expect(page.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+    const html = await page.text();
+    expect(html).toContain('<meta name="referrer" content="no-referrer"/>');
+    expect(html).toContain('<meta name="robots" content="noindex, nofollow"/>');
 
     const { id } = await userRow(bob.email);
     await query("update email_confirmation_tokens set expires_at = now() - interval '1 minute' where user_id = $1", [id]);

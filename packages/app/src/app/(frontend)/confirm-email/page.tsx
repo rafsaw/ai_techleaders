@@ -4,12 +4,13 @@ import type { Metadata } from "next";
 
 import { first, withReturnTo } from "@/app/(frontend)/auth-links";
 import { AppConfirmEmailForm } from "@/app/(frontend)/confirm-email/confirm-email-form";
+import { TOKEN_PAGE_METADATA } from "@/app/token-page";
 import { getPrincipal } from "@/server/auth/page-guards";
 import { createRequestScope } from "@/server/container";
 
-// The token is in this page's address: never send it on as a referrer
-// (next.config.ts also sets the Referrer-Policy header for the route).
-export const metadata: Metadata = { title: "Confirm your email", referrer: "no-referrer" };
+// The token is in this page's address: no referrer, no indexing
+// (next.config.ts also sends the token-page response headers for the route).
+export const metadata: Metadata = { title: "Confirm your email", ...TOKEN_PAGE_METADATA };
 
 type SearchParams = Record<string, string | string[] | undefined>;
 

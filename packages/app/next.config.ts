@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+import { TOKEN_PAGE_HEADERS } from "./src/app/token-page";
+
 const nextConfig: NextConfig = {
   // Workspace packages (@devmentor/*) ship TypeScript source and are
   // transpiled by Turbopack automatically — no transpilePackages needed.
@@ -16,10 +18,11 @@ const nextConfig: NextConfig = {
     "nodemailer",
   ],
 
-  // The confirmation token is in /confirm-email's address: never send it on
-  // as a referrer (the page's metadata sets the same policy in a meta tag).
+  // Token pages carry a raw token in their address: no referrer, no caching,
+  // no indexing (src/app/token-page.ts; the page metadata repeats the
+  // referrer and robots rules in meta tags). Phase 3 adds /invite/:token.
   async headers() {
-    return [{ source: "/confirm-email", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] }];
+    return [{ source: "/confirm-email", headers: TOKEN_PAGE_HEADERS }];
   },
 };
 

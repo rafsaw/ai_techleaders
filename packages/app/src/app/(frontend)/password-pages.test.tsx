@@ -199,8 +199,12 @@ describe("/sign-up/check-email", () => {
 });
 
 describe("/confirm-email", () => {
-  it("never leaks the token as a referrer", () => {
-    expect(confirmMetadata).toEqual({ title: "Confirm your email", referrer: "no-referrer" });
+  it("never leaks the token as a referrer and is never indexed", () => {
+    expect(confirmMetadata).toEqual({
+      title: "Confirm your email",
+      referrer: "no-referrer",
+      robots: { index: false, follow: false },
+    });
   });
 
   it("inspects a valid link, confirms with the password and fully navigates only after success", async () => {

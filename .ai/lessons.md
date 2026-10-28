@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-28 — Token pages need headers *and* meta tags; `Cache-Control` in next.config sticks for dynamic pages
+
+**Context:** E01 Phase 2 review fix R7. `/confirm-email` had the referrer meta tag and header but no `noindex` and no `Cache-Control: private, no-store`, although the spec required all three.
+**Lesson:** for a page whose URL carries a token, spread `TOKEN_PAGE_METADATA` into its metadata and add its route to `headers()` in `next.config.ts` with `TOKEN_PAGE_HEADERS` (`packages/app/src/app/token-page.ts`); test with `unstable_getResponseFromNextConfig`. A `Cache-Control` set in `headers()` is kept on dynamic App Router pages in production (Next only adds its own when the response has none), but `next dev` overwrites it with `no-store`, so assert it against the production build.
+**Applies to:** `/confirm-email`, Phase 3 `/invite/[token]`, any future page with a secret in its address.
+
 ### 2026-10-28 — Canonicalize an IP before using it as a key
 
 **Context:** E01 Phase 2 review fix R8. `clientIp` only lowercased IPv6, so `2001:db8::1`, `2001:0db8:0:0::1` and the IPv4-mapped `::ffff:192.0.2.1` / `::ffff:c000:201` / `192.0.2.1` each got their own rate-limit bucket, multiplying the per-IP allowance for anyone who controls the spelling.
