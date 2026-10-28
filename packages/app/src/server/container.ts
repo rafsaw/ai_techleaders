@@ -16,6 +16,7 @@ import { ArcticGitHubOAuth } from "@/server/services/auth/adapters/arctic-github
 import { AuthSessionService } from "@/server/services/auth/auth-session.service";
 import { BcryptPasswordHasher } from "@/server/services/auth/adapters/bcrypt-password-hasher";
 import { GitHubSignInService } from "@/server/services/auth/github-sign-in.service";
+import { MentorInvitationService } from "@/server/services/auth/mentor-invitation.service";
 import { PasswordAccountService } from "@/server/services/auth/password-account.service";
 import { RoleService } from "@/server/services/auth/role.service";
 import { UserService } from "@/server/services/auth/user.service";
@@ -38,6 +39,8 @@ function buildContainer(): AppContainer {
     // The PasswordHasher port's bcryptjs adapter (cost 12); a singleton so its dummy hash is computed once.
     passwordHasher: asFunction(() => new BcryptPasswordHasher(), { lifetime: Lifetime.SINGLETON }),
     passwordAccountService: asClass(PasswordAccountService),
+    // Operator-only invitation management (create/revoke/resend), used by the CLI.
+    mentorInvitationService: asClass(MentorInvitationService),
     roleService: asClass(RoleService),
     userService: asClass(UserService),
     // The EmailSender port's SMTP adapter; it reads config.email() on first send.

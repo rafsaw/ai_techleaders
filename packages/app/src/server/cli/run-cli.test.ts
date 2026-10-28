@@ -3,6 +3,9 @@ import { fileURLToPath } from "node:url";
 import { asValue, createAppContainer, NotFoundError, type Cradle } from "@devmentor/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { inviteCreateCommand } from "@/server/cli/commands/invite-create.command";
+import { inviteResendCommand } from "@/server/cli/commands/invite-resend.command";
+import { inviteRevokeCommand } from "@/server/cli/commands/invite-revoke.command";
 import { roleGrantCommand } from "@/server/cli/commands/role-grant.command";
 import { roleRevokeCommand } from "@/server/cli/commands/role-revoke.command";
 import { databaseHost, defaultDeps, EXIT, main, type CliDeps } from "@/server/cli/run-cli";
@@ -13,6 +16,11 @@ const { loadEnvConfig, fakeContainerModule } = vi.hoisted(() => ({
 }));
 vi.mock("@next/env", () => ({ default: { loadEnvConfig } }));
 vi.mock("@/server/container", () => fakeContainerModule);
+// The db config reads DATABASE_URL when first imported, so neither the runner
+// nor any command module may load it before `loadEnv` (only the container may).
+vi.mock("@devmentor/db", () => {
+  throw new Error("@devmentor/db was imported before env was loaded");
+});
 
 const DB = "postgres://devmentor:s3cret@db.internal:5432/devmentor";
 const GRANT = ["role", "grant", "--email", "Ada@Example.com", "--role", "operator"];
@@ -182,8 +190,8 @@ describe("databaseHost", () => {
 });
 
 describe("default wiring", () => {
-  it("lists the role commands, writes to stdout/stderr, loads env from packages/app and imports the container lazily", async () => {
-    expect(defaultDeps.commands).toEqual([roleGrantCommand, roleRevokeCommand]);
+  it("lists the role and invite commands, writes to stdout/stderr, loads env from packages/app and imports the container lazily", async () => {
+    expect(defaultDeps.commands).toEqual([roleGrantCommand, roleRevokeCommand, inviteCreateCommand, inviteRevokeCommand, inviteResendCommand]);
     const stdout = vi.spyOn(process.stdout, "write").mockReturnValue(true);
     const stderr = vi.spyOn(process.stderr, "write").mockReturnValue(true);
     defaultDeps.output.info("hello");

@@ -4,6 +4,7 @@ import type { AppConfig } from "@/server/config";
 import type { AuthSessionService } from "@/server/services/auth/auth-session.service";
 import type { GitHubOAuth } from "@/server/services/auth/github-oauth.port";
 import type { GitHubSignInService } from "@/server/services/auth/github-sign-in.service";
+import type { MentorInvitationService } from "@/server/services/auth/mentor-invitation.service";
 import type { PasswordAccountService } from "@/server/services/auth/password-account.service";
 import type { PasswordHasher } from "@/server/services/auth/password-hasher.port";
 import type { RoleService } from "@/server/services/auth/role.service";
@@ -19,6 +20,7 @@ declare module "@devmentor/core" {
     githubSignInService: GitHubSignInService;
     passwordHasher: PasswordHasher;
     passwordAccountService: PasswordAccountService;
+    mentorInvitationService: MentorInvitationService;
     roleService: RoleService;
     userService: UserService;
     emailSender: EmailSender;

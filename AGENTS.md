@@ -200,7 +200,9 @@ the `returnTo` schema) goes in `validators/`.
   - GitHub: the port `server/services/auth/github-oauth.port.ts` and the
     arctic adapter `server/services/auth/adapters/arctic-github-oauth.ts`.
   - operator CLI: `packages/app/src/server/cli/` (`run-cli.ts`, one
-    `commands/*.command.ts` per command).
+    `commands/*.command.ts` per command). Command modules must not
+    value-import `@devmentor/db` (type imports only): its config reads
+    `DATABASE_URL` on first import, before the runner loads env.
 - **Sessions are DB rows** (`auth_sessions`), looked up by token hash on
   every request; nothing is cached across requests, so role grants and
   revokes apply on the next request. Activity is request-based: every page
@@ -232,6 +234,9 @@ the `returnTo` schema) goes in `validators/`.
 - **Operator role:** granted and revoked only with `npm run operator`
   (`role grant|revoke --email <email> --role operator`); `mentor` is
   refused. Production requires `--yes`.
+- **Mentor invitations (Phase 3):** `invite create|revoke|resend --email`
+  through `MentorInvitationService`; output never contains the token or
+  link, and a failed email exits 1 asking for `invite resend`.
 
 ### Email accounts, mail and rate limits (Phase 2)
 

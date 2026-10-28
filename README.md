@@ -271,6 +271,27 @@ npm run operator -- role revoke --email you@example.com --role operator
 - Exit codes: `0` success, `1` refused or failed (e.g. no account with that
   email), `2` usage error. `npm run operator -- help` lists the commands.
 
+### Mentor invitations
+
+The `mentor` role comes only from an email-bound invitation, managed from the
+same CLI (there is no admin page). The invitation page and acceptance ship
+with E01 Phase 3; the operator runbook follows with it.
+
+```bash
+npm run operator -- invite create --email ada@example.com
+npm run operator -- invite resend --email ada@example.com
+npm run operator -- invite revoke --email ada@example.com
+```
+
+- `create` emails a link valid for exactly 14 days to that address only. A
+  still-valid open invitation is a conflict ("Use invite resend or revoke").
+- `resend` gives the open invitation a new link and a new 14-day expiry; the
+  previous link stops working. `revoke` closes it; it is idempotent and never
+  removes a mentor role already granted.
+- Output is the invitation id, email, expiry and delivery status, never the
+  link. A failed email exits `1` and tells you to run `invite resend`.
+  `--note` and `--expires-in-days` are refused.
+
 ### Email sign-up locally
 
 With `docker compose up -d` and `npm run dev` running:
@@ -478,7 +499,7 @@ All scripts run from the repository root.
 | `npm run db:migration:list`   | List executed migrations                      |
 | `npm run db:seed`             | Insert the sample user (idempotent)           |
 | `npm run ui:add -- <name>`    | Add a shadcn/ui component to `@devmentor/ui`  |
-| `npm run operator -- <command>` | Operator CLI: `role grant` / `role revoke` (see [Operator role](#operator-role)) |
+| `npm run operator -- <command>` | Operator CLI: `role grant` / `role revoke` (see [Operator role](#operator-role)), `invite create` / `resend` / `revoke` (see [Mentor invitations](#mentor-invitations)) |
 
 ## Tests and continuous integration
 

@@ -4,6 +4,9 @@ import { parseArgs, type ParseArgsOptionsConfig } from "node:util";
 import { isAppError, summarizeError, type AppContainer, type Cradle } from "@devmentor/core";
 import nextEnv from "@next/env";
 
+import { inviteCreateCommand } from "@/server/cli/commands/invite-create.command";
+import { inviteResendCommand } from "@/server/cli/commands/invite-resend.command";
+import { inviteRevokeCommand } from "@/server/cli/commands/invite-revoke.command";
 import { roleGrantCommand } from "@/server/cli/commands/role-grant.command";
 import { roleRevokeCommand } from "@/server/cli/commands/role-revoke.command";
 
@@ -148,7 +151,7 @@ const APP_DIR = fileURLToPath(new URL("../../..", import.meta.url));
 
 /** The real wiring used by `operator.ts`. */
 export const defaultDeps: CliDeps = {
-  commands: [roleGrantCommand, roleRevokeCommand],
+  commands: [roleGrantCommand, roleRevokeCommand, inviteCreateCommand, inviteRevokeCommand, inviteResendCommand],
   output: {
     info: (message) => void process.stdout.write(`${message}\n`),
     error: (message) => void process.stderr.write(`${message}\n`),

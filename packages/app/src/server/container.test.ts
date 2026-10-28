@@ -19,8 +19,9 @@ describe("composition root", () => {
     const { PostgresRateLimiter } = await import("@devmentor/db");
     const { BcryptPasswordHasher } = await import("@/server/services/auth/adapters/bcrypt-password-hasher");
     const { PasswordAccountService } = await import("@/server/services/auth/password-account.service");
+    const { MentorInvitationService } = await import("@/server/services/auth/mentor-invitation.service");
     expect(cache.__devmentorContainer).toBe(container);
-    expect(Object.keys(container.registrations)).toEqual(expect.arrayContaining(["logger", "clock", "config", "principalResolver", "orm", "em", "userService", "roleService", "authSessionService", "githubOAuth", "githubSignInService", "emailSender", "rateLimiter", "passwordHasher", "passwordAccountService"]));
+    expect(Object.keys(container.registrations)).toEqual(expect.arrayContaining(["logger", "clock", "config", "principalResolver", "orm", "em", "userService", "roleService", "authSessionService", "githubOAuth", "githubSignInService", "emailSender", "rateLimiter", "passwordHasher", "passwordAccountService", "mentorInvitationService"]));
     const em = { fake: true };
     container.register({ em: asValue(em) });
     const first = createRequestScope();
@@ -46,6 +47,8 @@ describe("composition root", () => {
     expect(first.cradle.passwordHasher).toBe(createRequestScope().cradle.passwordHasher);
     expect(first.cradle.passwordAccountService).toBeInstanceOf(PasswordAccountService);
     expect(first.cradle.passwordAccountService).not.toBe(first.cradle.passwordAccountService);
+    expect(first.cradle.mentorInvitationService).toBeInstanceOf(MentorInvitationService);
+    expect(first.cradle.mentorInvitationService).not.toBe(first.cradle.mentorInvitationService);
     // No session cookie: signed out without touching config or the database.
     const req = new Request("http://localhost/");
     await expect(first.cradle.principalResolver.resolve(req, new ResponseCookies())).resolves.toBeNull();

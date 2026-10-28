@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-28 — A CLI command that imports a service loads `@devmentor/db` before env
+
+**Context:** E01 step 3.2. All unit tests passed, but every real `npm run operator -- invite …` failed with "unexpected error" (MikroORM: "No database specified"). `invite-flags.ts` imported a constant from `mentor-invitation.service.ts`, which imports `@devmentor/db`; `run-cli.ts` imports every command statically, so the db config read an empty `DATABASE_URL` before `loadEnv` ran. The role commands never hit this because they import nothing from db.
+**Lesson:** modules reachable from `run-cli.ts` may import a service only as `import type`; put shared constants in a db-free module (`mentor-invitation.policy.ts`). `run-cli.test.ts` mocks `@devmentor/db` to throw on import, so a new value import fails the unit tests. Smoke-test a new operator command against the dev database once; a container-mocked unit test cannot catch import-time env reads.
+**Applies to:** `packages/app/src/server/cli/**`, any entry point that loads env after its static imports.
+
 ### 2026-10-28 — An in-flight guard is not a double-submit guard when success navigates
 
 **Context:** Phase 2 manual test: a double click on Create account sent two confirmation emails. The ref guard blocked a second submit only while the request ran; it released on the answer, and the page (values kept) stayed up while `router.push` loaded, so the second click sent a valid re-registration.
