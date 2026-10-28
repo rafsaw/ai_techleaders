@@ -260,7 +260,7 @@ All new tables spread `baseProperties` (uuid `id`, `created_at`, `updated_at`). 
 |---|---|---|
 | `user_id` | FK `users`, on delete cascade | |
 | `role` | enum `mentee \| mentor \| operator` | check constraint |
-| `invitation_id` | FK `mentor_invitations`, null | Added in Phase 3; set only for `mentor`. |
+| `invitation_id` | FK `mentor_invitations`, null, on delete set null | Added in Phase 3; set only for `mentor` (check `user_roles_invitation_mentor_check`). |
 
 Unique `(user_id, role)`. The Phase 1 migration backfills `mentee` for every existing user, so seeded and admin-created users keep working.
 
@@ -317,10 +317,10 @@ flowchart LR
     classDef existingEntity fill:#e5e7eb,color:#111,stroke:#9ca3af
 
     entity_1["User (users) — changed: github_id, email_confirmed_at, password_hash"]:::existingEntity
-    entity_2["UserRole (user_roles)"]:::newEntity
+    entity_2["UserRole (user_roles) — Phase 3: invitation_id (mentor only)"]:::newEntity
     entity_3["AuthSession (auth_sessions)"]:::newEntity
     entity_4["EmailConfirmationToken (email_confirmation_tokens)"]:::newEntity
-    entity_5["MentorInvitation — email bound, revocable, hash rotated on resend"]:::newEntity
+    entity_5["MentorInvitation (mentor_invitations) — email bound, revocable, hash rotated on resend, one open row per email"]:::newEntity
     entity_6["RateLimitBucket (rate_limit_buckets) — standalone"]:::newEntity
 
     entity_1 -->|"1-n"| entity_2
@@ -816,6 +816,14 @@ Implemented 2026-10-27 on `feat/e01-accounts-and-roles`, one commit per step (1.
    - Exactly four real-DB race tests: two matching sessions accepting one invitation; accept vs revoke; accept vs resend; two concurrent `invite create` commands for one email. Assert at most one open invitation and one role grant, no acceptance with a revoked/rotated token when that operation wins, and no role removal when acceptance wins first. The one-open-email constraint prevents multiple valid open invitations for the same verified account address.
    - Capture delivery/status evidence without raw tokens or URLs. No page/route/CLI offers open mentor registration.
 5. **Documentation:** the operator runbook documents create/revoke/resend, confirming the engineer's sign-in address before create, fixed expiry, verified-email matching, delivery failure, accepted-invitation limits, code rollback and secret-free output; record the PO supersession of issue #46. Include the run log. Move **only this accounts spec** to `.ai/specs/implemented/` after Phase 3's full gate. Keep the platform catalog active until its provisional E02–E05 entries are implemented, explicitly deferred or transferred to their consuming specs; E01 completion is not completion of those features.
+
+#### Implementation notes (Phase 3)
+
+- **Schema (Step 1, 2026-10-28):** one migration, `Migration20261028212643`, generated with `npm run db:migration:create`; `up()` kept as generated, `down()` rewritten as the exact reverse (drop the check, drop `user_roles.invitation_id`, which drops its FK, then drop `mentor_invitations`). `migration:check` reports no remaining diff. Choices the spec left open:
+  - `MentorInvitation` lives in `packages/db/src/entities/auth/` (the services are in `services/auth/`), spreads `baseProperties` + `singleUseTokenProperties` (`token_hash char(64)` unique, `expires_at`, `consumed_at`), and adds `email varchar(254)`, `revoked_at` and `acceptedBy` (column `accepted_by_user_id`, FK `users` on delete set null). It is listed in `entities` and exported from `@devmentor/db`.
+  - The open-email rule is a MikroORM partial unique (`uniques[].where`, native in v7), so the generator emits it and `migration:check` stays clean: `mentor_invitations_open_email_unique` on `(email) WHERE consumed_at IS NULL AND revoked_at IS NULL`. No hand-written SQL was needed. There is no separate plain index on `email`; the table stays small and the "latest invitation for this address" lookup in Step 2 can scan it.
+  - `UserRole.invitation` (`invitation_id`, nullable) uses MikroORM's default on delete set null: invitations are never deleted in 1.0 (cleanup is a Non-goal), and if one ever is, the granted role stays. A check constraint `user_roles_invitation_mentor_check` (`invitation_id IS NULL OR role = 'mentor'`) enforces "set only for mentor" in the database. A mentor row without an invitation is not refused there (operator-created test data and the Phase 1 rows stay valid); the "mentor only through acceptance" rule stays in `RoleService` (Step 3).
+  - Tests: `packages/db/src/accounts-phase3-migration.test.ts` (exact SQL), entity and config tests; the integration round trip in `tests/integration/migrations.test.ts` gained a Phase 3 block on its own scratch database (columns, constraints, the partial index definition, one open row per email with revoked/consumed rows allowed and an expired open row still blocking, the mentor-only check, both FKs and the accepting user's delete, `down()` keeping Phase 2 schema and roles, and up again).
 
 ## 📝 Questions to verify (synthetic hypotheses, not requirements)
 

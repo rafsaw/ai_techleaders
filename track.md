@@ -61,7 +61,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 ## Phase 3 — #46 invitation management, then #36 acceptance
 
-- [ ] 3.1 Schema: `mentor_invitations` (email-bound, hashed token, expiry, revoke), `user_roles.invitation_id`, migration
+- [x] 3.1 Schema: `mentor_invitations` (email-bound, hashed token, expiry, revoke), `user_roles.invitation_id`, migration
 - [ ] 3.2 Invitation create/revoke/resend service + CLI + email template
 - [ ] 3.3 Inspect/accept, invitation page, `RoleService.grantMentorFromInvitation`, API route
 - [ ] 3.4 Integration on PostgreSQL + Mailpit, including the four race tests

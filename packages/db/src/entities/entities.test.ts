@@ -3,7 +3,7 @@ import { EntitySchema, types } from "@mikro-orm/core";
 import type { EntityManager } from "@mikro-orm/postgresql";
 import { describe, expect, it, vi } from "vitest";
 
-import { AuthSession, EmailConfirmationToken, entities, RateLimitBucket, User, UserRole } from "./index";
+import { AuthSession, EmailConfirmationToken, entities, MentorInvitation, RateLimitBucket, User, UserRole } from "./index";
 
 function meta(entity: (typeof entities)[number]) {
   const schema = EntitySchema.REGISTRY.get(entity);
@@ -13,7 +13,7 @@ function meta(entity: (typeof entities)[number]) {
 
 describe("entity definitions", () => {
   it("lists every entity", () => {
-    expect(entities).toEqual([User, UserRole, AuthSession, EmailConfirmationToken, RateLimitBucket]);
+    expect(entities).toEqual([User, UserRole, AuthSession, EmailConfirmationToken, MentorInvitation, RateLimitBucket]);
   });
 
   it("registers User with its table, primary key, unique email and nullable GitHub columns", () => {
@@ -26,13 +26,18 @@ describe("entity definitions", () => {
     expect(properties.passwordHash).toMatchObject({ nullable: true, length: 60 });
   });
 
-  it("registers UserRole with a cascading user reference, the role enum and a unique (user, role)", () => {
+  it("registers UserRole with a cascading user reference, the role enum, a unique (user, role) and the granting invitation", () => {
     const m = meta(UserRole);
     expect(m.tableName).toBe("user_roles");
     expect(m.uniques).toEqual([{ properties: ["user", "role"] }]);
     expect(m.properties.user).toMatchObject({ kind: "m:1", deleteRule: "cascade" });
     expect((m.properties.user!.entity as () => unknown)()).toBe(User);
     expect(m.properties.role).toMatchObject({ enum: true, items: [...ROLES] });
+    expect(m.properties.invitation).toMatchObject({ kind: "m:1", nullable: true });
+    expect((m.properties.invitation!.entity as () => unknown)()).toBe(MentorInvitation);
+    expect(m.checks).toEqual([
+      { name: "user_roles_invitation_mentor_check", expression: "invitation_id is null or role = 'mentor'" },
+    ]);
   });
 
   it("registers AuthSession with an indexed cascading user reference and a unique char(64) token hash", () => {
@@ -55,6 +60,26 @@ describe("entity definitions", () => {
     expect((m.properties.user!.entity as () => unknown)()).toBe(User);
     expect(m.properties.email).toMatchObject({ length: 254 });
     expect(m.properties.email?.nullable).toBeFalsy();
+  });
+
+  it("registers MentorInvitation with the single-use token columns, the bound email, revocation, the accepting user and one open row per email", () => {
+    const m = meta(MentorInvitation);
+    expect(m.tableName).toBe("mentor_invitations");
+    expect(m.properties.id?.primary).toBe(true);
+    expect(m.properties.tokenHash).toMatchObject({ unique: true, columnType: "char(64)" });
+    expect(m.properties.expiresAt?.nullable).toBeFalsy();
+    expect(m.properties.consumedAt?.nullable).toBe(true);
+    expect(m.properties.email).toMatchObject({ length: 254 });
+    expect(m.properties.email?.nullable).toBeFalsy();
+    expect(m.properties.revokedAt?.nullable).toBe(true);
+    expect(m.properties.acceptedBy).toMatchObject({ kind: "m:1", nullable: true, deleteRule: "set null", fieldName: "accepted_by_user_id" });
+    expect((m.properties.acceptedBy!.entity as () => unknown)()).toBe(User);
+    expect(m.uniques).toEqual([{
+      name: "mentor_invitations_open_email_unique",
+      properties: ["email"],
+      where: "consumed_at is null and revoked_at is null",
+    }]);
+    expect(Object.keys(m.properties)).not.toContain("note");
   });
 
   it("registers RateLimitBucket with a unique char(64) key hash, a count and an indexed window end", () => {

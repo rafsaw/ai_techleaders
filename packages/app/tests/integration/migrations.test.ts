@@ -19,6 +19,7 @@ import { useScratchDatabase } from "./scratch-database";
 const BASELINE = "Migration20261013225312";
 const ACCOUNTS = "Migration20261028002328";
 const ACCOUNTS_PHASE_2 = "Migration20261028165323";
+const ACCOUNTS_PHASE_3 = "Migration20261028212643";
 
 const PRE_EXISTING_USERS = [
   { id: randomUUID(), email: "grace@example.com", name: "Grace Hopper", createdAt: "2026-01-02 03:04:05.123456+00" },
@@ -360,5 +361,173 @@ describe("accounts migration round trip on PostgreSQL (E01 Phase 2)", () => {
     expect(await phase1Users()).toEqual(phase1UserRows);
     expect(await rolesByUser()).toEqual(phase1Roles);
     expect(await sessions()).toEqual(phase1Sessions);
+  });
+});
+
+describe("accounts migration round trip on PostgreSQL (E01 Phase 3)", () => {
+  const logPath = join(inject("integrationArtifactsDirectory"), "migrations-round-trip-phase3.log");
+  const scratch = useScratchDatabase("migrations_p3");
+  const { query } = scratch;
+  const { executedMigrations, tables, columns, constraints, indexes } = probes(query);
+  const migrate = (direction: "up" | "down", flags: string[]) => scratch.migrate(direction, flags, logPath);
+  const PHASE_2_TABLES = ["auth_sessions", "email_confirmation_tokens", "rate_limit_buckets", "user_roles", "users"];
+  const PHASE_3_TABLES = ["auth_sessions", "email_confirmation_tokens", "mentor_invitations", "rate_limit_buckets", "user_roles", "users"];
+
+  /** Every Phase 2 role column, as text, so the whole row is compared. */
+  const roleRows = () => query(
+    `select id, user_id, role, created_at::text, updated_at::text from user_roles order by user_id, role`);
+  const insertInvitation = (email: string, hash: string, extra: { consumedAt?: string; revokedAt?: string } = {}) => query<{ id: string }>(
+    `insert into mentor_invitations (id, created_at, updated_at, token_hash, expires_at, consumed_at, email, revoked_at)
+      values (gen_random_uuid(), now(), now(), $2, now() + interval '14 days', $3, $1, $4) returning id`,
+    [email, hash, extra.consumedAt ?? null, extra.revokedAt ?? null]);
+
+  let phase2RoleRows: Awaited<ReturnType<typeof roleRows>>;
+  let phase2RoleColumns: Awaited<ReturnType<typeof columns>>;
+  let phase2RoleConstraints: Awaited<ReturnType<typeof constraints>>;
+  let phase2UserConstraints: Awaited<ReturnType<typeof constraints>>;
+
+  it("starts from Phase 2 with users and roles", async () => {
+    await migrate("up", ["--to", ACCOUNTS_PHASE_2]);
+    expect(await executedMigrations()).toEqual([BASELINE, ACCOUNTS, ACCOUNTS_PHASE_2]);
+
+    const [grace] = PRE_EXISTING_USERS;
+    for (const user of PRE_EXISTING_USERS) {
+      await query(`insert into users (id, created_at, updated_at, email, name) values ($1, $2, $2, $3, $4)`,
+        [user.id, user.createdAt, user.email, user.name]);
+      await query(`insert into user_roles values (gen_random_uuid(), $2, $2, $1, 'mentee')`, [user.id, user.createdAt]);
+    }
+    await query(`insert into user_roles values (gen_random_uuid(), now(), now(), $1, 'operator')`, [grace!.id]);
+
+    phase2RoleRows = await roleRows();
+    phase2RoleColumns = await columns("user_roles");
+    phase2RoleConstraints = await constraints("user_roles");
+    phase2UserConstraints = await constraints("users");
+    expect(phase2RoleRows).toHaveLength(PRE_EXISTING_USERS.length + 1);
+  });
+
+  it("migrates up to Phase 3 with mentor_invitations, its open-email index and user_roles.invitation_id", async () => {
+    await migrate("up", ["--to", ACCOUNTS_PHASE_3]);
+
+    expect(await executedMigrations()).toEqual([BASELINE, ACCOUNTS, ACCOUNTS_PHASE_2, ACCOUNTS_PHASE_3]);
+    expect(await tables()).toEqual(PHASE_3_TABLES);
+    expect(await columns("mentor_invitations")).toEqual([
+      idColumn, ...timestamps,
+      { column_name: "token_hash", data_type: "character", character_maximum_length: 64, is_nullable: "NO" },
+      { column_name: "expires_at", data_type: "timestamp with time zone", character_maximum_length: null, is_nullable: "NO" },
+      { column_name: "consumed_at", data_type: "timestamp with time zone", character_maximum_length: null, is_nullable: "YES" },
+      { column_name: "email", data_type: "character varying", character_maximum_length: 254, is_nullable: "NO" },
+      { column_name: "revoked_at", data_type: "timestamp with time zone", character_maximum_length: null, is_nullable: "YES" },
+      { column_name: "accepted_by_user_id", data_type: "uuid", character_maximum_length: null, is_nullable: "YES" },
+    ]);
+    expect(await constraints("mentor_invitations")).toEqual([
+      { name: "mentor_invitations_accepted_by_user_id_foreign", definition: "FOREIGN KEY (accepted_by_user_id) REFERENCES users(id) ON DELETE SET NULL" },
+      { name: "mentor_invitations_pkey", definition: "PRIMARY KEY (id)" },
+      { name: "mentor_invitations_token_hash_unique", definition: "UNIQUE (token_hash)" },
+    ]);
+    expect(await indexes("mentor_invitations")).toEqual([
+      "CREATE UNIQUE INDEX mentor_invitations_open_email_unique ON public.mentor_invitations USING btree (email) WHERE ((consumed_at IS NULL) AND (revoked_at IS NULL))",
+    ]);
+
+    expect(await columns("user_roles")).toEqual([
+      ...phase2RoleColumns,
+      { column_name: "invitation_id", data_type: "uuid", character_maximum_length: null, is_nullable: "YES" },
+    ]);
+    expect(await constraints("user_roles")).toEqual([
+      ...phase2RoleConstraints,
+      { name: "user_roles_invitation_id_foreign", definition: "FOREIGN KEY (invitation_id) REFERENCES mentor_invitations(id) ON DELETE SET NULL" },
+      { name: "user_roles_invitation_mentor_check", definition: "CHECK (((invitation_id IS NULL) OR (role = 'mentor'::text)))" },
+    ].sort((a, b) => a.name.localeCompare(b.name)));
+    expect(await constraints("users")).toEqual(phase2UserConstraints);
+    // Existing roles keep every column and get no invitation.
+    expect(await roleRows()).toEqual(phase2RoleRows);
+    expect(await query(`select count(*)::int as unset from user_roles where invitation_id is null`))
+      .toEqual([{ unset: phase2RoleRows.length }]);
+  });
+
+  it("allows one open invitation per email, any number of closed ones, and no time-dependent predicate", async () => {
+    // Closed rows (revoked or consumed) never block a new open row.
+    await insertInvitation("ada@example.com", "1".repeat(64), { revokedAt: "2026-10-01 00:00:00+00" });
+    await insertInvitation("ada@example.com", "2".repeat(64), { consumedAt: "2026-10-02 00:00:00+00" });
+    await insertInvitation("ada@example.com", "3".repeat(64), { consumedAt: "2026-10-03 00:00:00+00", revokedAt: "2026-10-03 00:00:00+00" });
+    const [open] = await insertInvitation("ada@example.com", "4".repeat(64));
+    await expect(insertInvitation("ada@example.com", "5".repeat(64)))
+      .rejects.toMatchObject({ code: "23505", constraint: "mentor_invitations_open_email_unique" });
+
+    // An expired open row still blocks until it is closed.
+    await query(`update mentor_invitations set expires_at = now() - interval '1 day' where id = $1`, [open!.id]);
+    await expect(insertInvitation("ada@example.com", "5".repeat(64)))
+      .rejects.toMatchObject({ code: "23505", constraint: "mentor_invitations_open_email_unique" });
+    await query(`update mentor_invitations set revoked_at = now() where id = $1`, [open!.id]);
+    await insertInvitation("ada@example.com", "5".repeat(64));
+
+    // Another address is independent; token hashes stay globally unique.
+    await insertInvitation("grace@example.com", "6".repeat(64));
+    await expect(insertInvitation("linus@example.com", "6".repeat(64)))
+      .rejects.toMatchObject({ code: "23505", constraint: "mentor_invitations_token_hash_unique" });
+    await expect(insertInvitation("x".repeat(250) + "@e.co", "7".repeat(64))).rejects.toMatchObject({ code: "22001" });
+
+    expect(await query(`select email, count(*)::int as open from mentor_invitations
+      where consumed_at is null and revoked_at is null group by email order by email`))
+      .toEqual([{ email: "ada@example.com", open: 1 }, { email: "grace@example.com", open: 1 }]);
+  });
+
+  it("links a mentor role to its invitation and the invitation to its accepting user", async () => {
+    const [grace, linus] = PRE_EXISTING_USERS;
+    const [invitation] = await insertInvitation("linus@example.com", "8".repeat(64), { consumedAt: "2026-10-28 00:00:00+00" });
+    await query(`update mentor_invitations set accepted_by_user_id = $2 where id = $1`, [invitation!.id, linus!.id]);
+    await query(`insert into user_roles (id, created_at, updated_at, user_id, role, invitation_id)
+      values (gen_random_uuid(), now(), now(), $1, 'mentor', $2)`, [linus!.id, invitation!.id]);
+
+    // invitation_id is set only for mentor.
+    await expect(query(`update user_roles set invitation_id = $2 where user_id = $1 and role = 'operator'`, [grace!.id, invitation!.id]))
+      .rejects.toMatchObject({ code: "23514", constraint: "user_roles_invitation_mentor_check" });
+    await expect(query(`insert into user_roles (id, created_at, updated_at, user_id, role, invitation_id)
+      values (gen_random_uuid(), now(), now(), $1, 'mentee', $2)`, [randomUUID(), invitation!.id]))
+      .rejects.toMatchObject({ code: "23514", constraint: "user_roles_invitation_mentor_check" });
+    await expect(query(`update user_roles set invitation_id = $2 where user_id = $1 and role = 'mentor'`, [linus!.id, randomUUID()]))
+      .rejects.toMatchObject({ code: "23503", constraint: "user_roles_invitation_id_foreign" });
+    await expect(query(`update mentor_invitations set accepted_by_user_id = $2 where id = $1`, [invitation!.id, randomUUID()]))
+      .rejects.toMatchObject({ code: "23503", constraint: "mentor_invitations_accepted_by_user_id_foreign" });
+
+    // Deleting the accepting user keeps the invitation (accepted_by set null); its roles cascade.
+    const doomed = randomUUID();
+    await query(`insert into users (id, created_at, updated_at, email, name) values ($1, now(), now(), 'doomed@example.com', 'Doomed')`, [doomed]);
+    const [doomedInvitation] = await insertInvitation("doomed@example.com", "9".repeat(64), { consumedAt: "2026-10-28 00:00:00+00" });
+    await query(`update mentor_invitations set accepted_by_user_id = $2 where id = $1`, [doomedInvitation!.id, doomed]);
+    await query(`insert into user_roles (id, created_at, updated_at, user_id, role, invitation_id)
+      values (gen_random_uuid(), now(), now(), $1, 'mentor', $2)`, [doomed, doomedInvitation!.id]);
+    await query(`delete from users where id = $1`, [doomed]);
+    expect(await query(`select accepted_by_user_id, consumed_at::text from mentor_invitations where id = $1`, [doomedInvitation!.id]))
+      .toEqual([{ accepted_by_user_id: null, consumed_at: "2026-10-28 00:00:00+00" }]);
+    expect(await query(`select count(*)::int as left from user_roles where user_id = $1`, [doomed])).toEqual([{ left: 0 }]);
+  });
+
+  it("reverts Phase 3 with down() and preserves the Phase 2 schema and roles", async () => {
+    const [, linus] = PRE_EXISTING_USERS;
+    await migrate("down", ["--only", ACCOUNTS_PHASE_3]);
+
+    expect(await executedMigrations()).toEqual([BASELINE, ACCOUNTS, ACCOUNTS_PHASE_2]);
+    expect(await tables()).toEqual(PHASE_2_TABLES);
+    expect(await columns("user_roles")).toEqual(phase2RoleColumns);
+    expect(await constraints("user_roles")).toEqual(phase2RoleConstraints);
+    expect(await constraints("users")).toEqual(phase2UserConstraints);
+    // Phase 2 rows are untouched; the mentor role granted under Phase 3 stays, without its invitation link
+    // (disposable environments only; the production rollback is code-only, spec Risks).
+    const rows = await roleRows();
+    expect(rows.filter(({ role }) => role !== "mentor")).toEqual(phase2RoleRows);
+    expect(rows.filter(({ role }) => role === "mentor").map(({ user_id }) => user_id)).toEqual([linus!.id]);
+  });
+
+  it("migrates up to Phase 3 again after down() with an empty invitations table", async () => {
+    await migrate("up", ["--to", ACCOUNTS_PHASE_3]);
+
+    expect(await executedMigrations()).toEqual([BASELINE, ACCOUNTS, ACCOUNTS_PHASE_2, ACCOUNTS_PHASE_3]);
+    expect(await tables()).toEqual(PHASE_3_TABLES);
+    expect(await query(`select (select count(*)::int from mentor_invitations) as invitations,
+      (select count(*)::int from user_roles where invitation_id is not null) as linked`))
+      .toEqual([{ invitations: 0, linked: 0 }]);
+    expect(await indexes("mentor_invitations")).toEqual([
+      "CREATE UNIQUE INDEX mentor_invitations_open_email_unique ON public.mentor_invitations USING btree (email) WHERE ((consumed_at IS NULL) AND (revoked_at IS NULL))",
+    ]);
   });
 });
