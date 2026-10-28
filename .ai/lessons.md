@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-28 — Don't re-validate a server-built redirect with the user-input length limit
+
+**Context:** Review R6 on E01 Phase 1. `returnTo` is accepted up to 512 characters, the callback appends `welcome=1` (or re-encodes it into `/sign-in?error=…&returnTo=…`), and `navigationHandler` re-checked the result with `parseReturnTo` (512), so a valid long destination silently became `/`.
+**Lesson:** a length limit on user input does not hold after the server adds to the value. Re-check server-built targets with the same safety rules but a bound that covers what the server may add (`parseInternalRedirect`, 2048). Test limits end to end at the boundary (exactly 512, 503–511), through every layer that re-validates, not only the validator alone.
+**Applies to:** `packages/core/src/validators/auth/return-to.schema.ts`, `packages/core/src/http/navigationHandler.ts`, any flow that decorates a validated `returnTo`.
+
 ### 2026-10-28 — Latch a one-time notice: Next syncs `replaceState` into `useSearchParams`
 
 **Context:** Review R4 on E01 Phase 1. The welcome notice in the shared layouts reads `welcome=1` with `useSearchParams` and then drops the flag with `history.replaceState`, so a reload does not show it again. Next.js syncs `replaceState`/`pushState` with its router, so `useSearchParams` re-renders without the flag right away.
