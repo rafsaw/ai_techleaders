@@ -64,7 +64,11 @@ export class IntegrationBrowser {
   }
 
   async click(role: "link" | "button", name: string): Promise<void> {
-    await this.command("click", await this.reference(role, name));
+    const reference = await this.reference(role, name);
+    // agent-browser clicks at the element's coordinates without scrolling, so
+    // a target below the fold (a form's submit button) would hit <html>.
+    await this.command("scrollintoview", reference);
+    await this.command("click", reference);
   }
 
   async fill(label: string, value: string): Promise<void> {

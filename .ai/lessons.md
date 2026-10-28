@@ -27,6 +27,18 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-28 — agent-browser `click` does not scroll; below the fold it hits `<html>`
+
+**Context:** E01 step 2.6. Every submit in the new password-UI scenario did nothing: no request, no validation message, no error. The form was hydrated and filled; the submit button sat at y = 592 in a 577 px viewport, and a capture-phase listener showed the click landing on `<html>`. `agent-browser click @ref` clicks at the element's coordinates without scrolling it into view (unlike Playwright's `click`). Earlier scenarios passed only because their buttons were above the fold.
+**Lesson:** scroll before clicking (`scrollintoview @ref`, now inside `IntegrationBrowser.click`). When a click "does nothing" in agent-browser, record `click` targets with `document.addEventListener("click", …, true)` via `eval` before suspecting hydration. Also: never `pkill -f <pattern>` to stop a debug server (lesson 2026-10-21); kill its PID from `ss -ltnp`.
+**Applies to:** `packages/app/tests/integration/browser.ts`, any agent-browser interaction with tall pages.
+
+### 2026-10-28 — A form's in-flight guard must be a ref, and its request must die with it
+
+**Context:** E01 step 2.6, platform F2. `useSchemaForm` blocked double submits with `isSubmitting` state, which only takes effect after a re-render, so two submits in one turn (a double click, Enter plus click) both reached `onSubmit`. A form that unmounted mid-request (the confirm panel swapping to "link no longer valid", a navigation) still received the late result.
+**Lesson:** guard with a `useRef` set synchronously before the first `await`, and keep state only for rendering. Give each request an `AbortController`, pass `signal` to `onSubmit` (and on to `apiCall`), abort it in the unmount cleanup and drop the result when `signal.aborted`. Test the same-turn case inside one `act(() => { submit(); submit(); })`. Keep a published component's callback signature (`CrudForm.onSubmit(values)`) by wrapping instead of forwarding the new argument, so existing `toHaveBeenCalledWith` tests still hold.
+**Applies to:** `packages/ui/src/forms/useSchemaForm.ts`, any hand-written form or button that posts (e.g. `ResendConfirmation`).
+
 ### 2026-10-28 — Vitest reruns failed integration files first; scenarios must not leak rows
 
 **Context:** E01 step 2.5. The new password API scenario created a user. It passed on the first run (it ran after `app.test.ts`), but after an unrelated failure Vitest ordered the previously failed file differently and `app.test.ts`, which asserts exact "N registered users" counts, failed.

@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Principal } from "@devmentor/core";
@@ -81,17 +81,20 @@ describe("/sign-in", () => {
     const github = within(main).getAllByRole("link")[0]!;
     expect(github).toHaveAccessibleName("Sign in with GitHub");
     expect(github).toHaveAttribute("href", "/api/auth/github");
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    // Phase 1 is GitHub only: no email form yet.
-    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    // Phase 2: the email form below, with N03 as the only notice, and the sign-up link.
+    expect(screen.getByRole("status")).toHaveTextContent("Password reset is not available yet.");
+    expect(screen.getByRole("textbox", { name: "Email" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Create an account" })).toHaveAttribute("href", "/sign-up");
     expect(getPrincipal).toHaveBeenCalled();
   });
 
-  it("keeps a safe returnTo in the GitHub link", async () => {
+  it("keeps a safe returnTo in the GitHub and sign-up links", async () => {
     render(await signInPage({ returnTo: "/account?tab=name" }));
     expect(screen.getByRole("link", { name: "Sign in with GitHub" }))
       .toHaveAttribute("href", "/api/auth/github?returnTo=%2Faccount%3Ftab%3Dname");
+    expect(screen.getByRole("link", { name: "Create an account" }))
+      .toHaveAttribute("href", "/sign-up?returnTo=%2Faccount%3Ftab%3Dname");
   });
 
   it.each(["https://evil.example", "//evil.example", "/api/users", ["/account", "/other"]])(
@@ -101,14 +104,16 @@ describe("/sign-in", () => {
       expect(href).toBe(Array.isArray(returnTo) ? "/api/auth/github?returnTo=%2Faccount" : "/api/auth/github");
     });
 
-  it("shows the cancelled banner as status, without the email option in Phase 1", async () => {
+  it("shows the cancelled banner as status, with a live link to the email form", async () => {
     render(await signInPage({ error: "github_cancelled" }));
-    expect(screen.getByRole("status")).toHaveTextContent("GitHub sign-in was cancelled.Try again");
+    expect(screen.getAllByRole("status")[0]).toHaveTextContent("GitHub sign-in was cancelled.Try again, or sign in with email.");
+    fireEvent.click(screen.getByRole("link", { name: "sign in with email" }));
+    expect(screen.getByRole("textbox", { name: "Email" })).toHaveFocus();
   });
 
   it("shows the session-expired banner and keeps the safe returnTo (SM-AC2)", async () => {
     render(await signInPage({ error: "session_expired", returnTo: "/account" }));
-    expect(screen.getByRole("status")).toHaveTextContent("Your session expired.Sign in again.");
+    expect(screen.getAllByRole("status")[0]).toHaveTextContent("Your session expired.Sign in again.");
     expect(screen.getByRole("link", { name: "Sign in with GitHub" })).toHaveAttribute("href", "/api/auth/github?returnTo=%2Faccount");
   });
 
@@ -124,7 +129,7 @@ describe("/sign-in", () => {
   it("ignores an unknown error code", async () => {
     render(await signInPage({ error: "made_up" }));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("status")).toHaveLength(1);
   });
 
   it.each([

@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
     // Node-only SMTP client (net/tls/fs); load it from node_modules at runtime.
     "nodemailer",
   ],
+
+  // The confirmation token is in /confirm-email's address: never send it on
+  // as a referrer (the page's metadata sets the same policy in a meta tag).
+  async headers() {
+    return [{ source: "/confirm-email", headers: [{ key: "Referrer-Policy", value: "no-referrer" }] }];
+  },
 };
 
 export default nextConfig;
