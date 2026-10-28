@@ -12,7 +12,9 @@ import {
 import { registerDb } from "@devmentor/db";
 
 import { createAppConfig } from "@/server/config";
+import { ArcticGitHubOAuth } from "@/server/services/auth/adapters/arctic-github-oauth";
 import { AuthSessionService } from "@/server/services/auth/auth-session.service";
+import { GitHubSignInService } from "@/server/services/auth/github-sign-in.service";
 import { RoleService } from "@/server/services/auth/role.service";
 import { UserService } from "@/server/services/auth/user.service";
 
@@ -27,6 +29,9 @@ function buildContainer(): AppContainer {
     authSessionService: asClass(AuthSessionService),
     // Every request resolves its session through AuthSessionService.
     principalResolver: aliasTo("authSessionService"),
+    // Callers depend on the GitHubOAuth port; this is its only adapter.
+    githubOAuth: asClass(ArcticGitHubOAuth),
+    githubSignInService: asClass(GitHubSignInService),
     roleService: asClass(RoleService),
     userService: asClass(UserService),
   });

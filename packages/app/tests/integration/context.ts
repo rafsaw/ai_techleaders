@@ -9,6 +9,8 @@ declare module "vitest" {
   export interface ProvidedContext {
     baseURL: string;
     databaseURL: string;
+    /** Base URL of the local GitHub stub (OAuth and API). */
+    githubStubURL: string;
     browserSession: string;
     integrationArtifactsDirectory: string;
   }

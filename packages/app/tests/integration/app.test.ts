@@ -4,10 +4,12 @@ import { createWriteStream } from "node:fs";
 import { appendFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import pg from "pg";
 import { afterAll, afterEach, describe, expect, inject, it } from "vitest";
 
 import { IntegrationBrowser } from "./browser";
 import { repositoryRoot } from "./context";
+import { setGitHubStubBarrier, setGitHubStubUser, STUB_DECISION_PARAM } from "./github-stub";
 
 /**
  * Runs `npm run db:seed` against the test container. Settles on "close" (stdio
@@ -168,7 +170,7 @@ describe("production application with ephemeral PostgreSQL", () => {
     expect((await browser.command("get", "url")).url).toBe(`${baseURL}/`);
   });
 
-  // Keep last: it adds the sample user to the container shared by every
+  // Keep after the empty-state cases: it adds the sample user to the container shared by every
   // integration file (one globalSetup), and earlier cases assert the empty
   // state and exact user counts. A new integration file must not assume an
   // empty users table once this case has run.
@@ -187,5 +189,85 @@ describe("production application with ephemeral PostgreSQL", () => {
     await browser.command("open", `${baseURL}/backend`);
     expect(await browser.heading("Dashboard")).toBe("Dashboard");
     expect(await browser.snapshot()).toContain("2 registered users");
+  });
+  // GitHub sign-in backend (accounts Phase 1 step 8), driven over HTTP
+  // against the local GitHub stub. These cases add users, so they run after
+  // every case that asserts exact user counts.
+  describe("GitHub sign-in through the stub", () => {
+    const githubStubURL = inject("githubStubURL");
+
+    /** Follows start → stub authorize (answered without a click) and returns the callback request. */
+    async function beginSignIn(decision: "approve" | "deny", returnTo?: string) {
+      const query = returnTo === undefined ? "" : `?returnTo=${encodeURIComponent(returnTo)}`;
+      const started = await fetch(`${baseURL}/api/auth/github${query}`, { redirect: "manual" });
+      expect(started.status).toBe(303);
+      const cookie = started.headers.getSetCookie().find((value) => value.startsWith("devmentor_oauth="));
+      expect(cookie).toBeDefined();
+      const authorize = new URL(started.headers.get("location")!);
+      expect(authorize.origin).toBe(githubStubURL);
+      authorize.searchParams.set(STUB_DECISION_PARAM, decision);
+      const answered = await fetch(authorize, { redirect: "manual" });
+      expect(answered.status).toBe(302);
+      const callback = answered.headers.get("location")!;
+      expect(callback.startsWith(`${baseURL}/api/auth/github/callback?`)).toBe(true);
+      return { callback, cookie: cookie!.split(";")[0]! };
+    }
+
+    function finish({ callback, cookie }: { callback: string; cookie: string }) {
+      return fetch(callback, { redirect: "manual", headers: { cookie } });
+    }
+
+    function clearsOAuthCookie(response: Response): boolean {
+      return response.headers.getSetCookie().some((value) => value.startsWith("devmentor_oauth=;") && /Max-Age=0/.test(value));
+    }
+
+    it("returns a cancelled sign-in to /sign-in with its returnTo and creates no session", async () => {
+      const response = await finish(await beginSignIn("deny", "/mentors?page=2"));
+      expect(response.status).toBe(303);
+      expect(response.headers.get("location")).toBe(`${baseURL}/sign-in?error=github_cancelled&returnTo=%2Fmentors%3Fpage%3D2`);
+      expect(clearsOAuthCookie(response)).toBe(true);
+      expect(response.headers.getSetCookie().some((value) => value.startsWith("devmentor_session="))).toBe(false);
+    });
+
+    it("creates exactly one account when concurrent callbacks for one GitHub identity race (#34 AC 3)", async () => {
+      const githubId = 2_000_000 + Math.floor(Math.random() * 1_000_000);
+      const email = `race-${randomUUID()}@example.com`;
+      await setGitHubStubUser(githubStubURL, {
+        id: githubId,
+        login: `racer-${githubId}`,
+        name: "Race Condition",
+        emails: [{ email: email.toUpperCase(), primary: true, verified: true }],
+      });
+      // The stub releases all identity lookups together, so the callbacks
+      // resolve the account concurrently and the unique constraints decide.
+      const attempts = await Promise.all(Array.from({ length: 4 }, () => beginSignIn("approve")));
+      await setGitHubStubBarrier(githubStubURL, attempts.length);
+      const responses = await Promise.all(attempts.map(finish));
+
+      for (const response of responses) {
+        expect(response.status).toBe(303);
+        expect(clearsOAuthCookie(response)).toBe(true);
+        expect(response.headers.getSetCookie().some((value) => /^devmentor_session=[A-Za-z0-9_-]{43};/.test(value))).toBe(true);
+      }
+      // One callback created the account; the others reused it.
+      expect(responses.map((response) => response.headers.get("location")).sort())
+        .toEqual([`${baseURL}/`, `${baseURL}/`, `${baseURL}/`, `${baseURL}/account?welcome=1`]);
+
+      const client = new pg.Client({ connectionString: databaseURL });
+      await client.connect();
+      try {
+        const users = await client.query<{ id: string; email: string; name: string; email_confirmed_at: Date | null }>(
+          "select id, email, name, email_confirmed_at from users where github_id = $1", [String(githubId)]);
+        expect(users.rows).toHaveLength(1);
+        expect(users.rows[0]).toMatchObject({ email, name: "Race Condition" });
+        expect(users.rows[0]!.email_confirmed_at).not.toBeNull();
+        const roles = await client.query("select role from user_roles where user_id = $1", [users.rows[0]!.id]);
+        expect(roles.rows).toEqual([{ role: "mentee" }]);
+        const sessions = await client.query("select count(*)::int as count from auth_sessions where user_id = $1", [users.rows[0]!.id]);
+        expect(sessions.rows[0]).toEqual({ count: 4 });
+      } finally {
+        await client.end();
+      }
+    });
   });
 });

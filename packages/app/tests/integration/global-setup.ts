@@ -12,6 +12,7 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testconta
 import type { TestProject } from "vitest/node";
 
 import { integrationResultsDirectory, browserExecutable, repositoryRoot } from "./context";
+import { startGitHubStub, type GitHubStub } from "./github-stub";
 
 const execute = promisify(execFile);
 
@@ -71,6 +72,7 @@ export default async function setup(project: TestProject) {
   let postgresStream: Readable | undefined;
   let server: ChildProcess | undefined;
   let migrations: ChildProcess | undefined;
+  let githubStub: GitHubStub | undefined;
   let browserReady = false;
   let cleanupPromise: Promise<void> | undefined;
   const serverLog = createWriteStream(join(artifactsDirectory, "server.log"), { flags: "w" });
@@ -92,6 +94,7 @@ export default async function setup(project: TestProject) {
     }));
     if (migrations) await safely("migrations", () => stopServer(migrations!));
     if (server) await safely("server", () => stopServer(server!));
+    if (githubStub) await safely("github-stub", () => githubStub!.close());
     serverLog.end();
     migrationsLog.end();
     postgresStream?.destroy();
@@ -127,6 +130,9 @@ export default async function setup(project: TestProject) {
       .start();
     postgresStream = await postgres.logs();
     postgresStream.pipe(postgresLog, { end: false });
+    const baseURL = `http://127.0.0.1:${await availablePort()}`;
+    const githubClient = { clientId: "integration-client", clientSecret: randomUUID() };
+    githubStub = await startGitHubStub(githubClient);
     const environment: NodeJS.ProcessEnv = {
       ...process.env,
       NODE_ENV: "production",
@@ -135,6 +141,12 @@ export default async function setup(project: TestProject) {
       DB_POOL_MAX: "2",
       DB_DEBUG: "false",
       NEXT_TELEMETRY_DISABLED: "1",
+      // The test server's own origin: redirects, cookies and the OAuth callback.
+      APP_URL: baseURL,
+      GITHUB_CLIENT_ID: githubClient.clientId,
+      GITHUB_CLIENT_SECRET: githubClient.clientSecret,
+      GITHUB_OAUTH_URL: githubStub.url,
+      GITHUB_API_URL: githubStub.url,
     };
     migrations = spawn("npm", ["run", "db:migrate"], {
       cwd: repositoryRoot,
@@ -153,7 +165,6 @@ export default async function setup(project: TestProject) {
         else reject(new Error(`Migrations failed (${code ?? signal}); see ${artifactsDirectory}/migrations.log`));
       });
     });
-    const baseURL = `http://127.0.0.1:${await availablePort()}`;
     server = spawn("npm", ["run", "start", "-w", "@devmentor/app", "--", "--hostname", "127.0.0.1", "--port", new URL(baseURL).port], {
       cwd: repositoryRoot,
       env: environment,
@@ -168,6 +179,7 @@ export default async function setup(project: TestProject) {
     if (spawnError) throw spawnError;
     project.provide("baseURL", baseURL);
     project.provide("databaseURL", environment.DATABASE_URL!);
+    project.provide("githubStubURL", githubStub.url);
     project.provide("browserSession", browserSession);
     project.provide("integrationArtifactsDirectory", artifactsDirectory);
     browserReady = true;

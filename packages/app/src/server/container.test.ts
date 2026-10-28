@@ -13,8 +13,10 @@ describe("composition root", () => {
     const { UserService } = await import("@/server/services/auth/user.service");
     const { RoleService } = await import("@/server/services/auth/role.service");
     const { AuthSessionService } = await import("@/server/services/auth/auth-session.service");
+    const { ArcticGitHubOAuth } = await import("@/server/services/auth/adapters/arctic-github-oauth");
+    const { GitHubSignInService } = await import("@/server/services/auth/github-sign-in.service");
     expect(cache.__devmentorContainer).toBe(container);
-    expect(Object.keys(container.registrations)).toEqual(expect.arrayContaining(["logger", "clock", "config", "principalResolver", "orm", "em", "userService", "roleService", "authSessionService"]));
+    expect(Object.keys(container.registrations)).toEqual(expect.arrayContaining(["logger", "clock", "config", "principalResolver", "orm", "em", "userService", "roleService", "authSessionService", "githubOAuth", "githubSignInService"]));
     const em = { fake: true };
     container.register({ em: asValue(em) });
     const first = createRequestScope();
@@ -24,6 +26,8 @@ describe("composition root", () => {
     expect(typeof first.cradle.config.app).toBe("function");
     expect(first.cradle.roleService).toBeInstanceOf(RoleService);
     expect(first.cradle.authSessionService).toBeInstanceOf(AuthSessionService);
+    expect(first.cradle.githubOAuth).toBeInstanceOf(ArcticGitHubOAuth);
+    expect(first.cradle.githubSignInService).toBeInstanceOf(GitHubSignInService);
     // The resolver is the session service; services are transient.
     expect(first.cradle.principalResolver).toBeInstanceOf(AuthSessionService);
     expect(first.cradle.userService).not.toBe(first.cradle.userService);
