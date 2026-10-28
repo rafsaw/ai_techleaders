@@ -759,6 +759,10 @@ Implemented 2026-10-27 on `feat/e01-accounts-and-roles`, one commit per step (1.
 7. **No credential race tests.** Registration/confirmation/GitHub-claim concurrency is covered by the user lock and constraints, verified by Step 5's unit tests. The only Phase 1–2 real-DB race test is the double GitHub sign-in (Step 1.8).
 8. **Documentation:** env vars, Mailpit, N03 copy and release email test in `README.md`; Phase 2 F2/F3 homes/exports in `AGENTS.md`/`BACKWARD_COMPATIBILITY.md`; trusted-edge configuration; the run log. The PO owns #49 and the product brief is untouched.
 
+#### Implementation notes (Phase 2)
+
+- **Single-use token records (Step 1, platform P9):** `singleUseTokenProperties` (`packages/db/src/entities/single-use-token.ts`: `tokenHash` `char(64)` unique, `expiresAt`, nullable `consumedAt`) and `inspectSingleUseToken` / `consumeSingleUseToken` (`packages/db/src/single-use-token.ts`), exported from `@devmentor/db` with `TokenLookup<T>` and `SingleUseTokenRecord`. A token that is both used and expired reports `used`. Expiry at exactly `now` is expired, matching the conditional update's `expires_at > now`. After the conditional `nativeUpdate`, `consume` reloads the record with `em.refresh` (nativeUpdate bypasses the identity map, so a later flush would otherwise see stale data): 1 row → `consumed`; 0 rows → the reloaded state, `expired` if it lapsed unused and `used` otherwise (including the theoretical "still looks usable" case, so a lost race never reports success); a row deleted meanwhile (resend, revoke) → `invalid`. No entity uses the spread yet; `email_confirmation_tokens` and its migration ship in Step 4.
+
 ### Phase 3 — #46 email-bound invitation management, then #36 acceptance
 
 1. **Schema:** `mentor_invitations.email`, `revoked_at`, hash/expiry/consumption fields, accepted-user FK, partial unique open-email index, and `user_roles.invitation_id`. Add the migration, disposable-environment `down()` test and updated data-model diagram; no `note` column or raw token storage.
