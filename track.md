@@ -49,6 +49,12 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - [x] 2.7 Documentation (README, AGENTS.md, BACKWARD_COMPATIBILITY.md) — spec step 2.7 (no credential race tests) is a non-task
 - [x] 2.G Phase 2 full gate + run log → **manual test pause**
 
+### Phase 2 — review fixes (Codex review, REQUEST CHANGES, 2026-10-28)
+
+- [~] R7 `/confirm-email` (token page) is marked `noindex`
+- [~] R8 `clientIp` canonicalizes IPv6 (incl. IPv4-mapped) before rate-limit keys
+- [ ] R3.G Full Phase 2 gate + run log
+
 ## Phase 3 — #46 invitation management, then #36 acceptance
 
 - [ ] 3.1 Schema: `mentor_invitations` (email-bound, hashed token, expiry, revoke), `user_roles.invitation_id`, migration
