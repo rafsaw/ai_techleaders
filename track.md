@@ -34,9 +34,9 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 ### Phase 1 — re-review fixes (Codex re-review of R4, 2026-10-28)
 
-- [~] R5 `/account` ForgetWelcome drops only `welcome`, keeping other query params and the hash
-- [ ] R6 `returnTo` near the 512-char limit keeps its safe destination after `welcome=1` is appended
-- [ ] R2.G Full gate + run log
+- [x] R5 `/account` ForgetWelcome drops only `welcome`, keeping other query params and the hash
+- [x] R6 `returnTo` near the 512-char limit keeps its safe destination after `welcome=1` is appended
+- [x] R2.G Full gate + run log
 
 ## Phase 2 — #35 email and password with confirmation
 
