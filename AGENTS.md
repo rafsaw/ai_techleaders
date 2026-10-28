@@ -180,7 +180,7 @@ use `node:crypto`. `@devmentor/core/validators/*` must stay isomorphic,
 because client components import it. Anything a client needs (role names,
 the `returnTo` schema) goes in `validators/`.
 
-## Auth and sessions (accounts Phase 1)
+## Auth and sessions (accounts Phases 1–2)
 
 - **Homes:**
   - config: `packages/app/src/server/config.ts` (`createAppConfig()`, cradle
@@ -232,6 +232,68 @@ the `returnTo` schema) goes in `validators/`.
 - **Operator role:** granted and revoked only with `npm run operator`
   (`role grant|revoke --email <email> --role operator`); `mentor` is
   refused. Production requires `--yes`.
+
+### Email accounts, mail and rate limits (Phase 2)
+
+- **Single-use tokens (P9):** link tables spread `singleUseTokenProperties`
+  (`db/src/entities/single-use-token.ts`) and use `inspectSingleUseToken` /
+  `consumeSingleUseToken` from `@devmentor/db`. They report
+  `valid | consumed | invalid | expired | used`, so pages can say why. A GET
+  page only **inspects**; consume runs in a POST, inside the transaction
+  that applies its effect. Store only the hash; the raw token travels in the
+  link's query string and the POST body.
+- **Email (P10):** callers depend on the `EmailSender` port
+  (`server/services/notifications/email-sender.port.ts`), registered as
+  `emailSender` (SINGLETON). Adapters: `adapters/smtp-email-sender.ts`
+  (nodemailer; transport failures become `EmailSendError`, vendor error only
+  as `cause`) and `adapters/memory-email-sender.ts` for unit tests. Templates
+  are pure functions in `templates/<name>.ts` returning
+  `{ subject, text, html }`, with absolute links built from `APP_URL` and
+  HTML values escaped with `templates/html.ts`. `config.email()`
+  (`SMTP_URL`, `MAIL_FROM`) is read on `send`, never on resolve.
+  - Success means **SMTP acceptance**, not inbox delivery; copy never claims
+    delivery. Failure policy is the caller's; nothing retries in the
+    background.
+  - Send only **after** the transaction commits.
+  - Unit tests use `MemoryEmailSender`; integration tests read Mailpit
+    through `tests/integration/mailpit.ts` (`MailpitInbox`). Keep its image
+    tag in sync with `docker-compose.yml`.
+- **Rate limits (P11):** the `RateLimiter` port is in
+  `core/src/security/rate-limiter.ts`; its only adapter is
+  `PostgresRateLimiter` (`db/src/rate-limiter.ts`, `rate_limit_buckets`,
+  cradle `rateLimiter`, TRANSIENT because it uses the scoped `em`). There is
+  no in-memory limiter; unit tests mock the port.
+  - Keys are `<rule>:<subject>:<normalized value>`, stored only as a hash.
+    E01's four rules and `rateLimitKey()` live in
+    `PASSWORD_RATE_LIMITS` in `password-account.service.ts`; define a new
+    concept's rules next to its service.
+  - Every limiter hit finishes **before** the business transaction opens, so
+    a failed attempt still counts. Per-IP rules run before password hashing.
+  - The IP comes from `clientIp(req, config.app())`
+    (`core/src/http/client-ip.ts`). It is `null` unless `TRUST_PROXY=true`
+    and `X-Forwarded-For` is exactly one valid address. When it is `null`,
+    **skip** per-IP rules; never pool unknown clients into one bucket.
+  - A refusal throws `TooManyRequestsError` (`rate_limited`, 429);
+    `apiHandler` adds `Retry-After`. The envelope and `apiCall` stay
+    unchanged, and forms show `RATE_LIMITED_MESSAGE` with no countdown.
+- **Passwords:** `PasswordHasher` port
+  (`server/services/auth/password-hasher.port.ts`), bcryptjs adapter
+  `adapters/bcrypt-password-hasher.ts`, cradle `passwordHasher`
+  (SINGLETON). It refuses or never matches input over 72 bytes, and
+  `dummyCompare` keeps timing equal for unknown accounts. Rules live in
+  `core/src/validators/auth/password.schema.ts`; sign-in, resend and
+  confirm use `currentPasswordSchema`, so they never reveal the
+  registration rules. DTOs never carry `passwordHash`.
+- **Credential transactions (`PasswordAccountService`,
+  `GitHubSignInService`):** lock the user row `FOR UPDATE` **first**, then
+  touch its token rows, and re-read confirmation state under the lock. No
+  SMTP call and no cookie inside an uncommitted transaction: write the
+  session row through the transaction's `em`
+  (`authSessionService.create(userId, em)`), set the cookie after commit.
+  Unit tests assert this order with one shared event log.
+  Responses never reveal whether an email has an account.
+- **N03:** there is no password reset or manual recovery in 1.0. Don't add a
+  reset route, link or CLI command without a spec.
 
 ## Dependency injection (Awilix)
 
@@ -307,8 +369,27 @@ The UI has three areas by audience (platform PD2):
   classes, `@devmentor/ui/frontend/*`, and the Tailwind-only domain
   components listed in `tailwindDomainComponents` in `eslint.config.mjs`.
   No shadcn primitives, `@devmentor/ui/backend/*` or `@base-ui/*`; ESLint
-  enforces this. To let a public page use a new domain component, keep it
-  Tailwind-only and add it to that list.
+  enforces this, including relative imports inside the kit and those
+  components.
+  - **Public kit (F3):** `ui/src/frontend/` (`forms/SchemaForm`,
+    `forms/TextField`, `forms/PasswordField`, `forms/SubmitButton`,
+    `feedback/Notice`, `actions/LinkButton`), imported as
+    `@devmentor/ui/frontend/<path>`.
+  - **New Tailwind domain component for a public page:** put it in
+    `ui/src/components/<concept>/`, import only the kit, the form core,
+    `@devmentor/ui/lib/*` and other listed domain components (through
+    package paths, not `./`), add it to
+    `tailwindDomainComponents`, and add an allowed case to
+    `tests/eslint-config.test.ts`.
+- **Form core (F2):** `ui/src/forms/useSchemaForm.ts` holds the state of
+  both `CrudForm` and `SchemaForm`; `ui/src/forms/field-errors.ts` holds
+  `toFieldErrors`, `failureMessage` and `RATE_LIMITED_MESSAGE`. Don't
+  re-implement form state in a page.
+  - `onSubmit(values, { signal })` must pass `signal` to `apiCall` (it
+    aborts on unmount) and must not reject.
+  - One request runs at a time: the in-flight guard is a ref, so a double
+    submit sends one request.
+  - Every 429 reads `RATE_LIMITED_MESSAGE`, whatever the server says.
 - **Signed-in pages** live in `packages/app/src/app/(app)/` (e.g.
   `/account`) and use shadcn components, like the admin area.
 - **Backend (admin) pages** live under `packages/app/src/app/backend/`
@@ -391,6 +472,21 @@ A task is not complete until its run log exists in .ai/runs/ and its spec is upd
   CLI (`npm run operator -- role grant …`), never by writing the role row.
   The readiness probe is `GET /` with a well-formed but unknown session
   cookie, so a DB or migration failure fails it.
+- **Integration notes:**
+  - Read email through `MailpitInbox` (`waitForMessageTo`, `linksIn`); take
+    links from the message, since the DB holds only token hashes.
+  - `IntegrationBrowser.click` scrolls the target into view first:
+    agent-browser clicks at coordinates, and below the fold it hits
+    `<html>`. Keep that when adding browser helpers.
+  - Rate limits are shared across scenarios in one app. Plan each address's
+    attempt budget. `password-ui.test.ts` spends exactly 5 of rule 2 for
+    its main address, so don't add sign-in/confirm attempts for it.
+  - A scenario that creates users or limiter buckets deletes them in
+    `afterAll` (`users` rows, `rate_limit_buckets`), because other scenarios
+    count users and Vitest reruns failed files first.
+  - Tests that need their own schema or table-wide cleanup use
+    `tests/integration/scratch-database.ts` (`useScratchDatabase`,
+    `dbContainer`), not the app's database.
 - `.github/workflows/ci.yml` checks each PR with Build, Lint, Typecheck,
   Unit tests (100% coverage), and Integration tests (PostgreSQL + agent-browser).
   A feature is complete only when all checks pass.

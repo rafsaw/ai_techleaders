@@ -20,6 +20,7 @@ Once a surface has consumers outside this repository (a published package, a pub
   - `/api/users` went from open to operators only: 401 signed out, 403 without `operator`.
   - `/backend` and its pages are operators only: signed out redirects to `/sign-in?returnTo=…`, a signed-in non-operator gets the neutral 404. The home page no longer links to `/backend`; the header shows the sign-in state instead.
   - `@devmentor/ui/backend/api/*` moved to `@devmentor/ui/api/*` with no alias.
+- **Accounts Phase 2 (same spec, email and password):** no breaking change. Everything is additive and recorded in the sections below: four public routes and three error codes (§1), new exports and `Cradle` keys (§3), the `password_hash` column and two tables in `Migration20261028165323`, which implements `down()` (§4), and `SMTP_URL`, `MAIL_FROM` and `TRUST_PROXY` (§5). `useSchemaForm`'s `onSubmit` now receives a second argument, `{ signal }`. Existing one-argument callbacks still type-check, and `CrudForm`'s public `onSubmit(values)` is unchanged.
 
 ## Protected surfaces
 
@@ -28,7 +29,7 @@ Once a surface has consumers outside this repository (a published package, a pub
 The surface:
 
 - The JSON envelope `{ ok: true, data }` / `{ ok: false, error: { code, message, fieldErrors? } }` (`packages/core/src/http/apiHandler.ts`).
-- The error `code` strings and their HTTP status mapping: 400 validation, 401, 403, 404, 409, and 500 `internal_error` (`packages/core/src/http/errors.ts`).
+- The error `code` strings and their HTTP status mapping: 400 validation, 401, 403, 404, 409, 429 `rate_limited` (with a `Retry-After` header, in seconds) and 500 `internal_error` (`packages/core/src/http/errors.ts`). The password routes add 401 `invalid_credentials` and 403 `email_not_confirmed` (`packages/app/src/server/services/auth/password-account.service.ts`).
 - The `makeCrudRoute` conventions: `POST` returns 201, and `PUT` / `DELETE` take `?id=<uuid>`.
 - Every route and method states its access rule (`access` on `apiHandler`, `makeCrudRoute` and `navigationHandler`, platform PD3); it is required and has no default. Loosening a rule (e.g. `user` to `public`) is a security change.
 - The existing routes, their access rules, and their request and response shapes:
@@ -36,6 +37,12 @@ The surface:
   - `GET`/`PATCH /api/account`: `user`; the caller's own account, `PATCH` takes `{ displayName }`.
   - `POST /api/auth/sign-out`: `optional`; ends the presented session, clears the cookie and returns `{ redirectTo: "/" }` (also when already signed out).
   - `GET /api/auth/github` (`?returnTo=`) and `GET /api/auth/github/callback`: `public` browser navigations answered with a 303 (`navigationHandler`). Expected callback failures redirect to `/sign-in?error=<code>` (keeping `returnTo`); unexpected ones to `/error?code=internal_error`.
+  - Accounts Phase 2, all `public` and rate-limited (429):
+    - `POST /api/auth/sign-up` `{ displayName, email, password, returnTo? }` returns 201 `{ email, emailSent }`. The response is the same for new, unconfirmed and confirmed emails.
+    - `POST /api/auth/sign-in` `{ email, password, returnTo? }` returns `{ redirectTo }` and sets the session cookie. It fails with 401 `invalid_credentials` or 403 `email_not_confirmed`.
+    - `POST /api/auth/confirm-email/resend` (the sign-in body) returns `{ emailSent, alreadyConfirmed }`, or 401.
+    - `POST /api/auth/confirm-email` `{ token, password, returnTo? }` returns `{ redirectTo }` and sets the session cookie. It fails with 401, or 404 `not_found` for an expired, used or invalid link.
+  - The confirmation email's link format: `<APP_URL>/confirm-email?token=…[&returnTo=…]`. Links already in inboxes must keep working for their 24 hours.
 
 Breaking changes include renaming or removing an envelope field, changing a `code` string or its status, moving `id` out of the query string, removing a route or method, adding a required request field, or removing or retyping a response DTO field.
 
@@ -53,10 +60,10 @@ Required path: change both declarations together. Never remove the check without
 
 The surface is the `exports` map of each package and what it exposes:
 
-- `@devmentor/core`: `.` (the DI container, `createApiHandler`, `createMakeCrudRoute`, `createNavigationHandler`, `parseInput`, the `AppError` hierarchy and `isAppError`, `Access`/`Principal`/`PrincipalResolver`, `ResponseCookies`/`readCookie`, `defineConfigSection`/`ConfigError`, `Clock`/`systemClock`/`fixedClock`, `generateToken`/`hashToken`/`isWellFormedToken`, logger, `registerCore`) and `./validators/*` (isomorphic: client code imports it, so no Node-only APIs).
-- `@devmentor/db`: `.` (entities, `registerDb`) and `./config`.
-- `@devmentor/ui`: `./globals.css`, `./components/*`, `./lib/*`, `./hooks/*`, `./api/*` (moved from `./backend/api/*` in accounts Phase 1; the old path was removed), `./backend/{forms,tables,feedback}/*`, `./forms/*` and `./frontend/*`.
-- The `Cradle` interface keys added through declaration merging (`em`, `logger`, `clock`, `config`, `principalResolver`, `userService`, `roleService`, `authSessionService`, `githubOAuth`, `githubSignInService`, …).
+- `@devmentor/core`: `.` (the DI container, `createApiHandler`, `createMakeCrudRoute`, `createNavigationHandler`, `parseInput`, the `AppError` hierarchy and `isAppError`, `Access`/`Principal`/`PrincipalResolver`, `ResponseCookies`/`readCookie`, `defineConfigSection`/`ConfigError`, `Clock`/`systemClock`/`fixedClock`, `generateToken`/`hashToken`/`isWellFormedToken`, the `RateLimiter` port types, `clientIp`, `TooManyRequestsError`, logger, `registerCore`) and `./validators/*` (isomorphic: client code imports it, so no Node-only APIs). `validators/auth/` includes `return-to.schema` (`parseReturnTo`, `parseInternalRedirect`, `returnToSchema`, `optionalReturnToSchema`), `role.schema`, `email.schema`, `password.schema` (`passwordSchema`, `currentPasswordSchema`), `sign-up.schema`, `sign-in.schema`, `email-confirm.schema` and `account-update.schema` (`displayNameSchema`).
+- `@devmentor/db`: `.` (entities including `EmailConfirmationToken` and `RateLimitBucket`, `registerDb`, the P9 helpers `singleUseTokenProperties`/`inspectSingleUseToken`/`consumeSingleUseToken` with `TokenLookup`/`SingleUseTokenRecord`, `PostgresRateLimiter`, and the re-exported `EntityManager`/`MikroORM` types, `LockMode` and `UniqueConstraintViolationException`) and `./config`.
+- `@devmentor/ui`: `./globals.css`, `./components/*`, `./lib/*`, `./hooks/*`, `./api/*` (moved from `./backend/api/*` in accounts Phase 1; the old path was removed), `./backend/{forms,tables,feedback}/*`, `./forms/*` (`useSchemaForm` with `onSubmit(values, { signal })`; `field-errors` with `toFieldErrors`, `failureMessage` and `RATE_LIMITED_MESSAGE`) and `./frontend/*` (the Tailwind public kit). Public pages may import only the Tailwind-only domain components listed in `tailwindDomainComponents` in `eslint.config.mjs`, so making one of them depend on shadcn, backend panels or Base UI breaks its public consumers.
+- The `Cradle` interface keys added through declaration merging (`em`, `logger`, `clock`, `config`, `principalResolver`, `userService`, `roleService`, `authSessionService`, `githubOAuth`, `githubSignInService`, `emailSender`, `rateLimiter`, `passwordHasher`, `passwordAccountService`, …).
 
 Breaking changes include removing or renaming an export path or a named export, changing a function signature or a component's props incompatibly, or renaming or retyping a `Cradle` key.
 
@@ -64,7 +71,7 @@ Required path: update every importer in the monorepo in the same PR (`npm run ty
 
 ### 4. Database schema and migrations
 
-The surface is the PostgreSQL schema as defined by the committed migrations in `packages/db/src/migrations/` (today `users`, `user_roles` and `auth_sessions`), plus the `baseProperties` columns every entity inherits.
+The surface is the PostgreSQL schema as defined by the committed migrations in `packages/db/src/migrations/` (today `users` with the nullable `password_hash`, `user_roles`, `auth_sessions`, `email_confirmation_tokens` and `rate_limit_buckets`), plus the `baseProperties` columns every entity inherits.
 
 Breaking changes include dropping or renaming a table or column, narrowing a type, adding a `NOT NULL` column without a default, adding a uniqueness constraint over existing data, or editing an already-applied migration.
 
@@ -82,7 +89,7 @@ Schema changes are `risk-high`.
 The surface:
 
 - `DATABASE_URL`, `DB_POOL_MIN`, `DB_POOL_MAX` and `DB_DEBUG` (read in `packages/db/src/config.ts`, documented in `packages/app/.env.example`).
-- `APP_URL`, `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_OAUTH_URL` and `GITHUB_API_URL` (lazily validated sections in `packages/app/src/server/config.ts`).
+- `APP_URL`, `TRUST_PROXY` (`true`/`false`, default `false`), `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_OAUTH_URL`, `GITHUB_API_URL`, `SMTP_URL` (`smtp://` or `smtps://`) and `MAIL_FROM` (lazily validated sections in `packages/app/src/server/config.ts`). Changing the `TRUST_PROXY` default, or how `X-Forwarded-For` is accepted, is a `security` change.
 - `.env*` loading from `packages/app`, shared by Next.js and the MikroORM CLI.
 - `.ai/agentic.config.json`.
 

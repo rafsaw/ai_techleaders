@@ -14,7 +14,10 @@ database, create the env file and apply migrations; see
 [Local setup](#local-setup) below.
 
 - `/` is the public frontend (Tailwind).
-- `/sign-in` signs in with GitHub; `/account` is the signed-in area.
+- `/sign-in` signs in with GitHub or with email and password; `/sign-up`
+  creates an email account, confirmed through an emailed link (see
+  [Email sign-up locally](#email-sign-up-locally)); `/account` is the
+  signed-in area.
 - `/backend` is the admin area (shadcn/ui), open only to accounts holding
   the `operator` role (see [Operator role](#operator-role)). It also shows
   the database connection status.
@@ -84,7 +87,9 @@ the host port mapping (e.g. `"5433:5432"`) and use the same port in
 The same command starts **Mailpit**, a local SMTP sink: the app sends email to
 `smtp://localhost:1025`, and every message lands in the inbox at
 <http://localhost:8025> instead of a real mailbox. No external account is
-needed.
+needed. Confirmation and "you already have an account" emails appear there
+within a second of the sign-up; open one and follow its link (it points at
+`APP_URL`, so the app must run on that origin).
 
 #### 4. Configure env
 
@@ -115,13 +120,18 @@ values).
 | Variable | Section | Required | Purpose |
 | -------- | ------- | -------- | ------- |
 | `APP_URL` | `app` | for absolute links and redirects | Public origin, e.g. `http://localhost:3000`; https in production |
-| `TRUST_PROXY` | `app` | no (default `false`) | `true` only behind an edge that replaces `X-Forwarded-For` with one validated client address and blocks direct origin access; enables per-IP rate limits. Any value other than `true`/`false` is a `ConfigError` |
+| `TRUST_PROXY` | `app` | no (default `false`) | `true` only behind an edge that replaces `X-Forwarded-For` with one validated client address and blocks direct origin access; enables per-IP rate limits (see [Trusted edge](#trusted-edge-and-trust_proxy)). Any value other than `true`/`false` is a `ConfigError` |
 | `GITHUB_CLIENT_ID` | `github` | for GitHub sign-in | OAuth App client id |
 | `GITHUB_CLIENT_SECRET` | `github` | for GitHub sign-in | OAuth App client secret |
 | `GITHUB_OAUTH_URL` | `github` | no (default `https://github.com`) | OAuth endpoint override for test stubs |
 | `GITHUB_API_URL` | `github` | no (default `https://api.github.com`) | API endpoint override for test stubs |
 | `SMTP_URL` | `email` | for sending email | `smtp://[user:pass@]host:port` (STARTTLS when offered) or `smtps://…` (TLS); local Mailpit: `smtp://localhost:1025` |
 | `MAIL_FROM` | `email` | for sending email | Sender, e.g. `DevMentor <no-reply@example.com>` (quote it in `.env` files) |
+
+The `.env.example` values (`SMTP_URL=smtp://localhost:1025`, a localhost
+`MAIL_FROM`, `TRUST_PROXY=false`) work with the Compose Mailpit as they are.
+Without `SMTP_URL`/`MAIL_FROM` the app still boots; sign-up and resend then
+log a `ConfigError` and fail with a 500 (the account and its link are kept).
 
 **GitHub OAuth App for local sign-in.** In GitHub, open Settings → Developer
 settings → OAuth Apps → New OAuth App. Set the homepage URL to
@@ -185,6 +195,45 @@ npm run dev
 Open http://localhost:3000. Backend pages are under `/backend`; the users
 panel is at `/backend/users`.
 
+### Release email test
+
+A green test suite proves only that an SMTP server **accepted** the message
+(that is all `EmailSender` reports, platform P10). Before a release that
+sends email, check delivery to a real inbox against the production
+provider (platform PD1):
+
+1. Configure the production `SMTP_URL` and `MAIL_FROM` (a sender domain the
+   provider has verified, with SPF/DKIM in place).
+2. Sign up on the release build with a real mailbox you control, ideally one
+   each at two large providers.
+3. Confirm that the message arrives in the inbox (not spam), the sender is
+   right, and the link opens `/confirm-email` on the production `APP_URL` and
+   confirms the account.
+4. Record the result (date, provider, mailbox domains, pass/fail) in the
+   release notes, without the link or its token: tokens never go into
+   evidence or logs.
+
+### Trusted edge and `TRUST_PROXY`
+
+Next.js route handlers do not see the socket address, so the client IP comes
+only from `X-Forwarded-For`, and only when `TRUST_PROXY=true`. With the
+default `false`, the per-IP rate limits (sign-in/confirm 10 per 15 minutes,
+sign-up 5 per hour) are **skipped**; the per-address limits still apply.
+
+Set `TRUST_PROXY=true` only when both hold:
+
+- the edge (load balancer, CDN or reverse proxy) **overwrites** any inbound
+  `X-Forwarded-For` with exactly one address, the client it validated, and
+  never appends to a client-supplied value;
+- the app's origin cannot be reached except through that edge (private
+  network, firewall or an origin secret), so nobody can send their own
+  header straight to the app.
+
+The app treats a list, a port, brackets, a zone id or anything that is not a
+single IP address as unknown, which again skips the per-IP rules. If the
+chosen hosting cannot give this contract, keep `TRUST_PROXY=false` and add a
+trusted-IP adapter through a spec instead.
+
 ### Daily workflow
 
 Make sure Docker is running, then:
@@ -221,6 +270,35 @@ npm run operator -- role revoke --email you@example.com --role operator
   it refuses to run unless you add `--yes`.
 - Exit codes: `0` success, `1` refused or failed (e.g. no account with that
   email), `2` usage error. `npm run operator -- help` lists the commands.
+
+### Email sign-up locally
+
+With `docker compose up -d` and `npm run dev` running:
+
+1. Open <http://localhost:3000/sign-up>, enter a display name, any email
+   address (nothing leaves your machine) and a password of at least 15
+   characters. You land on "Check your inbox at …".
+2. Signing in at `/sign-in` now answers "Confirm your email first" with
+   **Resend confirmation**; each resend sends a new link and the older ones
+   stop working.
+3. Open <http://localhost:8025>, open the newest "Confirm your email address
+   for DevMentor" message and follow its link to `/confirm-email`.
+4. Enter the same password and press **Confirm**: you are signed in, and
+   `/account` lists "Email and password" as a sign-in method.
+
+Limits apply locally too: 5 sign-in/confirm attempts per address per 15
+minutes and 3 confirmation-type emails per address per hour. To start over,
+clear them with `docker compose exec postgres psql -U devmentor -c "delete
+from rate_limit_buckets"`. Per-IP limits are skipped while `TRUST_PROXY` is
+`false`.
+
+**Password reset is not available in 1.0** (product decision N03). Both
+`/sign-up` and `/sign-in` say so: "Password reset is not available yet. Save
+your password in a password manager, or use GitHub sign-in. If you forget an
+email-only account's password, you cannot recover access in version 1.0."
+GitHub sign-in recovers an account only when its verified primary email is
+the account's address. There is no reset route and no manual recovery; don't
+add one without a spec.
 
 ### Reset the database
 
@@ -269,7 +347,8 @@ npm run db:seed   # optional: sample user
 │   ├── core/   @devmentor/core  reusable, framework-agnostic code
 │   │   └── src/
 │   │       ├── di/                Awilix container factory + Cradle type
-│   │       ├── http/              AppError hierarchy, apiHandler, makeCrudRoute
+│   │       ├── http/              AppError hierarchy, apiHandler, makeCrudRoute, navigationHandler, clientIp
+│   │       ├── security/          tokens, RateLimiter port
 │   │       ├── validators/<concept>/  Zod schemas shared by routes and forms
 │   │       └── logger.ts          logger with secret redaction
 │   ├── db/     @devmentor/db    data layer
@@ -278,12 +357,15 @@ npm run db:seed   # optional: sample user
 │   │       ├── config.ts          runtime ORM config (pool, migrations)
 │   │       ├── entities/<concept>/  defineEntity-based entities
 │   │       ├── migrations/        generated, committed migrations
+│   │       ├── single-use-token.ts, rate-limiter.ts  P9 token helpers, Postgres rate limiter
 │   │       └── register.ts        registers `orm` + `em` in the container
 │   └── ui/     @devmentor/ui    reusable UI
 │       └── src/
-│           ├── components/        shadcn/ui components
+│           ├── components/        shadcn/ui components; components/<concept>/ domain components
 │           ├── api/               apiCall, the client envelope types
 │           ├── backend/           CrudForm, DataTable, feedback states
+│           ├── forms/             useSchemaForm form core, field-error mapping
+│           ├── frontend/          Tailwind-only public kit (SchemaForm, TextField, Notice, …)
 │           ├── lib/utils.ts       cn()
 │           └── styles/globals.css Tailwind + theme tokens
 ├── tsconfig.base.json             shared compiler options
@@ -428,8 +510,11 @@ its HTTP API (`packages/app/tests/integration/mailpit.ts`). It covers the
 public home, GitHub sign-in, the account page and sign-out, operator
 grant/revoke through the real `npm run operator` CLI, admin database
 status/navigation, users validation, creation, reload, and duplicate-email
-handling, and running `npm run db:seed` twice without creating a
-duplicate. Logs, screenshots, accessibility snapshots, and
+handling, running `npm run db:seed` twice without creating a duplicate,
+and email accounts: sign-up with the message read from Mailpit, sign-in
+refused before confirming, resend, replaced/expired/tampered links,
+confirmation with a full navigation, password sign-in, and the
+per-address rate limits. Logs, screenshots, accessibility snapshots, and
 JUnit results are saved in `test-results/integration/`.
 
 GitHub Actions runs Build, Lint, Typecheck, Unit tests (100% coverage), and
@@ -443,9 +528,10 @@ in the repository's GitHub branch protection/ruleset settings.
 
 Rollback is **code only**: deploy the previous code and keep the database as
 it is. Schema changes for accounts are additive (new nullable `users`
-columns, the `user_roles` and `auth_sessions` tables and their indexes), so
-older code keeps working with them. Do not run `npm run db:migrate:down` as
-a rollback: its `down()` drops roles and sessions and is meant only for
+columns including `password_hash`, the `user_roles`, `auth_sessions`,
+`email_confirmation_tokens` and `rate_limit_buckets` tables and their
+indexes), so older code keeps working with them. Do not run `npm run db:migrate:down` as
+a rollback: its `down()` drops roles, sessions, passwords and confirmation links and is meant only for
 disposable databases. Note that code from before the operator gate leaves
 `/backend` and `/api/users` open to everyone, as they were then.
 
