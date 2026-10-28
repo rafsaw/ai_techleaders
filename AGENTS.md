@@ -389,6 +389,11 @@ The UI has three areas by audience (platform PD2):
     aborts on unmount) and must not reject.
   - One request runs at a time: the in-flight guard is a ref, so a double
     submit sends one request.
+  - `SchemaForm` passes `lockAfterSuccess`: a public form navigates on
+    success, so it stays pending until the page unmounts (a late second
+    click sends nothing). It unlocks on a back/forward-cache restore or after
+    `SUCCESS_LOCK_TIMEOUT_MS` (10 s), so a failed navigation never strands
+    it. `CrudForm` keeps the default and unlocks right after success.
   - Every 429 reads `RATE_LIMITED_MESSAGE`, whatever the server says.
 - **Signed-in pages** live in `packages/app/src/app/(app)/` (e.g.
   `/account`) and use shadcn components, like the admin area.
@@ -475,6 +480,9 @@ A task is not complete until its run log exists in .ai/runs/ and its spec is upd
 - **Integration notes:**
   - Read email through `MailpitInbox` (`waitForMessageTo`, `linksIn`); take
     links from the message, since the DB holds only token hashes.
+  - Keep a browser session's suffix short (`-dbl`, `-password`): the
+    session name goes into agent-browser's socket path, which may not
+    exceed 103 bytes.
   - `IntegrationBrowser.click` scrolls the target into view first:
     agent-browser clicks at coordinates, and below the fold it hits
     `<html>`. Keep that when adding browser helpers.

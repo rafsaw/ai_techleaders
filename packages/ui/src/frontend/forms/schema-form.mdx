@@ -76,6 +76,9 @@ None. The fields come from `fields`; the three E01 forms:
 - One request at a time: a second submit while one runs is ignored, even in the same turn (a
   double click, Enter plus click). Unmounting aborts the running request through `signal` and
   drops its result (F2, E01 Phase 2).
+- Still pending after success until the page navigates away (`lockAfterSuccess`), so a late
+  second click cannot submit again. If the navigation fails or never completes, the form unlocks
+  after 10 s, or at once when Back restores the page from the back/forward cache.
 - Technical failures (429, network, server error) share the one form-level error; a 429 always
   reads *Too many attempts. Try again later*, with no countdown (`failureMessage`, SM-AC17).
 

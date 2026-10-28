@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import type { z } from "zod";
 
 import type { ApiResult, FieldErrors } from "@devmentor/ui/api/types";
@@ -9,6 +9,12 @@ import { failureMessage, toFieldErrors } from "@devmentor/ui/forms/field-errors"
 export type FieldName<TSchema extends z.ZodType> = Extract<keyof z.input<TSchema>, string>;
 
 export type FormValues = Record<string, string>;
+
+/**
+ * How long a form locked after success (`lockAfterSuccess`) waits for its page to go away. A
+ * navigation that fails or never completes unlocks it then, so nobody is stuck on a pending form.
+ */
+export const SUCCESS_LOCK_TIMEOUT_MS = 10_000;
 
 export interface UseSchemaFormOptions<TSchema extends z.ZodType, TData> {
   /** The same schema the API route validates with. */
@@ -27,6 +33,12 @@ export interface UseSchemaFormOptions<TSchema extends z.ZodType, TData> {
   onCancel?: () => void;
   /** Clear the fields after success (default). `false` keeps the saved values. */
   resetOnSuccess?: boolean;
+  /**
+   * For a form whose `onSuccess` navigates away (default `false`): stay pending after success
+   * until the page unmounts, so a late second click cannot submit again. It unlocks when the page
+   * comes back from the back/forward cache, or after `SUCCESS_LOCK_TIMEOUT_MS`.
+   */
+  lockAfterSuccess?: boolean;
 }
 
 // Every field starts as "" so the schema validates exactly what the inputs show
@@ -46,7 +58,8 @@ function focusFirstInvalid(form: HTMLFormElement, fields: readonly { name: strin
  * and on submit), server `fieldErrors` on their fields, a form-level error (a 429 always reads
  * `RATE_LIMITED_MESSAGE`), focus on the first invalid field, Cmd/Ctrl+Enter to submit and Escape
  * to cancel. One request at a time: a second submit while one runs is ignored, even within the
- * same event-loop turn. Unmounting aborts the running request and drops its result.
+ * same event-loop turn, and with `lockAfterSuccess` none after success either. Unmounting aborts
+ * the running request and drops its result.
  */
 export function useSchemaForm<TSchema extends z.ZodType, TData = unknown>({
   schema,
@@ -56,6 +69,7 @@ export function useSchemaForm<TSchema extends z.ZodType, TData = unknown>({
   onSuccess,
   onCancel,
   resetOnSuccess = true,
+  lockAfterSuccess = false,
 }: UseSchemaFormOptions<TSchema, TData>) {
   const [values, setValues] = useState(() => toFormValues(fields, initialValues));
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -65,14 +79,31 @@ export function useSchemaForm<TSchema extends z.ZodType, TData = unknown>({
   // plus click); the ref is set synchronously. The controller belongs to the running request.
   const inFlight = useRef(false);
   const request = useRef<AbortController | null>(null);
+  // Set while a successful submit waits for its navigation (`lockAfterSuccess`).
+  const locked = useRef(false);
+  const lockTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  useEffect(
-    () => () => {
+  const unlock = useCallback(() => {
+    if (!locked.current) return;
+    locked.current = false;
+    clearTimeout(lockTimer.current);
+    inFlight.current = false;
+    setIsSubmitting(false);
+  }, []);
+
+  useEffect(() => {
+    // Back from the next page can restore this one, still locked, from the back/forward cache.
+    function onPageShow(event: PageTransitionEvent) {
+      if (event.persisted) unlock();
+    }
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      window.removeEventListener("pageshow", onPageShow);
+      clearTimeout(lockTimer.current);
       request.current?.abort();
       request.current = null;
-    },
-    []
-  );
+    };
+  }, [unlock]);
 
   /** Re-checks one field against the shared schema and updates only its errors. */
   function validateField(name: FieldName<TSchema>, nextValues: Record<string, string>) {
@@ -126,11 +157,16 @@ export function useSchemaForm<TSchema extends z.ZodType, TData = unknown>({
     request.current = controller;
     setIsSubmitting(true);
     const result = await onSubmit(parsed.data, { signal: controller.signal });
-    inFlight.current = false;
     // Unmounted meanwhile: nothing left to update or hand on.
     if (controller.signal.aborted) return;
     request.current = null;
-    setIsSubmitting(false);
+    if (result.ok && lockAfterSuccess) {
+      locked.current = true;
+      lockTimer.current = setTimeout(unlock, SUCCESS_LOCK_TIMEOUT_MS);
+    } else {
+      inFlight.current = false;
+      setIsSubmitting(false);
+    }
 
     if (!result.ok) {
       const serverFieldErrors = result.error.fieldErrors ?? {};

@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-28 — An in-flight guard is not a double-submit guard when success navigates
+
+**Context:** Phase 2 manual test: a double click on Create account sent two confirmation emails. The ref guard blocked a second submit only while the request ran; it released on the answer, and the page (values kept) stayed up while `router.push` loaded, so the second click sent a valid re-registration.
+**Lesson:** A form that leaves the page on success must stay locked from success until it unmounts, with an escape hatch (back/forward-cache `pageshow`, a timeout) so a failed navigation does not strand it. Test it with a fast answer and a click after it, not only two clicks in one turn. In integration, a `MutationObserver` that clicks as soon as the button is re-enabled hits the window deterministically.
+**Applies to:** `ui/src/forms/useSchemaForm.ts` (`lockAfterSuccess`), `SchemaForm`, any future form whose `onSuccess` navigates.
+
 ### 2026-10-28 — Token pages need headers *and* meta tags; `Cache-Control` in next.config sticks for dynamic pages
 
 **Context:** E01 Phase 2 review fix R7. `/confirm-email` had the referrer meta tag and header but no `noindex` and no `Cache-Control: private, no-store`, although the spec required all three.

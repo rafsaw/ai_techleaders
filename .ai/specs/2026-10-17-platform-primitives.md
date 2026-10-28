@@ -464,6 +464,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   - Server `fieldErrors` land on their fields. A non-field failure becomes `formError`.
   - Cmd/Ctrl+Enter submits; Escape cancels.
   - `onSuccess` receives the response `data`, so a sign-in form can navigate to `data.redirectTo`.
+  - One request at a time (a synchronous ref guard). *(Accounts Phase 2 manual test:)* with `lockAfterSuccess` (passed by F3 `SchemaForm`, whose forms all navigate on success) the form also stays pending after success until it unmounts, so a double click whose second click lands after a fast answer sends no second request. It unlocks when the page is restored from the back/forward cache (`pageshow` with `persisted`) or after `SUCCESS_LOCK_TIMEOUT_MS` (10 s), so a navigation that fails or never completes leaves no stuck form. `CrudForm` keeps the default (`false`) and unlocks after success, as before.
 - **Phase 1 account support:** add only the optional `resetOnSuccess` prop to the existing `CrudForm` (default `true`, today's behavior), so `/account` can keep the saved value. No hook extraction or public-form kit ships in Phase 1.
 - **Phase 2 `CrudForm` refactor:** extract the existing state/mapping into this hook when public email forms become its second skin. Preserve all existing props and tests; add first-invalid-field focus and cover cancellation, rejected submissions and form-level errors.
 

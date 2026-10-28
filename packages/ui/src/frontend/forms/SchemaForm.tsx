@@ -42,7 +42,8 @@ export interface SchemaFormProps<TSchema extends z.ZodType, TData> {
 /**
  * Public, schema-driven form (F3): one column, labels always visible, validation when a field is
  * left and on submit, focus on the first error, values kept after a failure, one submit at a
- * time, success only after the server answers. Docs: schema-form.mdx.
+ * time, success only after the server answers, and still pending after success until the page
+ * navigates away. Docs: schema-form.mdx.
  */
 export function SchemaForm<TSchema extends z.ZodType, TData = unknown>({
   schema,
@@ -56,7 +57,8 @@ export function SchemaForm<TSchema extends z.ZodType, TData = unknown>({
   children,
 }: SchemaFormProps<TSchema, TData>) {
   const { values, setValue, fieldErrors, formError, isSubmitting, handleBlur, handleSubmit, handleKeyDown } =
-    useSchemaForm({ schema, fields, initialValues, onSubmit, onSuccess, resetOnSuccess });
+    // A public form navigates on success: it stays pending until the next page replaces it.
+    useSchemaForm({ schema, fields, initialValues, onSubmit, onSuccess, resetOnSuccess, lockAfterSuccess: true });
 
   return (
     <form

@@ -1,10 +1,10 @@
 import "@testing-library/jest-dom/vitest";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi, type Mock } from "vitest";
 import { z } from "zod";
 import type { ApiResult } from "../api/types";
 import { failureMessage, RATE_LIMITED_MESSAGE, toFieldErrors } from "./field-errors";
-import { useSchemaForm, type UseSchemaFormOptions } from "./useSchemaForm";
+import { SUCCESS_LOCK_TIMEOUT_MS, useSchemaForm, type UseSchemaFormOptions } from "./useSchemaForm";
 
 const schema = z.object({
   email: z.email("Enter a valid email address"),
@@ -178,6 +178,102 @@ describe("useSchemaForm", () => {
     onSubmit.mockResolvedValue({ ok: true, data: { redirectTo: "/" } });
     fireEvent.submit(form);
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
+  });
+
+  // Regression (Phase 2 manual test, double click on Create account): a public form navigates in
+  // onSuccess, but the page stays mounted until the navigation finishes. A second click in that
+  // window must not submit again.
+  describe("lockAfterSuccess", () => {
+    type Submit = UseSchemaFormOptions<typeof schema, { redirectTo: string }>["onSubmit"];
+    const succeed = () => vi.fn<Submit>().mockResolvedValue({ ok: true, data: { redirectTo: "/sign-up/check-email" } });
+
+    async function submitOnce(onSubmit: Mock<Submit>, onSuccess = vi.fn()) {
+      render(<Harness onSubmit={onSubmit} onSuccess={onSuccess} resetOnSuccess={false} lockAfterSuccess />);
+      fillValid();
+      // No waitFor: it polls with setTimeout, which some of these tests fake.
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+      });
+      expect(onSubmit).toHaveBeenCalledOnce();
+    }
+
+    afterEach(() => vi.useRealTimers());
+
+    it("does not submit again after success while the navigation it started is still running", async () => {
+      const onSubmit = succeed();
+      const onSuccess = vi.fn(); // router.push: the page is not unmounted yet
+      await submitOnce(onSubmit, onSuccess);
+      expect(onSuccess).toHaveBeenCalledWith({ redirectTo: "/sign-up/check-email" });
+      // The second click of the double click lands after the fast answer.
+      fireEvent.submit(email().closest("form")!);
+      await act(async () => {});
+      expect(onSubmit).toHaveBeenCalledOnce();
+      expect(screen.getByRole("button", { name: "Signing in…" })).toBeInTheDocument();
+      expect(email()).toHaveValue("ada@example.com");
+    });
+
+    it("still unlocks after a failure", async () => {
+      const onSubmit = vi.fn<Submit>().mockResolvedValue({ ok: false, error: { code: "invalid_credentials", message: "Email or password is incorrect" } });
+      await submitOnce(onSubmit);
+      expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
+      fireEvent.submit(email().closest("form")!);
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
+    });
+
+    it("unlocks when a navigation that never completes times out", async () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      const onSubmit = succeed();
+      await submitOnce(onSubmit);
+      await act(async () => vi.advanceTimersByTime(SUCCESS_LOCK_TIMEOUT_MS - 1));
+      expect(screen.getByRole("button", { name: "Signing in…" })).toBeInTheDocument();
+      await act(async () => vi.advanceTimersByTime(1));
+      expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
+      await act(async () => {
+        fireEvent.submit(email().closest("form")!);
+      });
+      expect(onSubmit).toHaveBeenCalledTimes(2);
+    });
+
+    it("unlocks when Back restores the page from the back/forward cache, and only then", async () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      await submitOnce(succeed());
+      act(() => {
+        window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: false }));
+      });
+      expect(screen.getByRole("button", { name: "Signing in…" })).toBeInTheDocument();
+      act(() => {
+        window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+      });
+      expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
+      // Unlocked once: the timer is gone and a second restore changes nothing.
+      expect(vi.getTimerCount()).toBe(0);
+      act(() => {
+        window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true }));
+      });
+      expect(screen.getByRole("button", { name: "Sign in" })).toBeInTheDocument();
+    });
+
+    it("drops the timer and the listener when the navigation unmounts the form", async () => {
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      const removeListener = vi.spyOn(window, "removeEventListener");
+      await submitOnce(succeed());
+      expect(vi.getTimerCount()).toBe(1);
+      cleanup();
+      expect(vi.getTimerCount()).toBe(0);
+      expect(removeListener).toHaveBeenCalledWith("pageshow", expect.any(Function));
+      removeListener.mockRestore();
+    });
+
+    it("is off by default: a CrudForm unlocks right after success", async () => {
+      const onSubmit = succeed();
+      render(<Harness onSubmit={onSubmit} resetOnSuccess={false} />);
+      fillValid();
+      fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+      await waitFor(() => expect(screen.getByRole("button", { name: "Sign in" })).toBeEnabled());
+      fireEvent.submit(email().closest("form")!);
+      await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(2));
+    });
   });
 
   it("aborts the running request on unmount and drops its result", async () => {
