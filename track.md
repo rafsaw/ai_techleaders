@@ -21,7 +21,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - [x] 1.8 GitHub sign-in backend: port + arctic adapter, `GitHubSignInService`, navigation routes, integration GitHub stub, race test
 - [x] 1.9 UI: shared API client move, `CrudForm.resetOnSuccess`, `(frontend)` header, `/sign-in`, `(app)` layout + `/account`, sign-out
 - [x] 1.10 Operator gate (AD4): `/api/users` and `/backend` require operator; integration scenarios updated
-- [ ] 1.11 Documentation (AGENTS.md, BACKWARD_COMPATIBILITY.md, engineering-standards corrections, README)
+- [x] 1.11 Documentation (AGENTS.md, BACKWARD_COMPATIBILITY.md, engineering-standards corrections, README)
 - [ ] 1.G Phase 1 full gate + run log → **manual test pause**
 
 ## Phase 2 — #35 email and password with confirmation

@@ -107,37 +107,58 @@ validation, auth or error handling per feature.
   - `errors.ts` is the typed `AppError` hierarchy: `ValidationError` 400,
     `UnauthorizedError` 401, `ForbiddenError` 403, `NotFoundError` 404,
     `ConflictError` 409. Services throw these and never build responses.
+    Detect them with `isAppError(error)`, never `instanceof`: Next.js may
+    load `@devmentor/core` once per bundle, so a service's error can come
+    from another copy of the class.
   - `apiHandler.ts` provides the wrapper every route goes through. It:
     - checks the CSRF header on non-GET requests,
     - creates a container scope and passes its `cradle`,
+    - resolves the session and applies the route's `access` rule,
     - returns `{ ok: true, data }` or
       `{ ok: false, error: { code, message, fieldErrors? } }`,
     - maps `AppError`s to their status, and logs anything else as a 500
       without leaking details.
+  - **`access` is required (PD3)** on `apiHandler`, `makeCrudRoute` and
+    `navigationHandler`: `"public" | "optional" | "user" | { role }`. There
+    is no default, so a forgotten rule is a type error. `user` and
+    `{ role }` answer 401 signed out and 403 without the role; the handler
+    gets a typed `principal` (`null` on `public`). Pass a static `logRoute`
+    template, never the request path.
   - `makeCrudRoute.ts` builds handlers for plain CRUD resources. You pass
-    `methods`, `service` and the schemas; it returns the handlers. `PUT` and
-    `DELETE` take `?id=<uuid>`. Workflow endpoints (booking, reschedule,
-    payment) use `apiHandler` directly.
+    `methods`, `access`, `service` and the schemas; it returns the handlers.
+    `PUT` and `DELETE` take `?id=<uuid>`. Workflow endpoints (booking,
+    reschedule, payment) use `apiHandler` directly.
+  - `navigationHandler.ts` wraps GET routes that answer a browser navigation
+    with a 303 (OAuth start/callback, email links). Internal redirects go
+    through the `returnTo` validator and resolve against `APP_URL`; external
+    ones only to `externalOrigins`. Expected errors go to `/error?code=…`
+    unless `onError` names another page; unexpected ones always go to
+    `/error?code=internal_error`.
+  - `auth.ts`: `Principal`, `Access`, `authorize()` and the
+    `PrincipalResolver` port (the app registers `authSessionService` as
+    `principalResolver`).
+  - `cookies.ts`: `ResponseCookies` and `readCookie`; `secure` is required
+    on every cookie.
   - `validation.ts`: `parseInput(schema, input)` throws a `ValidationError`
     with per-field messages.
-  - `auth.ts` (`requireSession`, `requireRole`, ownership assertions) is
-    added together with the auth concept.
-- **App wiring: `packages/app/src/server/http.ts`.** It binds `apiHandler`
-  and `makeCrudRoute` to the container. Route files import them from
-  `@/server/http` and never write their own `try/catch` or
+- **App wiring: `packages/app/src/server/http.ts`.** It binds `apiHandler`,
+  `makeCrudRoute` and `navigationHandler` to the container. Route files
+  import them from `@/server/http` and never write their own `try/catch` or
   `NextResponse.json`.
-- **Client: `packages/ui/src/backend/`.**
-  - `api/apiCall.ts`: `apiCall` and `apiCallOrThrow` are the only sanctioned
-    way to `fetch()` `/api/*`. They always send the CSRF header and parse the
-    envelope defensively.
+- **Client: `packages/ui/src/api/` and `packages/ui/src/backend/`.**
+  - `api/apiCall.ts` (`@devmentor/ui/api/apiCall`): `apiCall` and
+    `apiCallOrThrow` are the only sanctioned way to `fetch()` `/api/*`, in
+    every area. They always send the CSRF header and parse the envelope
+    defensively.
   - `forms/CrudForm.tsx`: a schema-driven form bound to the same Zod schema
     as the route.
   - `tables/DataTable.tsx`: column-config lists with loading, error and
     empty states, pagination, and row actions.
   - `feedback/{LoadingMessage,ErrorMessage,EmptyState}.tsx`: the only
     loading, error and empty renderers.
-- **Envelope types:** `core` and `ui` each declare the envelope and
-  `CSRF_HEADER`, because ui may not import core. Keep the two in sync. Zod
+- **Envelope types:** `core` (`http/apiHandler.ts`) and `ui`
+  (`src/api/types.ts`) each declare the envelope and `CSRF_HEADER`, because
+  ui may not import core. Keep the two in sync. Zod
   is a peer dependency of `ui`, since ui only uses its types.
 - **Reference example:** `api/users/route.ts` together with
   `backend/users/` is the example to copy for a new concept.
@@ -153,6 +174,61 @@ Every new reusable component has one designated home:
    `db` and `app`.
 4. **Used by exactly one page:** colocate it next to that `page.tsx` until a
    second consumer appears.
+
+**Isomorphism rule.** `@devmentor/core`'s `.` entry is server-side and may
+use `node:crypto`. `@devmentor/core/validators/*` must stay isomorphic,
+because client components import it. Anything a client needs (role names,
+the `returnTo` schema) goes in `validators/`.
+
+## Auth and sessions (accounts Phase 1)
+
+- **Homes:**
+  - config: `packages/app/src/server/config.ts` (`createAppConfig()`, cradle
+    `config`), lazily validated sections built with `defineConfigSection`
+    from `core/src/config/env.ts`; a missing key throws `ConfigError`.
+  - clock: `core/src/time/clock.ts` (`clock` on the cradle, `fixedClock` in
+    tests). Time rules read `clock.now()`, never `new Date()`.
+  - tokens: `core/src/security/tokens.ts` (`generateToken`, `hashToken`,
+    `isWellFormedToken`). Only the hash is stored; never log a raw token.
+  - cookies: `core/src/http/cookies.ts`; the session cookie rules:
+    `packages/app/src/server/auth/session-cookie.ts`.
+  - schemas: `core/src/validators/auth/return-to.schema.ts` and
+    `role.schema.ts`.
+  - navigation handler: `core/src/http/navigationHandler.ts`.
+  - page guards: `@/server/auth/page-guards` (`getPrincipal`,
+    `requirePrincipal`, `requireRole`).
+  - GitHub: the port `server/services/auth/github-oauth.port.ts` and the
+    arctic adapter `server/services/auth/adapters/arctic-github-oauth.ts`.
+  - operator CLI: `packages/app/src/server/cli/` (`run-cli.ts`, one
+    `commands/*.command.ts` per command).
+- **Sessions are DB rows** (`auth_sessions`), looked up by token hash on
+  every request; nothing is cached across requests, so role grants and
+  revokes apply on the next request. Activity is request-based: every page
+  request that reaches the server (document, RSC navigation, prefetch) and
+  every API call counts. Expiry moves to 30 days after the request, with at
+  most one DB write per session per hour.
+- **Page guards:** every leaf page calls `getPrincipal()` or a guard with its
+  own `returnTo` (layouts are reused on client navigation, so they are not
+  enough). Signed out redirects to `/sign-in?returnTo=…`; a missing role
+  calls `notFound()`. Pages that read identity render at request time.
+- **Backend gate:** each `/backend` page calls
+  `requireRole("operator", { returnTo })`. The layout only 404s a signed-in
+  non-operator (it cannot know the path for `returnTo`). Guarded pages use
+  `generateMetadata = operatorTitle("…")`
+  (`app/backend/operator-title.ts`), never static `metadata`, because
+  metadata is still sent with a 404. `app/not-found.tsx` is the neutral,
+  identity-free 404.
+- **Proxy (`packages/app/src/proxy.ts`) is cookie-only.** It re-sends a
+  well-formed session cookie with a fresh Max-Age on page requests (not
+  `/api`, `/_next` or files), because Server Components cannot set cookies.
+  It never authorizes and never imports the DB or the container; validity is
+  always decided by the guards and API wrappers.
+- **`/error` is identity-free.** It lives in its own `(error)` route group,
+  and neither its page, layout nor header resolves a principal, creates a
+  request scope or touches the DB, so it can report exactly those failures.
+- **Operator role:** granted and revoked only with `npm run operator`
+  (`role grant|revoke --email <email> --role operator`); `mentor` is
+  refused. Production requires `--yes`.
 
 ## Dependency injection (Awilix)
 
@@ -221,13 +297,21 @@ Every new reusable component has one designated home:
 
 ## UI: frontend vs backend pages
 
-- **Frontend (public) pages** live in `packages/app/src/app/(frontend)/`.
-  Style them with plain Tailwind utility classes. Don't use shadcn
-  components here unless a spec says so.
+The UI has three areas by audience (platform PD2):
+
+- **Public pages** live in `packages/app/src/app/(frontend)/` (plus the
+  shared `app/site-header.tsx`). Style them with plain Tailwind utility
+  classes, `@devmentor/ui/frontend/*`, and the Tailwind-only domain
+  components listed in `tailwindDomainComponents` in `eslint.config.mjs`.
+  No shadcn primitives, `@devmentor/ui/backend/*` or `@base-ui/*`; ESLint
+  enforces this. To let a public page use a new domain component, keep it
+  Tailwind-only and add it to that list.
+- **Signed-in pages** live in `packages/app/src/app/(app)/` (e.g.
+  `/account`) and use shadcn components, like the admin area.
 - **Backend (admin) pages** live under `packages/app/src/app/backend/`
-  (URL `/backend`). Compose them from `@devmentor/ui` shadcn components plus
-  the theme tokens (`bg-card`, `text-muted-foreground`, …). Don't hand-roll
-  a widget when a shadcn component exists for it.
+  (URL `/backend`, operators only). Compose them from `@devmentor/ui` shadcn
+  components plus the theme tokens (`bg-card`, `text-muted-foreground`, …).
+  Don't hand-roll a widget when a shadcn component exists for it.
 - **Adding shadcn components:** run `npm run ui:add -- <component>` from
   the repo root. Files land in `packages/ui/src/components/` and
   dependencies go into `@devmentor/ui`. Don't copy component code into
@@ -260,6 +344,7 @@ Every new reusable component has one designated home:
 | Apply / revert / list migrations | `npm run db:migrate` / `db:migrate:down` / `db:migration:list` |
 | Seed sample data (idempotent) | `npm run db:seed` |
 | Add shadcn component | `npm run ui:add -- <name>` |
+| Grant / revoke operator | `npm run operator -- role grant\|revoke --email <email> --role operator [--yes]` |
 
 Before calling work done, `npm run lint`, `npm run typecheck`,
 `npm run build`, `npm run test:coverage`, and `npm run test:integration`
@@ -298,6 +383,11 @@ A task is not complete until its run log exists in .ai/runs/ and its spec is upd
   to `test-results/integration/`, coverage to `coverage/`.
 - Add integration cases for new user flows and persistence behavior. The
   existing home, dashboard, and users scenarios are the baseline.
+  Admin scenarios sign in through the GitHub stub
+  (`tests/integration/github-stub.ts`) and grant `operator` with the real
+  CLI (`npm run operator -- role grant …`), never by writing the role row.
+  The readiness probe is `GET /` with a well-formed but unknown session
+  cookie, so a DB or migration failure fails it.
 - `.github/workflows/ci.yml` checks each PR with Build, Lint, Typecheck,
   Unit tests (100% coverage), and Integration tests (PostgreSQL + agent-browser).
   A feature is complete only when all checks pass.

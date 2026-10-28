@@ -14,8 +14,10 @@ database, create the env file and apply migrations; see
 [Local setup](#local-setup) below.
 
 - `/` is the public frontend (Tailwind).
-- `/backend` is the admin area (shadcn/ui). It also shows the database
-  connection status.
+- `/sign-in` signs in with GitHub; `/account` is the signed-in area.
+- `/backend` is the admin area (shadcn/ui), open only to accounts holding
+  the `operator` role (see [Operator role](#operator-role)). It also shows
+  the database connection status.
 
 ## Local setup
 
@@ -187,6 +189,31 @@ npm run dev
 Stop the database with `docker compose down`. Data is kept in the `pgdata`
 volume.
 
+### Operator role
+
+Every account gets the `mentee` role on sign-up. The `operator` role, which
+opens `/backend` and `/api/users`, is granted and revoked only from the
+command line, against the database in `DATABASE_URL` (env is loaded from
+`packages/app` like the app does). The account must already exist, so sign
+in once with GitHub first:
+
+```bash
+npm run operator -- role grant  --email you@example.com --role operator
+npm run operator -- role revoke --email you@example.com --role operator
+```
+
+- The change is live on the account's **next request**: roles are read from
+  the database on every request, so there is no need to sign out or in, and
+  revoking leaves the session signed in (it just loses `/backend`).
+- Both commands are idempotent ("already holds operator" / "does not hold
+  operator; nothing changed").
+- Only `--role operator` is accepted; `mentor` comes only from an
+  invitation.
+- The command prints the database host first. With `NODE_ENV=production`
+  it refuses to run unless you add `--yes`.
+- Exit codes: `0` success, `1` refused or failed (e.g. no account with that
+  email), `2` usage error. `npm run operator -- help` lists the commands.
+
 ### Reset the database
 
 ```bash
@@ -219,12 +246,17 @@ npm run db:seed   # optional: sample user
 │   ├── app/    @devmentor/app   Next.js application
 │   │   └── src/
 │   │       ├── app/(frontend)/    public pages — Tailwind utilities
+│   │       ├── app/(app)/         signed-in pages (/account) — shadcn/ui
+│   │       ├── app/(error)/       identity-free /error page
 │   │       ├── app/backend/       admin pages (/backend) — shadcn/ui
 │   │       ├── app/api/<concept>/ route handlers (apiHandler / makeCrudRoute)
 │   │       └── server/            server-only code
 │   │           ├── container.ts   DI composition root
 │   │           ├── cradle.ts      Cradle types of the app's services
-│   │           ├── http.ts        apiHandler + makeCrudRoute bound to the container
+│   │           ├── http.ts        apiHandler, makeCrudRoute, navigationHandler bound to the container
+│   │           ├── config.ts      lazily validated env sections (APP_URL, GITHUB_*)
+│   │           ├── auth/          page guards, session cookie rules
+│   │           ├── cli/           operator CLI (npm run operator)
 │   │           └── services/<concept>/  domain services
 │   ├── core/   @devmentor/core  reusable, framework-agnostic code
 │   │   └── src/
@@ -242,7 +274,8 @@ npm run db:seed   # optional: sample user
 │   └── ui/     @devmentor/ui    reusable UI
 │       └── src/
 │           ├── components/        shadcn/ui components
-│           ├── backend/           apiCall, CrudForm, DataTable, feedback states
+│           ├── api/               apiCall, the client envelope types
+│           ├── backend/           CrudForm, DataTable, feedback states
 │           ├── lib/utils.ts       cn()
 │           └── styles/globals.css Tailwind + theme tokens
 ├── tsconfig.base.json             shared compiler options
@@ -355,6 +388,7 @@ All scripts run from the repository root.
 | `npm run db:migration:list`   | List executed migrations                      |
 | `npm run db:seed`             | Insert the sample user (idempotent)           |
 | `npm run ui:add -- <name>`    | Add a shadcn/ui component to `@devmentor/ui`  |
+| `npm run operator -- <command>` | Operator CLI: `role grant` / `role revoke` (see [Operator role](#operator-role)) |
 
 ## Tests and continuous integration
 
@@ -379,9 +413,12 @@ npm run test:integration
 
 The suite allocates a disposable PostgreSQL instance, applies committed
 migrations, chooses an available app port, and cleans up the browser, app,
-and container. It never uses your `.env` database. It covers the public home,
-admin database status/navigation, users validation, creation, reload, and
-duplicate-email handling, and running `npm run db:seed` twice without creating a
+and container. It never uses your `.env` database. GitHub is replaced by a
+local stub (`packages/app/tests/integration/github-stub.ts`). It covers the
+public home, GitHub sign-in, the account page and sign-out, operator
+grant/revoke through the real `npm run operator` CLI, admin database
+status/navigation, users validation, creation, reload, and duplicate-email
+handling, and running `npm run db:seed` twice without creating a
 duplicate. Logs, screenshots, accessibility snapshots, and
 JUnit results are saved in `test-results/integration/`.
 
@@ -391,6 +428,16 @@ to `main`. Integration reuses the build artifact. Coverage and browser evidence
 are uploaded for debugging. No database secrets or shared test database are
 required. To prevent merging failed checks, make these five check names required
 in the repository's GitHub branch protection/ruleset settings.
+
+## Rollback
+
+Rollback is **code only**: deploy the previous code and keep the database as
+it is. Schema changes for accounts are additive (new nullable `users`
+columns, the `user_roles` and `auth_sessions` tables and their indexes), so
+older code keeps working with them. Do not run `npm run db:migrate:down` as
+a rollback: its `down()` drops roles and sessions and is meant only for
+disposable databases. Note that code from before the operator gate leaves
+`/backend` and `/api/users` open to everyone, as they were then.
 
 ## Project process
 

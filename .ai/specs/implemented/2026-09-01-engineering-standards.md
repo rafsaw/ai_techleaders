@@ -616,3 +616,19 @@ the code disagree, the code and `AGENTS.md` win. Deviations:
     their first feature (per this spec's own rules).
   - Step 8 (`docs/product-scope.md`): that file is in the external training
     pack, not this repo.
+
+## Corrections (2026-10-17)
+
+From the accounts spec (`.ai/specs/2026-10-17-accounts-and-roles.md`, AD2).
+Where the sections above disagree with these bullets, these bullets win.
+
+- DB sessions replace "JWT HS256 24h", for the reason given in D14.
+- No session signing secret is needed.
+- The "JWT secret env" note is superseded.
+- `requireSession(req)` in every route is replaced by PD3's required `access`
+  option.
+- Minimum password length 15 (AD6).
+- 30-day inactivity expiry (DB write at most hourly) and live role changes
+  with no fresh sign-in.
+- Local common-password blocklist and code-only rollback with retained
+  additive schema.
