@@ -29,7 +29,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
         <AccountSummary email={account.email} roles={account.roles} signInMethods={account.signInMethods} welcome={welcome}>
           <AccountNameForm displayName={account.displayName} />
         </AccountSummary>
-        {welcome ? <ForgetWelcome path="/account" /> : null}
+        {welcome ? <ForgetWelcome /> : null}
       </div>
     </main>
   );

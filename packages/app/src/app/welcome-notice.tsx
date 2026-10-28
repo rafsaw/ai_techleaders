@@ -5,19 +5,14 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import { dropWelcomeFlag } from "@/app/drop-welcome-flag";
+
 // The one-time welcome notice on a new account's `returnTo` page (accounts Flow 1 step 5, SM-AC7).
 // The personalized layouts render this only while someone is signed in; the callback adds
 // `welcome=1` only for a newly created account. `/account` renders its own notice inside
 // AccountSummary, so this one stays away from it and the notice never shows twice.
 
 const OWN_NOTICE_PATH = "/account";
-
-/** The current address without the `welcome` parameter, keeping the others and the hash. */
-function addressWithoutWelcome(): string {
-  const url = new URL(window.location.href);
-  url.searchParams.delete("welcome");
-  return `${url.pathname}${url.search}${url.hash}`;
-}
 
 export function AppWelcomeNotice({ displayName }: { displayName: string }) {
   const pathname = usePathname();
@@ -30,7 +25,7 @@ export function AppWelcomeNotice({ displayName }: { displayName: string }) {
 
   useEffect(() => {
     // Without a navigation, so a reload does not show the notice again.
-    if (shownOn !== null) window.history.replaceState(window.history.state, "", addressWithoutWelcome());
+    if (shownOn !== null) dropWelcomeFlag();
   }, [shownOn]);
 
   if (shownOn === null) return null;

@@ -113,6 +113,13 @@ describe("/account", () => {
     expect(`${window.location.pathname}${window.location.search}`).toBe("/account");
   });
 
+  it("keeps the other query params and the hash of a returnTo page when dropping welcome=1 (R5)", async () => {
+    window.history.replaceState(null, "", "/account?tab=x&welcome=1#top");
+    render(await accountPage({ tab: "x", welcome: "1" }));
+    expect(screen.getByRole("status")).toHaveTextContent(WELCOME);
+    expect(`${window.location.pathname}${window.location.search}${window.location.hash}`).toBe("/account?tab=x#top");
+  });
+
   it.each([{ welcome: "0" }, { welcome: ["1", "1"] }])("shows no notice for %j", async (searchParams) => {
     render(await accountPage(searchParams));
     expect(screen.queryByText(WELCOME)).not.toBeInTheDocument();
@@ -120,10 +127,10 @@ describe("/account", () => {
 });
 
 describe("ForgetWelcome", () => {
-  it("replaces the address with the given path and keeps the router state", () => {
-    window.history.replaceState({ router: "state" }, "", "/account?welcome=1#top");
-    render(<ForgetWelcome path="/account" />);
-    expect(window.location.href).toBe(`${window.location.origin}/account`);
+  it("drops only welcome=1, keeping other query params, the hash and the router state (R5)", () => {
+    window.history.replaceState({ router: "state" }, "", "/account?tab=x&welcome=1#top");
+    render(<ForgetWelcome />);
+    expect(window.location.href).toBe(`${window.location.origin}/account?tab=x#top`);
     expect(window.history.state).toEqual({ router: "state" });
   });
 });

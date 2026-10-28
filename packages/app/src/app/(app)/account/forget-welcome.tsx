@@ -2,14 +2,15 @@
 
 import { useEffect } from "react";
 
+import { dropWelcomeFlag } from "@/app/drop-welcome-flag";
+
 /**
- * Drops `?welcome=1` from the address once the notice has rendered, without a
- * navigation, so reloading the page does not show the notice again (SM-AC7).
- * Next.js syncs `replaceState` with its router.
+ * Drops `welcome=1` from the address once the notice has rendered, keeping the other query
+ * parameters and the hash, so reloading the page does not show the notice again (SM-AC7).
  */
-export function ForgetWelcome({ path }: { path: string }) {
+export function ForgetWelcome() {
   useEffect(() => {
-    window.history.replaceState(window.history.state, "", path);
-  }, [path]);
+    dropWelcomeFlag();
+  }, []);
   return null;
 }

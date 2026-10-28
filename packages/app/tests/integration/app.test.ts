@@ -666,5 +666,23 @@ describe("production application with ephemeral PostgreSQL", () => {
       expect(await query("select id from users where github_id = $1", [String(githubId)])).toHaveLength(1);
       await browser.command("cookies", "clear");
     });
+
+    it("keeps the other query params and the hash of returnTo=/account?tab=x#top when dropping the flag (R5)", async () => {
+      const otherId = githubId + 1;
+      await setGitHubStubUser(githubStubURL, {
+        id: otherId, login: `dorothy-${otherId}`, name: "Dorothy Hodgkin",
+        emails: [{ email: `dorothy-${randomUUID()}@example.com`, primary: true, verified: true }],
+      });
+      await browser.command("open", `${baseURL}/sign-in?returnTo=${encodeURIComponent("/account?tab=x#top")}`);
+      await browser.waitForText("Sign in with GitHub");
+      await browser.click("link", "Sign in with GitHub");
+      await browser.waitForText("Authorize DevMentor");
+      await browser.click("link", "Authorize");
+      await browser.waitForText(WELCOME);
+      await browser.command("wait", "--fn", "location.pathname === '/account' && location.search === '?tab=x'");
+      expect(await browser.url()).toBe(`${baseURL}/account?tab=x#top`);
+      expect(count(await browser.snapshot(), WELCOME)).toBe(1);
+      await browser.command("cookies", "clear");
+    });
   });
 });
