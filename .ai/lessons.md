@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-28 — `fetch` resolving is not the end of the transport: the body read can reject too
+
+**Context:** Review R1 on E01 Phase 1. `apiCall` caught a rejected `fetch()` but not a rejected `response.text()` (connection reset or abort after the headers). The promise rejected, and `SiteHeader` stayed on "Signing out…" because its pending state is reset only after `signOut()` resolves.
+**Lesson:** `fetch` resolves as soon as the headers arrive, so wrap the body read as well and map it to the same `network_error` failure. Callers rely on `apiCall` never rejecting for transport problems (they don't `try/finally`), so keep that guarantee in `apiCall` itself rather than hardening each caller. To test it, `vi.spyOn(response, "text").mockRejectedValue(...)` on a real `Response`.
+**Applies to:** `packages/ui/src/api/apiCall.ts` and any future client transport helper.
+
 ### 2026-10-27 — A layout's redirect beats the page's, and agent-browser can't fake every failure
 
 **Context:** E01 step 1.9, the `(app)` layout and `/account`. With `requirePrincipal` in both, a

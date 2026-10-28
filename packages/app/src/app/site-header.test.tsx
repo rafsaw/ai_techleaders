@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apiCall } from "@devmentor/ui/api/apiCall";
 
@@ -20,6 +20,11 @@ const ada = { displayName: "Ada Lovelace", roles: ["mentee"] as const };
 
 beforeEach(() => {
   pathname.current = "/";
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.clearAllMocks();
 });
 
 describe("AppSiteHeader", () => {
@@ -58,5 +63,27 @@ describe("AppSiteHeader", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Could not sign out. Try again.");
     expect(navigateFully).not.toHaveBeenCalled();
     expect(screen.getByRole("link", { name: "Ada Lovelace" })).toBeVisible();
+  });
+
+  it("recovers when the sign-out answer breaks off mid-body: error shown and Sign out clickable again", async () => {
+    // The real transport, so a body-read failure goes through apiCall's own handling.
+    const actual = await vi.importActual<typeof import("@devmentor/ui/api/apiCall")>("@devmentor/ui/api/apiCall");
+    vi.mocked(apiCall).mockImplementation(actual.apiCall);
+    const broken = new Response('{"ok":true,"data":{"redirectTo":"/"}}');
+    vi.spyOn(broken, "text").mockRejectedValue(new TypeError("connection reset"));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(broken));
+
+    render(<AppSiteHeader account={ada} />);
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Sign out" })));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Could not sign out. Try again.");
+    const button = screen.getByRole("button", { name: "Sign out" });
+    expect(button).toBeEnabled();
+    expect(screen.queryByText("Signing out…")).not.toBeInTheDocument();
+    expect(navigateFully).not.toHaveBeenCalled();
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json({ ok: true, data: { redirectTo: "/" } })));
+    await act(async () => fireEvent.click(button));
+    expect(navigateFully).toHaveBeenCalledWith("/");
   });
 });

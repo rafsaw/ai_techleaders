@@ -47,6 +47,19 @@ describe("JSON API transport", () => {
     } });
   });
 
+  it("turns a failure while reading the body into the same network failure", async () => {
+    const broken = new Response("{}", { status: 200 });
+    vi.spyOn(broken, "text").mockRejectedValue(new TypeError("connection reset"));
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(broken));
+    const expected = { ok: false, error: {
+      code: "network_error", message: "Could not reach the server. Check your connection and try again.",
+    } };
+    await expect(apiCall("/api/users")).resolves.toEqual(expected);
+    const caught = await apiCallOrThrow("/api/users").catch((value: unknown) => value);
+    expect(caught).toBeInstanceOf(ApiError);
+    expect(caught).toMatchObject({ code: "network_error", message: expected.error.message });
+  });
+
   it.each([
     null, [], "text", 42, {}, { ok: true }, { ok: "true", data: [] },
     { ok: false }, { ok: false, error: null }, { ok: false, error: [] },

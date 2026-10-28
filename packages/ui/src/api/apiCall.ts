@@ -15,6 +15,11 @@ function failure(code: string, message: string): ApiFailure {
   return { ok: false, error: { code, message } };
 }
 
+/** A transport failure: the request never reached the server, or its answer never fully arrived. */
+function networkFailure(): ApiFailure {
+  return failure("network_error", "Could not reach the server. Check your connection and try again.");
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -41,7 +46,10 @@ function isEnvelope(value: unknown): value is ApiResult<unknown> {
   );
 }
 
-/** Reads a response body as JSON, returning `undefined` when it is empty or not JSON. */
+/**
+ * Reads a response body as JSON, returning `undefined` when it is empty or not JSON.
+ * Rejects when the body itself cannot be read (connection reset or abort mid-body).
+ */
 export async function readJsonSafe(response: Response): Promise<unknown> {
   const text = await response.text();
   if (!text) return undefined;
@@ -54,8 +62,9 @@ export async function readJsonSafe(response: Response): Promise<unknown> {
 
 /**
  * The only sanctioned way for client code to call `/api/*`. Always sends the
- * CSRF header, and turns network failures and malformed responses into a
- * failure result, so callers only ever branch on `ok`.
+ * CSRF header, and turns network failures (including a body that stops
+ * arriving part-way) and malformed responses into a failure result, so it
+ * never rejects for transport problems and callers only ever branch on `ok`.
  */
 export async function apiCall<T>(
   path: string,
@@ -75,10 +84,16 @@ export async function apiCall<T>(
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
-    return failure("network_error", "Could not reach the server. Check your connection and try again.");
+    return networkFailure();
   }
 
-  const json = await readJsonSafe(response);
+  let json: unknown;
+  try {
+    json = await readJsonSafe(response);
+  } catch {
+    // The headers arrived but the body did not: the same transport failure as a rejected fetch.
+    return networkFailure();
+  }
   if (!isEnvelope(json)) {
     return failure("invalid_response", `Unexpected response from the server (HTTP ${response.status}).`);
   }
