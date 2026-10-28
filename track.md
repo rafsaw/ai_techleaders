@@ -42,8 +42,8 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 - [x] 2.1 Single-use token records (P9)
 - [x] 2.2 `EmailSender` (P10): port, SMTP + memory adapters, templates, Mailpit in compose + integration setup
-- [~] 2.3 Rate limiter (P11, Postgres adapter), `TooManyRequestsError`, `clientIp`, `TRUST_PROXY`
-- [ ] 2.4 Schema: `users.password_hash`, `email_confirmation_tokens`, `rate_limit_buckets`, migration
+- [x] 2.3 Rate limiter (P11, Postgres adapter), `TooManyRequestsError`, `clientIp`, `TRUST_PROXY`
+- [~] 2.4 Schema: `users.password_hash`, `email_confirmation_tokens`, `rate_limit_buckets`, migration
 - [ ] 2.5 `PasswordHasher`, `PasswordAccountService`, schemas, four POST routes, AD3 claim rule in GitHub sign-in
 - [ ] 2.6 Public-form infrastructure (F2/F3) and UI: `/sign-in` email form, `/sign-up`, `/sign-up/check-email`, `/confirm-email`
 - [ ] 2.7 Documentation (README, AGENTS.md, BACKWARD_COMPATIBILITY.md) — spec step 2.7 (no credential race tests) is a non-task
