@@ -30,7 +30,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - [x] R2 `/backend/users` (UsersPanel + form): 401 → full navigation to `/sign-in?error=session_expired&returnTo=/backend/users`
 - [x] R3 Integration test running PostgreSQL migrations up and down, checking schema and data preservation
 - [ ] R4 Explicit `returnTo=/` and welcome notice on other destinations — spec contradiction, **awaiting user decision**
-- [ ] R.G Full gate + run log
+- [~] R.G Full gate + run log (gate passed for R1–R3; final after R4)
 
 ## Phase 2 — #35 email and password with confirmation
 
