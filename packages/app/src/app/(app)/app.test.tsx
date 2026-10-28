@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Principal } from "@devmentor/core";
 import { apiCall } from "@devmentor/ui/api/apiCall";
 
-import { AccountNameForm, SESSION_EXPIRED_SIGN_IN } from "@/app/(app)/account/account-name-form";
+import { AccountNameForm } from "@/app/(app)/account/account-name-form";
 import { ForgetWelcome } from "@/app/(app)/account/forget-welcome";
 import AccountPage, { metadata } from "@/app/(app)/account/page";
 import SignedInLayout from "@/app/(app)/layout";
@@ -156,7 +156,6 @@ describe("AccountNameForm", () => {
     render(<AccountNameForm displayName="Ada Lovelace" />);
     save("Ada King");
     await waitFor(() => expect(navigateFully).toHaveBeenCalledWith("/sign-in?error=session_expired&returnTo=%2Faccount"));
-    expect(SESSION_EXPIRED_SIGN_IN).toBe("/sign-in?error=session_expired&returnTo=%2Faccount");
     expect(screen.queryByText("Could not save")).not.toBeInTheDocument();
     expect(screen.queryByText("Name saved")).not.toBeInTheDocument();
     expect(refresh).not.toHaveBeenCalled();

@@ -9,6 +9,7 @@ import { CrudForm, type CrudField } from "@devmentor/ui/backend/forms/CrudForm";
 import { DataTable, type DataTableColumn } from "@devmentor/ui/backend/tables/DataTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@devmentor/ui/components/card";
 
+import { unlessSessionExpired } from "@/app/session-expiry";
 import type { UserDto } from "@/server/services/auth/user.service";
 
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
@@ -29,6 +30,9 @@ const columns: DataTableColumn<UserDto>[] = [
   },
 ];
 
+/** Where a 401 sends the operator back to after signing in again (SM-AC2). */
+const RETURN_TO = "/backend/users";
+
 type UsersState =
   | { status: "loading" }
   | { status: "error"; message: string }
@@ -47,9 +51,11 @@ export function UsersPanel() {
 
   useEffect(() => {
     let isCurrent = true;
-    void apiCall<UserDto[]>("/api/users").then((result) => {
-      if (isCurrent) setState(toUsersState(result));
-    });
+    void apiCall<UserDto[]>("/api/users")
+      .then((result) => unlessSessionExpired(result, RETURN_TO))
+      .then((result) => {
+        if (isCurrent) setState(toUsersState(result));
+      });
     return () => {
       isCurrent = false;
     };
@@ -84,7 +90,9 @@ export function UsersPanel() {
             schema={userCreateSchema}
             fields={fields}
             submitLabel="Create user"
-            onSubmit={(values) => apiCall<UserDto>("/api/users", { method: "POST", body: values })}
+            onSubmit={async (values) =>
+              unlessSessionExpired(await apiCall<UserDto>("/api/users", { method: "POST", body: values }), RETURN_TO)
+            }
             onSuccess={reload}
           />
         </CardContent>

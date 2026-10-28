@@ -1,12 +1,12 @@
 import "server-only";
 
 import { readCookie, type Principal } from "@devmentor/core";
-import { returnToSchema } from "@devmentor/core/validators/auth/return-to.schema";
 import type { Role } from "@devmentor/core/validators/auth/role.schema";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
+import { signInPath } from "@/app/session-expiry";
 import { presentsSessionCookie, sessionCookie } from "@/server/auth/session-cookie";
 import { createRequestScope } from "@/server/container";
 
@@ -51,18 +51,6 @@ export async function getPrincipal(): Promise<Principal | null> {
 export interface GuardOptions {
   /** The page path to come back to after sign-in; unsafe values become `/`. */
   returnTo: string;
-}
-
-/**
- * Sign-in with `returnTo`. When the request presented a session the database
- * rejected (expired or deleted), `error=session_expired` makes the sign-in
- * page say so (SM-AC2).
- */
-export function signInPath(returnTo: string, sessionExpired = false): string {
-  const params = new URLSearchParams();
-  if (sessionExpired) params.set("error", "session_expired");
-  params.set("returnTo", returnToSchema.parse(returnTo));
-  return `/sign-in?${params.toString()}`;
 }
 
 /** The signed-in principal; signed out, redirects to sign-in with `returnTo`. */

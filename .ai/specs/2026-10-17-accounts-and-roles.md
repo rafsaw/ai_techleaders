@@ -697,6 +697,7 @@ Implemented 2026-10-27 on `feat/e01-accounts-and-roles`, one commit per step (1.
 - **The integration readiness probe** is `GET /` with a well-formed unknown session cookie, so a DB or migration failure fails it instead of passing a static page (Step 1.10).
 - **Operator CLI exit codes:** 0 success, 1 a refused or failed operation (including `--role mentor`), 2 a usage error (unknown command, bad flags) (Step 1.7).
 - **SM-AC2 (added at the gate):** a page guard that finds a presented but rejected session redirects to `/sign-in?error=session_expired&returnTo=…`; `/account` does the same full navigation when `PATCH /api/account` answers 401, discarding the unsaved name. It reuses the existing `error` parameter, so no new URL parameter is introduced. An unknown or forged cookie is indistinguishable from a deleted session and also shows the banner.
+- **SM-AC2 on `/backend/users` (review R2):** the users list and the create form do the same full navigation to `/sign-in?error=session_expired&returnTo=%2Fbackend%2Fusers` when `/api/users` answers 401, discarding unsaved input. Every client shares one helper, `unlessSessionExpired()` in `packages/app/src/app/session-expiry.ts`, which also holds `signInPath()` (moved out of the server-only page guards so guards and clients build the same URL). A 403 (operator revoked) is not a session problem: per the role-revoke edge case the person stays signed in, so the panel keeps showing the API's error message and does not navigate.
 
 ### Phase 2 — #35 email and password with confirmation
 

@@ -313,6 +313,33 @@ describe("production application with ephemeral PostgreSQL", () => {
     expect(await browser.snapshot()).toContain("3 registered users");
   });
 
+  it("sends an operator whose session expired on /backend/users to sign-in, then back (SM-AC2)", async () => {
+    await browser.command("open", `${baseURL}/backend/users`);
+    await browser.waitForText(operatorEmail);
+    const [operator] = await query<{ id: string }>("select id from users where email = $1", [operatorEmail]);
+    await query("update auth_sessions set expires_at = now() - interval '1 minute' where user_id = $1", [operator!.id]);
+
+    // An API write with the expired session: full navigation to sign-in, nothing is created.
+    const email = `expired-${randomUUID()}@example.com`;
+    await browser.fill("Name", "Never Created");
+    await browser.fill("Email", email);
+    await browser.click("button", "Create user");
+    await browser.waitForText("Your session expired.");
+    expect(await browser.url()).toBe(`${baseURL}/sign-in?error=session_expired&returnTo=%2Fbackend%2Fusers`);
+    expect(await browser.snapshot()).toContain("Sign in again.");
+    expect(await query("select id from users where email = $1", [email])).toEqual([]);
+    expect(await query("select id from auth_sessions where user_id = $1", [operator!.id])).toEqual([]);
+    await browser.capture("backend-users-session-expired");
+
+    // Signing in again returns to the users page with a fresh session.
+    await browser.click("link", "Sign in with GitHub");
+    await browser.waitForText("Authorize DevMentor");
+    await browser.click("link", "Authorize");
+    await browser.command("wait", "--url", `${baseURL}/backend/users`);
+    await browser.waitForText(operatorEmail);
+    expect(await browser.snapshot()).not.toContain(email);
+  });
+
   it("closes the backend to the same session after role revoke, which stays signed in", async () => {
     const output = await operatorRole("revoke", operatorEmail);
     expect(output).toContain(`Revoked operator from ${operatorEmail}.`);

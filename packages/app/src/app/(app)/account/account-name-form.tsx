@@ -7,11 +7,8 @@ import { Alert, AlertTitle } from "@devmentor/ui/components/alert";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import { navigateFully } from "@/app/full-navigation";
+import { unlessSessionExpired } from "@/app/session-expiry";
 import type { AccountDto } from "@/server/services/auth/user.service";
-
-/** Where a rejected session goes: sign-in with the banner, back to /account after (SM-AC2). */
-export const SESSION_EXPIRED_SIGN_IN = "/sign-in?error=session_expired&returnTo=%2Faccount";
 
 /**
  * The editable display name on /account. The saved value stays in the field
@@ -34,10 +31,7 @@ export function AccountNameForm({ displayName }: { displayName: string }) {
         resetOnSuccess={false}
         onSubmit={async (body) => {
           setSaved(false);
-          const result = await apiCall<AccountDto>("/api/account", { method: "PATCH", body });
-          if (result.ok || result.error.code !== "unauthorized") return result;
-          navigateFully(SESSION_EXPIRED_SIGN_IN);
-          return new Promise<never>(() => {});
+          return unlessSessionExpired(await apiCall<AccountDto>("/api/account", { method: "PATCH", body }), "/account");
         }}
         onSuccess={() => {
           setSaved(true);

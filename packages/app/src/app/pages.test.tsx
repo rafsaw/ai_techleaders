@@ -12,6 +12,7 @@ import BackendLayout from "@/app/backend/layout";
 import Dashboard, { generateMetadata as dashboardMetadata } from "@/app/backend/page";
 import UsersPage, { generateMetadata as usersMetadata } from "@/app/backend/users/page";
 import { UsersPanel } from "@/app/backend/users/users-panel";
+import { navigateFully } from "@/app/full-navigation";
 import RootLayout, { metadata } from "@/app/layout";
 import NotFound, { metadata as notFoundMetadata } from "@/app/not-found";
 import { getPrincipal, requireRole } from "@/server/auth/page-guards";
@@ -22,6 +23,7 @@ vi.mock("@/server/container", () => ({ createRequestScope: () => ({ cradle: { us
 vi.mock("next/font/google", () => ({ Geist: () => ({ variable: "geist-font" }) }));
 vi.mock("@devmentor/ui/api/apiCall", () => ({ apiCall: vi.fn() }));
 vi.mock("@/server/auth/page-guards", () => ({ getPrincipal: vi.fn(), requireRole: vi.fn() }));
+vi.mock("@/app/full-navigation", () => ({ navigateFully: vi.fn() }));
 vi.mock("next/navigation", () => ({ notFound: vi.fn(() => { throw new Error("notFound"); }) }));
 
 const operator: Principal = { userId: "user-1", sessionId: "session-1", displayName: "Ada", roles: ["mentee", "operator"] };
@@ -29,6 +31,7 @@ const operator: Principal = { userId: "user-1", sessionId: "session-1", displayN
 beforeEach(() => {
   vi.mocked(getPrincipal).mockReset().mockResolvedValue(null);
   vi.mocked(requireRole).mockReset().mockResolvedValue(operator);
+  vi.mocked(navigateFully).mockReset();
 });
 
 describe("page composition", () => {
@@ -197,5 +200,46 @@ describe("users panel", () => {
     expect(screen.getByRole("cell", { name: "ada@example.com" })).toBeVisible();
     expect(screen.queryByText("No users yet")).not.toBeInTheDocument();
     expect(screen.queryByText("Stale failure")).not.toBeInTheDocument();
+  });
+
+  const expired = { ok: false, error: { code: "unauthorized", message: "Authentication required" } } satisfies ApiResult<never>;
+  const SIGN_IN = "/sign-in?error=session_expired&returnTo=%2Fbackend%2Fusers";
+
+  it("on a 401 list load fully navigates to sign-in with the session-expired banner (SM-AC2)", async () => {
+    vi.mocked(apiCall).mockResolvedValueOnce(expired);
+    render(<UsersPanel />);
+    await waitFor(() => expect(navigateFully).toHaveBeenCalledWith(SIGN_IN));
+    expect(navigateFully).toHaveBeenCalledOnce();
+    // The page stays as it was until the browser leaves; no error flashes.
+    expect(screen.getByRole("status")).toHaveTextContent("Loading");
+    expect(screen.queryByText("Authentication required")).not.toBeInTheDocument();
+  });
+
+  it("on a 401 create discards the input and fully navigates to sign-in (SM-AC2)", async () => {
+    vi.mocked(apiCall).mockResolvedValueOnce({ ok: true, data: [] });
+    vi.mocked(apiCall).mockResolvedValueOnce(expired);
+    render(<UsersPanel />);
+    await screen.findByText("No users yet");
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Ada" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create user" }));
+    await waitFor(() => expect(navigateFully).toHaveBeenCalledWith(SIGN_IN));
+    expect(navigateFully).toHaveBeenCalledOnce();
+    expect(screen.queryByText("Authentication required")).not.toBeInTheDocument();
+    // No reload follows: only the initial GET and the POST were sent.
+    expect(apiCall).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows a 403 (operator revoked) as an error without navigating, on load and on create", async () => {
+    const forbidden = { ok: false, error: { code: "forbidden", message: "You do not have access" } } satisfies ApiResult<never>;
+    vi.mocked(apiCall).mockResolvedValueOnce(forbidden);
+    vi.mocked(apiCall).mockResolvedValueOnce(forbidden);
+    render(<UsersPanel />);
+    expect(await screen.findAllByText("You do not have access")).toHaveLength(1);
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Ada" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create user" }));
+    await waitFor(() => expect(screen.getAllByText("You do not have access")).toHaveLength(2));
+    expect(navigateFully).not.toHaveBeenCalled();
   });
 });
