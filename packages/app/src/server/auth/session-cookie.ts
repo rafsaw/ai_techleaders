@@ -32,9 +32,9 @@ export function sessionCookie(appUrl: URL): SessionCookie {
 }
 
 /**
- * Whether the request carries a session cookie under either name. Lets the
+ * Whether the request (or its headers) carries a session cookie under either name. Lets the
  * resolver answer "signed out" without reading config or the database.
  */
-export function presentsSessionCookie(req: Request): boolean {
-  return readCookie(req, SECURE_NAME) !== undefined || readCookie(req, PLAIN_NAME) !== undefined;
+export function presentsSessionCookie(source: Request | Headers): boolean {
+  return readCookie(source, SECURE_NAME) !== undefined || readCookie(source, PLAIN_NAME) !== undefined;
 }

@@ -70,6 +70,13 @@ export class UserService {
     return toDto(user);
   }
 
+  /** The user with `email` (already normalized to lower case), or `NotFoundError`. */
+  async findByEmail(email: string): Promise<UserDto> {
+    const user = await this.em.findOne(User, { email });
+    if (!user) throw new NotFoundError(`No account with the email ${email}`);
+    return toDto(user);
+  }
+
   /** The account of `userId` (a trusted principal's id), with its live roles. */
   async getAccount(userId: string): Promise<AccountDto> {
     const user = await this.#findUser(userId);

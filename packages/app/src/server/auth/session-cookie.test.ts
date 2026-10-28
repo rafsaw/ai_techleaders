@@ -39,5 +39,7 @@ describe("session cookie", () => {
     expect(presentsSessionCookie(request("devmentor_session="))).toBe(false);
     expect(presentsSessionCookie(request("devmentor_session=abc"))).toBe(true);
     expect(presentsSessionCookie(request("__Host-devmentor_session=abc"))).toBe(true);
+    expect(presentsSessionCookie(new Headers({ cookie: "devmentor_session=abc" }))).toBe(true);
+    expect(presentsSessionCookie(new Headers())).toBe(false);
   });
 });

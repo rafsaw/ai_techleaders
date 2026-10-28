@@ -31,7 +31,8 @@
     "storybook": "npm run storybook --workspace @devmentor/ui",
     "build-storybook": "npm run build-storybook --workspace @devmentor/ui",
     "test:storybook": "npm run test:storybook:themes --workspace @devmentor/ui",
-    "check:tokens": "npm run check:tokens --workspace @devmentor/ui"
+    "check:tokens": "npm run check:tokens --workspace @devmentor/ui",
+    "operator": "npm run operator --workspace @devmentor/app --"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",

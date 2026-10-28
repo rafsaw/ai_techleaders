@@ -27,6 +27,19 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-27 — React `cache()` is a no-op in unit tests unless you load the server build
+
+**Context:** E01 step 1.7 page guards: `getPrincipal = cache(...)` must dedupe within one render
+and never across requests. Under Vitest, `react` resolves to the client build, whose `cache`
+just calls the function, so a dedupe test proves nothing.
+**Lesson:** to test per-render caching, `vi.mock("react")` with
+`react/cjs/react.react-server.development.js` (loaded via `createRequire` + absolute path, the
+subpath is not exported) and set its `__SERVER_INTERNALS_…`.`A` to a fake dispatcher whose
+`getCacheForType` keeps one Map per simulated request. See
+`packages/app/src/server/auth/page-guards.test.ts`. Also: Proxy (`src/proxy.ts`) runs in a
+server-only layer, so it may import `server-only` modules such as `@/server/config`.
+**Applies to:** tests of anything wrapped in React `cache()`, `src/proxy.ts`.
+
 ### 2026-10-21 — An error removed on blur can swallow the submit click
 
 **Context:** `CrudForm` started validating on blur. On `/backend/users`, after an empty submit the

@@ -92,4 +92,13 @@ describe("user service", () => {
     await expect(service.updateDisplayName("missing", "X")).rejects.toBeInstanceOf(NotFoundError);
     expect(em.flush).not.toHaveBeenCalled();
   });
+
+  it("finds a user by email as a DTO, or throws NotFoundError", async () => {
+    const { em, service } = setup();
+    em.findOne.mockResolvedValueOnce(user);
+    await expect(service.findByEmail("ada@example.com")).resolves.toEqual(dto);
+    expect(em.findOne).toHaveBeenCalledWith(User, { email: "ada@example.com" });
+    em.findOne.mockResolvedValueOnce(null);
+    await expect(service.findByEmail("x@example.com")).rejects.toThrow(new NotFoundError("No account with the email x@example.com"));
+  });
 });
