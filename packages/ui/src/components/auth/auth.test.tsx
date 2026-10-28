@@ -9,6 +9,7 @@ import { ConfirmEmailPanel } from "./ConfirmEmailPanel";
 import { InvitationPanel } from "./InvitationPanel";
 import { GITHUB_ERRORS, SIGN_IN_ERRORS, SignInOptions } from "./SignInOptions";
 import { SiteHeader } from "./SiteHeader";
+import { WELCOME_TITLE, WelcomeNotice } from "./WelcomeNotice";
 
 const credentials = z.object({ email: z.email("Enter a valid email address"), password: z.string().min(1, "Enter your password") });
 const fail = (code: string, message: string): ApiResult<never> => ({ ok: false, error: { code, message } });
@@ -193,5 +194,26 @@ describe("SiteHeader", () => {
     expect(screen.queryByRole("link", { name: "Backend" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
     expect(screen.getByRole("button", { name: "Sign out" })).toBeEnabled();
+  });
+});
+
+describe("WelcomeNotice", () => {
+  it("says the name is public and links to Account settings", () => {
+    render(<WelcomeNotice displayName="Ada Nowak" className="mt-4" />);
+    const notice = screen.getByRole("status");
+    expect(notice).toHaveTextContent(WELCOME_TITLE);
+    expect(notice).toHaveTextContent("Your display name: Ada Nowak");
+    expect(notice).toHaveClass("mt-4");
+    expect(screen.getByRole("link", { name: "Change it in Account settings" })).toHaveAttribute("href", "/account");
+  });
+
+  it("uses the same words as the /account notice and the injected link component", () => {
+    const Link = ({ href, children, ...rest }: { href: string; className?: string; children: ReactNode }) => (
+      <a href={href} data-next-link {...rest}>{children}</a>
+    );
+    render(<WelcomeNotice displayName="Ada" accountHref="/account?tab=name" linkComponent={Link} />);
+    expect(screen.getByRole("link", { name: "Change it in Account settings" })).toHaveAttribute("href", "/account?tab=name");
+    expect(screen.getByRole("link")).toHaveAttribute("data-next-link");
+    expect(WELCOME_TITLE).toBe("This is the name others see. You can change it.");
   });
 });

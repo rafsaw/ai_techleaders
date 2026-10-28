@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Principal } from "@devmentor/core";
 
@@ -10,15 +10,20 @@ import { getPrincipal } from "@/server/auth/page-guards";
 
 vi.mock("@/server/auth/page-guards", () => ({ getPrincipal: vi.fn() }));
 vi.mock("next/navigation", () => ({
-  usePathname: () => "/",
+  usePathname: () => window.location.pathname,
+  useSearchParams: () => new URLSearchParams(window.location.search),
   redirect: vi.fn((path: string) => { throw new Error(`redirect:${path}`); }),
 }));
 
 const ada: Principal = { userId: "user-1", sessionId: "session-1", displayName: "Ada Lovelace", roles: ["mentee"] };
 
+const WELCOME = "This is the name others see. You can change it.";
+
 beforeEach(() => {
   vi.mocked(getPrincipal).mockResolvedValue(null);
 });
+
+afterEach(() => window.history.replaceState(null, "", "/"));
 
 function signInPage(searchParams: Record<string, string | string[] | undefined> = {}) {
   return SignInPage({ searchParams: Promise.resolve(searchParams) });
@@ -40,6 +45,30 @@ describe("(frontend) layout", () => {
     expect(within(header).getByRole("link", { name: "Backend" })).toHaveAttribute("href", "/backend");
     expect(within(header).getByRole("button", { name: "Sign out" })).toBeVisible();
     expect(within(header).queryByRole("link", { name: "Sign in" })).not.toBeInTheDocument();
+  });
+});
+
+describe("(frontend) layout: one-time welcome notice (SM-AC7)", () => {
+  it("shows it to a signed-in visitor on a welcome=1 page and drops the flag", async () => {
+    vi.mocked(getPrincipal).mockResolvedValue(ada);
+    window.history.replaceState(null, "", "/?welcome=1");
+    render(await FrontendLayout({ children: <main>Public content</main> }));
+    expect(screen.getByRole("status")).toHaveTextContent(WELCOME);
+    expect(screen.getByRole("status")).toHaveTextContent("Ada Lovelace");
+    expect(window.location.search).toBe("");
+  });
+
+  it("shows nothing signed out, even with the flag", async () => {
+    window.history.replaceState(null, "", "/?welcome=1");
+    render(await FrontendLayout({ children: <main>Public content</main> }));
+    expect(screen.queryByText(WELCOME)).not.toBeInTheDocument();
+    expect(window.location.search).toBe("?welcome=1");
+  });
+
+  it("shows nothing signed in without the flag", async () => {
+    vi.mocked(getPrincipal).mockResolvedValue(ada);
+    render(await FrontendLayout({ children: <main>Public content</main> }));
+    expect(screen.queryByText(WELCOME)).not.toBeInTheDocument();
   });
 });
 

@@ -16,7 +16,11 @@ import type { AccountDto } from "@/server/services/auth/user.service";
 const { getAccount, refresh } = vi.hoisted(() => ({ getAccount: vi.fn(), refresh: vi.fn() }));
 vi.mock("@/server/auth/page-guards", () => ({ getPrincipal: vi.fn(), requirePrincipal: vi.fn() }));
 vi.mock("@/server/container", () => ({ createRequestScope: () => ({ cradle: { userService: { getAccount } } }) }));
-vi.mock("next/navigation", () => ({ usePathname: () => "/account", useRouter: () => ({ refresh }) }));
+vi.mock("next/navigation", () => ({
+  usePathname: () => window.location.pathname,
+  useSearchParams: () => new URLSearchParams(window.location.search),
+  useRouter: () => ({ refresh }),
+}));
 vi.mock("@devmentor/ui/api/apiCall", () => ({ apiCall: vi.fn() }));
 vi.mock("@/app/full-navigation", () => ({ navigateFully: vi.fn() }));
 
@@ -51,6 +55,20 @@ describe("(app) layout", () => {
     expect(within(header).getByRole("link", { name: "Ada Lovelace" })).toHaveAttribute("href", "/account");
     expect(within(header).getByRole("button", { name: "Sign out" })).toBeVisible();
     expect(screen.getByText("Private content")).toBeVisible();
+  });
+
+  it("shows the one-time welcome notice on a welcome=1 page other than /account (SM-AC7)", async () => {
+    window.history.replaceState(null, "", "/settings?welcome=1&tab=x");
+    render(await SignedInLayout({ children: <main>Private content</main> }));
+    expect(screen.getByRole("status")).toHaveTextContent(WELCOME);
+    expect(window.location.search).toBe("?tab=x");
+  });
+
+  it("leaves /account?welcome=1 to the page's own notice, so it shows once", async () => {
+    window.history.replaceState(null, "", "/account?welcome=1");
+    render(await SignedInLayout({ children: await accountPage({ welcome: "1" }) }));
+    expect(screen.getAllByText(WELCOME)).toHaveLength(1);
+    expect(window.location.pathname + window.location.search).toBe("/account");
   });
 
   it("renders no header when signed out and leaves the redirect to the page guard", async () => {

@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-28 — Latch a one-time notice: Next syncs `replaceState` into `useSearchParams`
+
+**Context:** Review R4 on E01 Phase 1. The welcome notice in the shared layouts reads `welcome=1` with `useSearchParams` and then drops the flag with `history.replaceState`, so a reload does not show it again. Next.js syncs `replaceState`/`pushState` with its router, so `useSearchParams` re-renders without the flag right away.
+**Lesson:** decide "show" once, in a `useState` initializer on the first render, and never derive it live from `useSearchParams`, or the notice disappears the moment the flag is removed. Remember the pathname it was shown on and clear the latch when `usePathname` changes, because a layout stays mounted across client navigations (otherwise navigating back shows it again). Wrap the `useSearchParams` component in `<Suspense>` as the Next 16 docs require. In unit tests, simulate Next's sync by changing the mocked search params and re-rendering.
+**Applies to:** `packages/app/src/app/welcome-notice.tsx`, any flash-once UI driven by a URL flag.
+
 ### 2026-10-28 — `fetch` resolving is not the end of the transport: the body read can reject too
 
 **Context:** Review R1 on E01 Phase 1. `apiCall` caught a rejected `fetch()` but not a rejected `response.text()` (connection reset or abort after the headers). The promise rejected, and `SiteHeader` stayed on "Signing out…" because its pending state is reset only after `signOut()` resolves.

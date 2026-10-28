@@ -105,12 +105,6 @@ function decodeAttempt(value: string | undefined): Attempt | null {
   }
 }
 
-/** A safe page path to come back to, or null when there is none worth keeping. */
-function safeReturnTo(value: unknown): string | null {
-  const path = parseReturnTo(value);
-  return path === "/" ? null : path;
-}
-
 function sameSecret(a: string, b: string): boolean {
   const left = Buffer.from(a);
   const right = Buffer.from(b);
@@ -170,7 +164,7 @@ export class GitHubSignInService {
    * returned for an external redirect.
    */
   begin(returnTo: unknown, cookies: ResponseCookies): URL {
-    const attempt: Attempt = { state: generateToken(), verifier: generateToken(), returnTo: safeReturnTo(returnTo) };
+    const attempt: Attempt = { state: generateToken(), verifier: generateToken(), returnTo: parseReturnTo(returnTo) };
     const url = this.githubOAuth.authorizationUrl(attempt.state, attempt.verifier);
     cookies.set(OAUTH_COOKIE, encodeAttempt(attempt), {
       ...this.#cookieFlags(),
@@ -187,7 +181,7 @@ export class GitHubSignInService {
   async complete(query: URLSearchParams, req: Request, cookies: ResponseCookies): Promise<{ redirectTo: string }> {
     const attempt = decodeAttempt(readCookie(req, OAUTH_COOKIE));
     cookies.delete(OAUTH_COOKIE, this.#cookieFlags());
-    const returnTo = safeReturnTo(attempt?.returnTo);
+    const returnTo = parseReturnTo(attempt?.returnTo);
     const fail = (code: GitHubSignInErrorCode, cause?: unknown) =>
       new GitHubSignInError(code, returnTo, cause === undefined ? undefined : { cause });
 

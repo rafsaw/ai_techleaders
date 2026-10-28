@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { InfoIcon } from "lucide-react";
 
 import { Alert, AlertTitle } from "@devmentor/ui/components/alert";
+import { WELCOME_TITLE } from "@devmentor/ui/components/auth/WelcomeNotice";
 import { Badge } from "@devmentor/ui/components/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@devmentor/ui/components/card";
 import { Separator } from "@devmentor/ui/components/separator";
@@ -34,7 +35,7 @@ export function AccountSummary({ email, roles, signInMethods, welcome = false, c
         {welcome ? (
           <Alert role="status">
             <InfoIcon aria-hidden />
-            <AlertTitle>This is the name others see. You can change it.</AlertTitle>
+            <AlertTitle>{WELCOME_TITLE}</AlertTitle>
           </Alert>
         ) : null}
         {children}

@@ -73,7 +73,7 @@ describe("UI area lint rules (platform PD2/F3)", () => {
   const publicPage = "packages/app/src/app/(frontend)/sign-in/page.tsx";
   const publicKit = "packages/ui/src/frontend/feedback/Notice.tsx";
   const publicDomainComponent = "packages/ui/src/components/auth/SiteHeader.tsx";
-  const publicArea = [publicPage, "packages/app/src/app/site-header.tsx", publicKit, publicDomainComponent];
+  const publicArea = [publicPage, "packages/app/src/app/site-header.tsx", "packages/app/src/app/welcome-notice.tsx", publicKit, publicDomainComponent];
 
   it.each(publicArea.flatMap((file) => [
     [file, "@devmentor/ui/components/button"],
@@ -93,6 +93,7 @@ describe("UI area lint rules (platform PD2/F3)", () => {
   it.each(publicArea.flatMap((file) => [
     [file, "@devmentor/ui/frontend/feedback/Notice"],
     [file, "@devmentor/ui/components/auth/SignInOptions"],
+    [file, "@devmentor/ui/components/auth/WelcomeNotice"],
     [file, "@devmentor/ui/components/mentors/PriceList"],
     [file, "@devmentor/ui/api/apiCall"],
     [file, "@devmentor/ui/lib/utils"],

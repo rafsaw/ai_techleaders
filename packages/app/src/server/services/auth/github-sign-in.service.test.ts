@@ -153,7 +153,7 @@ describe("GitHubSignInService.begin", () => {
     expect(header).toContain("Secure");
   });
 
-  it.each([["//evil.example"], ["/api/users"], ["/"], [null], [undefined]])(
+  it.each([["//evil.example"], ["/api/users"], [null], [undefined]])(
     "drops an unsafe, reserved or empty returnTo (%s)",
     (returnTo) => {
       expect(begin(setup().service, returnTo).attempt.returnTo).toBeNull();
@@ -188,6 +188,17 @@ describe("GitHubSignInService.complete: callback outcomes", () => {
   it("sends a new account to its returnTo with the one-time welcome flag", async () => {
     const { result } = await signIn(setup(), "/invitations/abc?x=1#top");
     expect(result).toEqual({ redirectTo: "/invitations/abc?x=1&welcome=1#top" });
+  });
+
+  it("honours an explicit returnTo=/ for a new account, with the welcome flag (SM-AC7)", async () => {
+    const context = setup();
+    expect(begin(context.service, "/").attempt.returnTo).toBe("/");
+    expect((await signIn(context, "/")).result).toEqual({ redirectTo: "/?welcome=1" });
+  });
+
+  it("returns an existing account with an explicit returnTo=/ there, without the welcome flag", async () => {
+    const context = setup({ rows: [{ id: "u1", email: "octo@example.com", name: "Ada", githubId: "583231", emailConfirmedAt: EARLIER }] });
+    expect((await signIn(context, "/")).result).toEqual({ redirectTo: "/" });
   });
 
   it("reuses the account with this GitHub id without overwriting its edited name", async () => {

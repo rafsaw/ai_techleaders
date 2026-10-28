@@ -27,6 +27,7 @@ const tailwindDomainComponents = [
   "auth/InvitationPanel",
   "auth/SignInOptions",
   "auth/SiteHeader",
+  "auth/WelcomeNotice",
   "mentors/MentorProfileHeader",
   "mentors/NotBookableNotice",
   "mentors/PriceList",
@@ -85,7 +86,7 @@ const eslintConfig = defineConfig([
     ...restrictImports(uiBoundary, ...publicArea, noRelative),
   },
   {
-    files: ["packages/app/src/app/(frontend)/**", "packages/app/src/app/site-header.tsx"],
+    files: ["packages/app/src/app/(frontend)/**", "packages/app/src/app/site-header.tsx", "packages/app/src/app/welcome-notice.tsx"],
     ignores: sourceOnly,
     ...restrictImports(appBoundary, ...publicArea),
   },

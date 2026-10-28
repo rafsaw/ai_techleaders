@@ -555,6 +555,8 @@ describe("production application with ephemeral PostgreSQL", () => {
       const users = await query<{ name: string }>("select name from users where github_id = $1 or email = $2", [String(githubId), email]);
       expect(users).toEqual([{ name: "Grace B. Hopper" }]);
 
+      // An existing account never gets the welcome flag or notice (SM-AC7).
+      expect(await browser.snapshot()).not.toContain("This is the name others see");
       await browser.click("link", "Grace B. Hopper");
       await browser.waitForText(email);
       expect(await browser.snapshot()).not.toContain("This is the name others see");
@@ -602,6 +604,66 @@ describe("production application with ephemeral PostgreSQL", () => {
       expect(await browser.url()).toBe(`${baseURL}/sign-in?error=session_expired&returnTo=%2Faccount`);
       expect(await query("select name from users where id = $1", [user!.id])).toEqual([{ name: "Grace B. Hopper" }]);
       expect(await query("select id from auth_sessions where user_id = $1", [user!.id])).toEqual([]);
+      await browser.command("cookies", "clear");
+    });
+  });
+
+  // SM-AC7 with a returnTo: the one-time notice shows on the destination page,
+  // never on /account as well, and never for an existing account.
+  describe("welcome notice on the returnTo page", () => {
+    const githubId = 4_000_000 + Math.floor(Math.random() * 1_000_000);
+    const email = `linus-${randomUUID()}@example.com`;
+    const WELCOME = "This is the name others see. You can change it.";
+
+    /** Signs in from `/sign-in?returnTo=/`, an explicit home destination. */
+    async function signInReturningHome() {
+      await browser.command("open", `${baseURL}/sign-in?returnTo=%2F`);
+      await browser.waitForText("Sign in with GitHub");
+      await browser.click("link", "Sign in with GitHub");
+      await browser.waitForText("Authorize DevMentor");
+      await browser.click("link", "Authorize");
+    }
+
+    function count(text: string, needle: string): number {
+      return text.split(needle).length - 1;
+    }
+
+    it("shows a new account's notice once on / and drops the flag; a reload and /account show none", async () => {
+      await browser.command("cookies", "clear");
+      await setGitHubStubUser(githubStubURL, {
+        id: githubId, login: `linus-${githubId}`, name: "Linus Pauling",
+        emails: [{ email, primary: true, verified: true }],
+      });
+      await signInReturningHome();
+      await browser.waitForText(WELCOME);
+      await browser.command("wait", "--fn", "location.pathname === '/' && location.search === ''");
+      expect(await browser.url()).toBe(`${baseURL}/`);
+      const page = await browser.snapshot();
+      expect(count(page, WELCOME)).toBe(1);
+      expect(page).toContain("Linus Pauling");
+      expect(page).toContain("A project for tech leaders");
+      expect(await browser.visible("link", "Change it in Account settings")).toBe(true);
+      await browser.capture("home-welcome");
+
+      await browser.command("reload");
+      await browser.waitForText("A project for tech leaders");
+      expect(await browser.snapshot()).not.toContain(WELCOME);
+
+      await browser.click("link", "Linus Pauling");
+      await browser.waitForText(email);
+      expect(await browser.url()).toBe(`${baseURL}/account`);
+      expect(await browser.snapshot()).not.toContain(WELCOME);
+    });
+
+    it("shows nothing when the same account signs in again with returnTo=/", async () => {
+      await browser.click("button", "Sign out");
+      await browser.command("wait", "--url", `${baseURL}/`);
+      await browser.waitForText("Sign in");
+      await signInReturningHome();
+      await browser.command("wait", "--url", `${baseURL}/`);
+      await browser.waitForText("Linus Pauling");
+      expect(await browser.snapshot()).not.toContain(WELCOME);
+      expect(await query("select id from users where github_id = $1", [String(githubId)])).toHaveLength(1);
       await browser.command("cookies", "clear");
     });
   });
