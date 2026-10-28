@@ -9,6 +9,18 @@ describe("app config", () => {
     expect(config.app().url.href).toBe("http://localhost:3000/");
   });
 
+  it("does not trust a proxy unless TRUST_PROXY is exactly true", () => {
+    expect(createAppConfig({ APP_URL: "http://localhost:3000" }).app().trustProxy).toBe(false);
+    expect(createAppConfig({ APP_URL: "http://localhost:3000", TRUST_PROXY: "" }).app().trustProxy).toBe(false);
+    expect(createAppConfig({ APP_URL: "http://localhost:3000", TRUST_PROXY: "false" }).app().trustProxy).toBe(false);
+    expect(createAppConfig({ APP_URL: "http://localhost:3000", TRUST_PROXY: "true" }).app().trustProxy).toBe(true);
+  });
+
+  it.each(["TRUE", "1", "yes", " true"])("rejects TRUST_PROXY=%j", (value) => {
+    expect(() => createAppConfig({ APP_URL: "http://localhost:3000", TRUST_PROXY: value }).app())
+      .toThrow(new ConfigError([], ["TRUST_PROXY"]));
+  });
+
   it("rejects a non-http APP_URL and names a missing one", () => {
     expect(() => createAppConfig({ APP_URL: "ftp://example.test" }).app()).toThrow("invalid APP_URL");
     expect(() => createAppConfig({}).app()).toThrow("missing APP_URL");

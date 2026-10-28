@@ -6,8 +6,13 @@ import { z } from "zod";
 const httpUrl = z.url({ protocol: /^https?$/ });
 
 const appSection = z
-  .object({ APP_URL: httpUrl })
-  .transform((env) => ({ url: new URL(env.APP_URL) }));
+  .object({
+    APP_URL: httpUrl,
+    // Only "true" when a trusted edge overwrites X-Forwarded-For with one
+    // validated client address and direct origin access is blocked (platform P11).
+    TRUST_PROXY: z.enum(["true", "false"]).default("false"),
+  })
+  .transform((env) => ({ url: new URL(env.APP_URL), trustProxy: env.TRUST_PROXY === "true" }));
 
 const githubSection = z
   .object({

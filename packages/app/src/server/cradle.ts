@@ -1,3 +1,5 @@
+import type { RateLimiter } from "@devmentor/core";
+
 import type { AppConfig } from "@/server/config";
 import type { AuthSessionService } from "@/server/services/auth/auth-session.service";
 import type { GitHubOAuth } from "@/server/services/auth/github-oauth.port";
@@ -16,5 +18,6 @@ declare module "@devmentor/core" {
     roleService: RoleService;
     userService: UserService;
     emailSender: EmailSender;
+    rateLimiter: RateLimiter;
   }
 }

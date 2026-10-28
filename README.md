@@ -115,6 +115,7 @@ values).
 | Variable | Section | Required | Purpose |
 | -------- | ------- | -------- | ------- |
 | `APP_URL` | `app` | for absolute links and redirects | Public origin, e.g. `http://localhost:3000`; https in production |
+| `TRUST_PROXY` | `app` | no (default `false`) | `true` only behind an edge that replaces `X-Forwarded-For` with one validated client address and blocks direct origin access; enables per-IP rate limits. Any value other than `true`/`false` is a `ConfigError` |
 | `GITHUB_CLIENT_ID` | `github` | for GitHub sign-in | OAuth App client id |
 | `GITHUB_CLIENT_SECRET` | `github` | for GitHub sign-in | OAuth App client secret |
 | `GITHUB_OAUTH_URL` | `github` | no (default `https://github.com`) | OAuth endpoint override for test stubs |
@@ -261,7 +262,7 @@ npm run db:seed   # optional: sample user
 │   │           ├── container.ts   DI composition root
 │   │           ├── cradle.ts      Cradle types of the app's services
 │   │           ├── http.ts        apiHandler, makeCrudRoute, navigationHandler bound to the container
-│   │           ├── config.ts      lazily validated env sections (APP_URL, GITHUB_*, SMTP_URL/MAIL_FROM)
+│   │           ├── config.ts      lazily validated env sections (APP_URL/TRUST_PROXY, GITHUB_*, SMTP_URL/MAIL_FROM)
 │   │           ├── auth/          page guards, session cookie rules
 │   │           ├── cli/           operator CLI (npm run operator)
 │   │           └── services/<concept>/  domain services

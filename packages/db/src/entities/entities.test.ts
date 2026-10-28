@@ -1,11 +1,11 @@
 import { ROLES } from "@devmentor/core/validators/auth/role.schema";
-import { EntitySchema } from "@mikro-orm/core";
+import { EntitySchema, types } from "@mikro-orm/core";
 import type { EntityManager } from "@mikro-orm/postgresql";
 import { describe, expect, it, vi } from "vitest";
 
-import { AuthSession, entities, User, UserRole } from "./index";
+import { AuthSession, entities, RateLimitBucket, User, UserRole } from "./index";
 
-function meta(entity: typeof User | typeof UserRole | typeof AuthSession) {
+function meta(entity: typeof User | typeof UserRole | typeof AuthSession | typeof RateLimitBucket) {
   const schema = EntitySchema.REGISTRY.get(entity);
   expect(schema).toBeDefined();
   return schema!.meta;
@@ -13,7 +13,7 @@ function meta(entity: typeof User | typeof UserRole | typeof AuthSession) {
 
 describe("entity definitions", () => {
   it("lists every entity", () => {
-    expect(entities).toEqual([User, UserRole, AuthSession]);
+    expect(entities).toEqual([User, UserRole, AuthSession, RateLimitBucket]);
   });
 
   it("registers User with its table, primary key, unique email and nullable GitHub columns", () => {
@@ -41,6 +41,17 @@ describe("entity definitions", () => {
     expect((m.properties.user!.entity as () => unknown)()).toBe(User);
     expect(m.properties.tokenHash).toMatchObject({ unique: true, columnType: "char(64)" });
     expect(m.properties.expiresAt?.nullable).toBeFalsy();
+  });
+
+  it("registers RateLimitBucket with a unique char(64) key hash, a count and an indexed window end", () => {
+    const m = meta(RateLimitBucket);
+    expect(m.tableName).toBe("rate_limit_buckets");
+    expect(m.properties.id?.primary).toBe(true);
+    expect(m.properties.keyHash).toMatchObject({ unique: true, columnType: "char(64)" });
+    expect(m.properties.count?.type).toBe(types.integer);
+    expect(m.properties.count?.nullable).toBeFalsy();
+    expect(m.properties.windowEndsAt).toMatchObject({ index: true });
+    expect(m.properties.windowEndsAt?.nullable).toBeFalsy();
   });
 
   it("creates independent UUIDs and timestamps and refreshes updatedAt", () => {

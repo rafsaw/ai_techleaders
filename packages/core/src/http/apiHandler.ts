@@ -2,7 +2,9 @@ import type { AppContainer, Cradle } from "../di/container";
 import type { Logger } from "../logger";
 import { authorize, type Access, type PrincipalFor } from "./auth";
 import { ResponseCookies } from "./cookies";
-import { ForbiddenError, isAppError, type FieldErrors, type ValidationError } from "./errors";
+import {
+  ForbiddenError, isAppError, type AppError, type FieldErrors, type TooManyRequestsError, type ValidationError,
+} from "./errors";
 import { summarizeError } from "./logging";
 
 // The JSON envelope every API route returns. `@devmentor/ui` declares the
@@ -70,10 +72,28 @@ function assertCsrfHeader(req: Request): void {
   throw new ForbiddenError("Missing CSRF header");
 }
 
-function respond(body: ApiResult<unknown>, status: number, cookies: ResponseCookies): Response {
-  const headers = new Headers();
+function respond(
+  body: ApiResult<unknown>,
+  status: number,
+  cookies: ResponseCookies,
+  headers = new Headers(),
+): Response {
   cookies.applyTo(headers);
   return Response.json(body, { status, headers });
+}
+
+/**
+ * `Retry-After` for a 429 that knows its wait: whole seconds, rounded up and
+ * at least 1 (RFC 9110 delay-seconds). Checked by status and property, not
+ * `instanceof`, since the error may come from another copy of core.
+ */
+function errorHeaders(error: AppError): Headers {
+  const headers = new Headers();
+  const { retryAfterMs } = error as Partial<TooManyRequestsError>;
+  if (error.status === 429 && typeof retryAfterMs === "number" && Number.isFinite(retryAfterMs)) {
+    headers.set("retry-after", String(Math.max(1, Math.ceil(retryAfterMs / 1000))));
+  }
+  return headers;
 }
 
 function toErrorResponse(
@@ -86,7 +106,7 @@ function toErrorResponse(
   if (isAppError(error)) {
     // Not `instanceof ValidationError`: the error may come from another copy of core.
     const fieldErrors = "fieldErrors" in error ? (error as ValidationError).fieldErrors : undefined;
-    return respond(failure(error.code, error.message, fieldErrors), error.status, cookies);
+    return respond(failure(error.code, error.message, fieldErrors), error.status, cookies, errorHeaders(error));
   }
 
   // Anything else is a bug: log a safe summary under the static route
@@ -107,7 +127,8 @@ function toErrorResponse(
  * 5. the handler, whose result becomes the JSON envelope;
  * 6. `Set-Cookie` on the success or error response.
  *
- * Thrown `AppError`s map to their status. Routes never write their own
+ * Thrown `AppError`s map to their status; a `TooManyRequestsError` also sets
+ * `Retry-After`, with the same envelope. Routes never write their own
  * try/catch.
  */
 export function createApiHandler(container: AppContainer): ApiHandler {

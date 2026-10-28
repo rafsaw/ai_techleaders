@@ -1,5 +1,6 @@
 export * from "./entities";
 export { singleUseTokenProperties } from "./entities/single-use-token";
+export { PostgresRateLimiter } from "./rate-limiter";
 export { registerDb } from "./register";
 export {
   consumeSingleUseToken,

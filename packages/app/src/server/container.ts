@@ -9,7 +9,7 @@ import {
   registerCore,
   type AppContainer,
 } from "@devmentor/core";
-import { registerDb } from "@devmentor/db";
+import { PostgresRateLimiter, registerDb } from "@devmentor/db";
 
 import { createAppConfig } from "@/server/config";
 import { ArcticGitHubOAuth } from "@/server/services/auth/adapters/arctic-github-oauth";
@@ -37,6 +37,8 @@ function buildContainer(): AppContainer {
     userService: asClass(UserService),
     // The EmailSender port's SMTP adapter; it reads config.email() on first send.
     emailSender: asClass(SmtpEmailSender, { lifetime: Lifetime.SINGLETON }),
+    // The RateLimiter port's only adapter; transient because it uses the scoped em.
+    rateLimiter: asClass(PostgresRateLimiter),
   });
   return container;
 }

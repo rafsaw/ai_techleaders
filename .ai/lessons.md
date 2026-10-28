@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-28 — `em.execute` inlines `?` params and returns timestamptz as text
+
+**Context:** E01 step 2.3 (P11 Postgres rate limiter, raw `DELETE` + `INSERT … ON CONFLICT … RETURNING`). Checked against a real PostgreSQL 17 before the migration existed.
+**Lesson:** In MikroORM v7, `em.execute(sql, [..])` with a string query formats `?` placeholders into the SQL text via `platform.formatQuery` (escaped literals, not bound parameters); `??` is an identifier and `\?` a literal `?`. Pass dates as ISO strings with an explicit `?::timestamptz` so the type never depends on literal inference. Raw result rows bypass entity hydration: `timestamptz` comes back as Postgres text (`2026-10-28 12:01:00+00`), not a `Date`, and `bigint` as a string, so return what you need as numbers (e.g. `(extract(epoch from col) * 1000)::bigint`) and convert with `Number()`.
+**Applies to:** `packages/db/src/rate-limiter.ts`, any raw SQL through `em.execute`.
+
 ### 2026-10-28 — nodemailer 10: own types, and the second argument is message defaults
 
 **Context:** E01 step 2.2 (P10 SMTP adapter). `createTransport(smtpUrl, { connectionTimeout, … })` failed typecheck; the timeouts would otherwise have been silently ignored at runtime.

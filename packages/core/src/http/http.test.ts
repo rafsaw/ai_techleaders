@@ -4,7 +4,7 @@ import { z } from "zod";
 import {
   AppError, asValue, ConflictError, createApiHandler, createAppContainer,
   createMakeCrudRoute, CSRF_HEADER, ForbiddenError, isAppError, NotFoundError, parseInput,
-  readJsonBody, UnauthorizedError, ValidationError,
+  readJsonBody, ResponseCookies, TooManyRequestsError, UnauthorizedError, ValidationError,
 } from "../index";
 
 function setup() {
@@ -39,6 +39,12 @@ describe("domain errors", () => {
       message: "Invalid input", code: "validation_error", status: 400, fieldErrors: { name: ["required"] },
     });
     expect(new ValidationError({}, "custom", { cause })).toMatchObject({ message: "custom", cause });
+    expect(new TooManyRequestsError()).toMatchObject({
+      message: "Too many attempts. Try again later", code: "rate_limited", status: 429,
+      name: "TooManyRequestsError", retryAfterMs: undefined,
+    });
+    expect(new TooManyRequestsError(1500, "custom", { cause })).toMatchObject({ retryAfterMs: 1500, message: "custom", cause });
+    expect(isAppError(new TooManyRequestsError())).toBe(true);
   });
 });
 
@@ -155,6 +161,54 @@ describe("API envelope", () => {
     expect(await invalid.json()).toEqual({ ok: false,
       error: { code: "validation_error", message: "Invalid input", fieldErrors: { email: ["taken"] } } });
     expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [1, "1"], [1000, "1"], [1001, "2"], [14_999, "15"], [0, "1"], [-5, "1"],
+  ])("answers 429 for %d ms with Retry-After %s and the usual envelope", async (retryAfterMs, seconds) => {
+    const { apiHandler, logger } = setup();
+    const response = await apiHandler(async () => { throw new TooManyRequestsError(retryAfterMs); },
+      { access: "public" })(request("POST"), ctx);
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe(seconds);
+    expect(await response.json()).toEqual({ ok: false,
+      error: { code: "rate_limited", message: "Too many attempts. Try again later" } });
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, Number.NaN, Number.POSITIVE_INFINITY])("omits Retry-After when the wait is %s", async (retryAfterMs) => {
+    const { apiHandler } = setup();
+    const response = await apiHandler(async () => { throw new TooManyRequestsError(retryAfterMs); },
+      { access: "public" })(request(), ctx);
+    expect(response.status).toBe(429);
+    expect(response.headers.has("retry-after")).toBe(false);
+  });
+
+  it("sets Retry-After only on 429s, also for an error from another copy of core", async () => {
+    const copy = await foreignErrors();
+    const { apiHandler } = setup();
+    const limited = await apiHandler(async () => { throw new copy.TooManyRequestsError(2500); }, { access: "public" })(request(), ctx);
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get("retry-after")).toBe("3");
+    const other = Object.assign(new ConflictError(), { retryAfterMs: 2500 });
+    const conflict = await apiHandler(async () => { throw other; }, { access: "public" })(request(), ctx);
+    expect(conflict.status).toBe(409);
+    expect(conflict.headers.has("retry-after")).toBe(false);
+  });
+
+  it("keeps session cookies on a 429", async () => {
+    const container = createAppContainer();
+    container.register({
+      logger: asValue({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+      principalResolver: asValue({ resolve: async (_req: Request, cookies: ResponseCookies) => {
+        cookies.set("s", "v", { secure: true });
+        return null;
+      } }),
+    });
+    const response = await createApiHandler(container)(async () => { throw new TooManyRequestsError(1000); },
+      { access: "public" })(request(), ctx);
+    expect(response.headers.get("retry-after")).toBe("1");
+    expect(response.headers.get("set-cookie")).toContain("s=v");
   });
 
   it("logs unexpected failures without disclosing their details", async () => {

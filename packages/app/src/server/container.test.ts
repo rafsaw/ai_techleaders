@@ -16,8 +16,9 @@ describe("composition root", () => {
     const { ArcticGitHubOAuth } = await import("@/server/services/auth/adapters/arctic-github-oauth");
     const { GitHubSignInService } = await import("@/server/services/auth/github-sign-in.service");
     const { SmtpEmailSender } = await import("@/server/services/notifications/adapters/smtp-email-sender");
+    const { PostgresRateLimiter } = await import("@devmentor/db");
     expect(cache.__devmentorContainer).toBe(container);
-    expect(Object.keys(container.registrations)).toEqual(expect.arrayContaining(["logger", "clock", "config", "principalResolver", "orm", "em", "userService", "roleService", "authSessionService", "githubOAuth", "githubSignInService", "emailSender"]));
+    expect(Object.keys(container.registrations)).toEqual(expect.arrayContaining(["logger", "clock", "config", "principalResolver", "orm", "em", "userService", "roleService", "authSessionService", "githubOAuth", "githubSignInService", "emailSender", "rateLimiter"]));
     const em = { fake: true };
     container.register({ em: asValue(em) });
     const first = createRequestScope();
@@ -35,6 +36,9 @@ describe("composition root", () => {
     // One SMTP sender per process; resolving it needs no SMTP config.
     expect(first.cradle.emailSender).toBeInstanceOf(SmtpEmailSender);
     expect(first.cradle.emailSender).toBe(createRequestScope().cradle.emailSender);
+    // The limiter uses the scope's em, so it is resolved per use.
+    expect(first.cradle.rateLimiter).toBeInstanceOf(PostgresRateLimiter);
+    expect(first.cradle.rateLimiter).not.toBe(first.cradle.rateLimiter);
     // No session cookie: signed out without touching config or the database.
     const req = new Request("http://localhost/");
     await expect(first.cradle.principalResolver.resolve(req, new ResponseCookies())).resolves.toBeNull();

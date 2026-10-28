@@ -67,3 +67,19 @@ export class ConflictError extends AppError {
     super(message, "conflict", 409, options);
   }
 }
+
+/**
+ * A rate limit refused the attempt (platform P11). `apiHandler` answers 429
+ * with the usual error envelope and, when `retryAfterMs` is known, a
+ * `Retry-After` header in whole seconds. Clients show the generic message and
+ * no countdown.
+ */
+export class TooManyRequestsError extends AppError {
+  constructor(
+    readonly retryAfterMs?: number,
+    message = "Too many attempts. Try again later",
+    options?: ErrorOptions,
+  ) {
+    super(message, "rate_limited", 429, options);
+  }
+}
