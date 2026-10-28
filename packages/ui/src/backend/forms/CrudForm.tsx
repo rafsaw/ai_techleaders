@@ -65,7 +65,8 @@ export function CrudForm<TSchema extends z.ZodType>({
     schema,
     fields,
     initialValues,
-    onSubmit,
+    // The public API stays `onSubmit(values)`; an unmounted form still drops the late result.
+    onSubmit: (values) => onSubmit(values),
     onSuccess: () => onSuccess?.(),
     onCancel,
     resetOnSuccess,

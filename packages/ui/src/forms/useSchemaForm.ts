@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import type { z } from "zod";
 
 import type { ApiResult, FieldErrors } from "@devmentor/ui/api/types";
-import { toFieldErrors } from "@devmentor/ui/forms/field-errors";
+import { failureMessage, toFieldErrors } from "@devmentor/ui/forms/field-errors";
 
 export type FieldName<TSchema extends z.ZodType> = Extract<keyof z.input<TSchema>, string>;
 
@@ -16,8 +16,11 @@ export interface UseSchemaFormOptions<TSchema extends z.ZodType, TData> {
   /** Field names in screen order; the first invalid one gets focus after a failed submit. */
   fields: readonly { name: FieldName<TSchema> }[];
   initialValues?: Partial<Record<FieldName<TSchema>, string>>;
-  /** Usually an `apiCall`; failure envelopes are shown on the form. */
-  onSubmit: (values: z.output<TSchema>) => Promise<ApiResult<TData>>;
+  /**
+   * Usually an `apiCall`; failure envelopes are shown on the form. Pass `signal` on to the
+   * request: it aborts when the form unmounts. Must not reject (`apiCall` never does).
+   */
+  onSubmit: (values: z.output<TSchema>, options: { signal: AbortSignal }) => Promise<ApiResult<TData>>;
   /** Receives the response data, e.g. to navigate to `data.redirectTo`. */
   onSuccess?: (data: TData) => void;
   /** Enables Escape to cancel. */
@@ -38,9 +41,12 @@ function focusFirstInvalid(form: HTMLFormElement, fields: readonly { name: strin
 }
 
 /**
- * Form state shared by `CrudForm` (signed-in) and `SchemaForm` (public): client validation with
- * the shared schema (on leaving a field, live while a shown error is being fixed, and on submit), server `fieldErrors` on their fields, a form-level error, no double submit,
- * focus on the first invalid field, Cmd/Ctrl+Enter to submit and Escape to cancel.
+ * Form state shared by `CrudForm` (signed-in) and `SchemaForm` (public, platform F2): client
+ * validation with the shared schema (on leaving a field, live while a shown error is being fixed,
+ * and on submit), server `fieldErrors` on their fields, a form-level error (a 429 always reads
+ * `RATE_LIMITED_MESSAGE`), focus on the first invalid field, Cmd/Ctrl+Enter to submit and Escape
+ * to cancel. One request at a time: a second submit while one runs is ignored, even within the
+ * same event-loop turn. Unmounting aborts the running request and drops its result.
  */
 export function useSchemaForm<TSchema extends z.ZodType, TData = unknown>({
   schema,
@@ -55,6 +61,18 @@ export function useSchemaForm<TSchema extends z.ZodType, TData = unknown>({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string>();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // The state above re-renders too late to stop two submits in one turn (a double click, Enter
+  // plus click); the ref is set synchronously. The controller belongs to the running request.
+  const inFlight = useRef(false);
+  const request = useRef<AbortController | null>(null);
+
+  useEffect(
+    () => () => {
+      request.current?.abort();
+      request.current = null;
+    },
+    []
+  );
 
   /** Re-checks one field against the shared schema and updates only its errors. */
   function validateField(name: FieldName<TSchema>, nextValues: Record<string, string>) {
@@ -91,7 +109,7 @@ export function useSchemaForm<TSchema extends z.ZodType, TData = unknown>({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (isSubmitting) return;
+    if (inFlight.current) return;
     const form = event.currentTarget;
 
     const parsed = schema.safeParse(values);
@@ -103,15 +121,22 @@ export function useSchemaForm<TSchema extends z.ZodType, TData = unknown>({
       return;
     }
 
+    inFlight.current = true;
+    const controller = new AbortController();
+    request.current = controller;
     setIsSubmitting(true);
-    const result = await onSubmit(parsed.data);
+    const result = await onSubmit(parsed.data, { signal: controller.signal });
+    inFlight.current = false;
+    // Unmounted meanwhile: nothing left to update or hand on.
+    if (controller.signal.aborted) return;
+    request.current = null;
     setIsSubmitting(false);
 
     if (!result.ok) {
       const serverFieldErrors = result.error.fieldErrors ?? {};
       setFieldErrors(serverFieldErrors);
       // A field-level failure is already shown next to its fields.
-      setFormError(Object.keys(serverFieldErrors).length > 0 ? undefined : result.error.message);
+      setFormError(Object.keys(serverFieldErrors).length > 0 ? undefined : failureMessage(result.error));
       focusFirstInvalid(form, fields, serverFieldErrors);
       return;
     }

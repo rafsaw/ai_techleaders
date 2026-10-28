@@ -29,8 +29,8 @@ export interface SchemaFormProps<TSchema extends z.ZodType, TData> {
   submitLabel: string;
   /** -ing form (P-C4): "Signing in…". */
   pendingLabel: string;
-  /** Usually an `apiCall`; failure envelopes are shown on the form. */
-  onSubmit: (values: z.output<TSchema>) => Promise<ApiResult<TData>>;
+  /** Usually an `apiCall`; failure envelopes are shown on the form. `signal` aborts on unmount. */
+  onSubmit: (values: z.output<TSchema>, options: { signal: AbortSignal }) => Promise<ApiResult<TData>>;
   /** Receives the response data, e.g. to navigate to `data.redirectTo`. */
   onSuccess?: (data: TData) => void;
   /** Default `false`: a public form navigates on success, so the values stay while it does. */
