@@ -11,7 +11,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 ## Phase 1 — #34 GitHub sign-in (plus the foundation)
 
-- [ ] 1.1 Config and clock (P1, P2): `core/src/config/env.ts`, `core/src/time/clock.ts`, `app/src/server/config.ts`, registrations, `.env.example`, README
+- [x] 1.1 Config and clock (P1, P2): `core/src/config/env.ts`, `core/src/time/clock.ts`, `app/src/server/config.ts`, registrations, `.env.example`, README
 - [ ] 1.2 Tokens, cookies, `returnTo` and role schemas in core (P8, P3 types, P6)
 - [ ] 1.3 Identity context on `apiHandler` / `makeCrudRoute` (required `access`, principal, cookies, `PrincipalResolver`)
 - [ ] 1.4 Navigation handler (P7) + minimal identity-free `/error` page

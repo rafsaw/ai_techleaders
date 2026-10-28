@@ -96,8 +96,28 @@ cp packages/app/.env.example packages/app/.env
 ```
 
 The file is git-ignored and must never be committed. `DATABASE_URL` is the
-only required variable; `DB_HOST`/`DB_USER`-style variables are not
+only variable needed to boot; `DB_HOST`/`DB_USER`-style variables are not
 supported. Optional: `DB_POOL_MIN`, `DB_POOL_MAX`, `DB_DEBUG`.
+
+Other settings are grouped into sections (`packages/app/src/server/config.ts`)
+that are validated lazily: a section is read the first time a feature uses it,
+so the app builds and boots without it, and only that feature fails, logging
+a `ConfigError` that names the missing or invalid variables (never their
+values).
+
+| Variable | Section | Required | Purpose |
+| -------- | ------- | -------- | ------- |
+| `APP_URL` | `app` | for absolute links and redirects | Public origin, e.g. `http://localhost:3000`; https in production |
+| `GITHUB_CLIENT_ID` | `github` | for GitHub sign-in | OAuth App client id |
+| `GITHUB_CLIENT_SECRET` | `github` | for GitHub sign-in | OAuth App client secret |
+| `GITHUB_OAUTH_URL` | `github` | no (default `https://github.com`) | OAuth endpoint override for test stubs |
+| `GITHUB_API_URL` | `github` | no (default `https://api.github.com`) | API endpoint override for test stubs |
+
+**GitHub OAuth App for local sign-in.** In GitHub, open Settings → Developer
+settings → OAuth Apps → New OAuth App. Set the homepage URL to
+`http://localhost:3000` and the authorization callback URL to
+`http://localhost:3000/api/auth/github/callback`, then copy the client id and
+a generated client secret into `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
 
 Both loaders read files from `packages/app`. Existing `process.env` values
 win over all files. Files are loaded in the order below; for each variable,

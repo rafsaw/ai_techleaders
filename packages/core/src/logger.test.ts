@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { asFunction, createAppContainer, createConsoleLogger, Lifetime, registerCore } from "./index";
+import { asFunction, createAppContainer, createConsoleLogger, Lifetime, registerCore, systemClock } from "./index";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -39,11 +39,12 @@ describe("console logger", () => {
 });
 
 describe("dependency container", () => {
-  it("registers a singleton logger with proxy injection", () => {
+  it("registers a singleton logger and clock with proxy injection", () => {
     const container = createAppContainer();
     registerCore(container);
     const scope = container.createScope();
     expect(scope.cradle.logger).toBe(container.cradle.logger);
+    expect(scope.cradle.clock).toBe(systemClock);
     expect(container.options.injectionMode).toBe("PROXY");
     expect(() => container.resolve("missing")).toThrow("Could not resolve 'missing'");
   });

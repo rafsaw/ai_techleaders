@@ -1,8 +1,9 @@
 import "server-only";
 
-import { asClass, createAppContainer, registerCore, type AppContainer } from "@devmentor/core";
+import { asClass, asFunction, createAppContainer, Lifetime, registerCore, type AppContainer } from "@devmentor/core";
 import { registerDb } from "@devmentor/db";
 
+import { createAppConfig } from "@/server/config";
 import { UserService } from "@/server/services/auth/user.service";
 
 // The composition root: the only place where dependencies are registered.
@@ -12,6 +13,7 @@ function buildContainer(): AppContainer {
   registerCore(container);
   registerDb(container);
   container.register({
+    config: asFunction(() => createAppConfig(), { lifetime: Lifetime.SINGLETON }),
     userService: asClass(UserService),
   });
   return container;
