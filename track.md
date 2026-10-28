@@ -40,8 +40,8 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 ## Phase 2 — #35 email and password with confirmation
 
-- [ ] 2.1 Single-use token records (P9)
-- [ ] 2.2 `EmailSender` (P10): port, SMTP + memory adapters, templates, Mailpit in compose + integration setup
+- [x] 2.1 Single-use token records (P9)
+- [~] 2.2 `EmailSender` (P10): port, SMTP + memory adapters, templates, Mailpit in compose + integration setup
 - [ ] 2.3 Rate limiter (P11, Postgres adapter), `TooManyRequestsError`, `clientIp`, `TRUST_PROXY`
 - [ ] 2.4 Schema: `users.password_hash`, `email_confirmation_tokens`, `rate_limit_buckets`, migration
 - [ ] 2.5 `PasswordHasher`, `PasswordAccountService`, schemas, four POST routes, AD3 claim rule in GitHub sign-in
