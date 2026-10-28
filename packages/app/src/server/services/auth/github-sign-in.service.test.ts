@@ -1,5 +1,7 @@
 import { fixedClock, NotFoundError, ResponseCookies } from "@devmentor/core";
-import { LockMode, UniqueConstraintViolationException, User, UserRole, type EntityManager } from "@devmentor/db";
+import {
+  EmailConfirmationToken, LockMode, UniqueConstraintViolationException, User, UserRole, type EntityManager,
+} from "@devmentor/db";
 import { describe, expect, it, vi } from "vitest";
 
 import { createAppConfig } from "@/server/config";
@@ -29,7 +31,9 @@ const identity: GitHubIdentity = {
   ],
 };
 
-type Row = { id: string; email: string; name: string; githubId: string | null; emailConfirmedAt: Date | null };
+type Row = {
+  id: string; email: string; name: string; githubId: string | null; emailConfirmedAt: Date | null; passwordHash?: string | null;
+};
 
 /** In-memory `users` behind the `em` calls the service makes inside `transactional`. */
 function fakeDb(initial: Row[] = []) {
@@ -43,6 +47,7 @@ function fakeDb(initial: Row[] = []) {
       return row ?? null;
     }),
     create: vi.fn((entity: unknown, data: Record<string, unknown>) => ({ entity, ...data })),
+    nativeDelete: vi.fn<(entity: unknown, where: unknown) => Promise<number>>(async () => 1),
     persist: vi.fn<(items: unknown[]) => void>(),
     flush: vi.fn(async () => {
       if (failures.length > 0) throw failures.shift();
@@ -230,6 +235,24 @@ describe("GitHubSignInService.complete: callback outcomes", () => {
     const context = setup({ rows: [{ id: "u1", email: "octo@example.com", name: "Ada", githubId: null, emailConfirmedAt: null }] });
     await signIn(context);
     expect(context.users.get("u1")).toMatchObject({ githubId: "583231", emailConfirmedAt: NOW });
+  });
+
+  it("claims an unconfirmed password account (AD3): clears the password and deletes its links after the user lock", async () => {
+    const context = setup({ rows: [{ id: "u1", email: "octo@example.com", name: "Attacker", githubId: null, emailConfirmedAt: null, passwordHash: "$2b$12$attacker" }] });
+    const { result } = await signIn(context);
+    expect(result).toEqual({ redirectTo: "/" });
+    expect(context.users.get("u1")).toMatchObject({ githubId: "583231", emailConfirmedAt: NOW, passwordHash: null, name: "Attacker" });
+    expect(context.tx.nativeDelete).toHaveBeenCalledExactlyOnceWith(EmailConfirmationToken, { user: "u1" });
+    const lock = context.tx.findOne.mock.invocationCallOrder[1]!;
+    expect(context.tx.findOne.mock.calls[1]).toEqual([User, { email: "octo@example.com" }, { lockMode: LockMode.PESSIMISTIC_WRITE }]);
+    expect(context.tx.nativeDelete.mock.invocationCallOrder[0]).toBeGreaterThan(lock);
+  });
+
+  it("keeps a confirmed password when linking (no claim) and deletes no links", async () => {
+    const context = setup({ rows: [{ id: "u1", email: "octo@example.com", name: "Ada", githubId: null, emailConfirmedAt: EARLIER, passwordHash: "$2b$12$owner" }] });
+    await signIn(context);
+    expect(context.users.get("u1")).toMatchObject({ githubId: "583231", emailConfirmedAt: EARLIER, passwordHash: "$2b$12$owner" });
+    expect(context.tx.nativeDelete).not.toHaveBeenCalled();
   });
 
   it("refuses an email already linked to a different GitHub id (github_email_taken)", async () => {

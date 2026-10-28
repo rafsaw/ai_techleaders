@@ -9,7 +9,14 @@ import {
   type ResponseCookies,
 } from "@devmentor/core";
 import { parseReturnTo } from "@devmentor/core/validators/auth/return-to.schema";
-import { LockMode, UniqueConstraintViolationException, User, UserRole, type EntityManager } from "@devmentor/db";
+import {
+  EmailConfirmationToken,
+  LockMode,
+  UniqueConstraintViolationException,
+  User,
+  UserRole,
+  type EntityManager,
+} from "@devmentor/db";
 import { z } from "zod";
 
 import {
@@ -130,9 +137,8 @@ type Resolution = { userId: string; created: boolean };
  * GitHub sign-in (accounts Flow 1, AD3). `begin` starts an OAuth attempt;
  * `complete` handles every callback outcome, resolves the account and starts
  * a session.
- *
- * Phase 2 adds the claim rule (an unconfirmed password is discarded when
- * GitHub links its account); until then no account has a password.
+ * Linking by email to an unconfirmed account claims it: its password is
+ * cleared and its open confirmation links are deleted (AD3).
  */
 export class GitHubSignInService {
   private readonly em: EntityManager;
@@ -248,7 +254,15 @@ export class GitHubSignInService {
     if (existing) {
       if (existing.githubId != null && existing.githubId !== identity.id) throw fail("github_email_taken");
       existing.githubId = identity.id;
-      existing.emailConfirmedAt ??= this.clock.now();
+      if (existing.emailConfirmedAt == null) {
+        // AD3 claim: GitHub proved ownership of the address, so a password
+        // nobody confirmed (perhaps an attacker's pre-registration) is
+        // discarded with its open links. The user row is already locked; the
+        // token rows come after it, the same order as registration.
+        existing.passwordHash = null;
+        await em.nativeDelete(EmailConfirmationToken, { user: existing.id });
+        existing.emailConfirmedAt = this.clock.now();
+      }
       return { userId: existing.id, created: false };
     }
 
