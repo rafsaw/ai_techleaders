@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-28 — Vitest reruns failed integration files first; scenarios must not leak rows
+
+**Context:** E01 step 2.5. The new password API scenario created a user. It passed on the first run (it ran after `app.test.ts`), but after an unrelated failure Vitest ordered the previously failed file differently and `app.test.ts`, which asserts exact "N registered users" counts, failed.
+**Lesson:** Vitest's sequencer reorders test files between runs (failed and slow files first), even with `fileParallelism: false`, so integration files share one database in no fixed order. A scenario that writes rows other files count must delete them in `afterAll` (here `delete from users where email = …`, which cascades roles, sessions and links, plus `rate_limit_buckets`). Also remember the limiter in API scenarios: sign-in and confirm share rule 2 (5 per address per 15 min), so a long scenario against one address hits 429 by design.
+**Applies to:** `packages/app/tests/integration/*.test.ts`, especially scenarios that create accounts.
+
 ### 2026-10-28 — Pointing `@devmentor/db` at a scratch database in tests
 
 **Context:** E01 step 2.4, real-PostgreSQL tests of the rate limiter and P9 consume. The limiter's cleanup deletes every expired bucket in the table, and migration `down()` drops tables, so neither may run in the app's integration database.

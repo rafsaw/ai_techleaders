@@ -17,8 +17,10 @@ describe("composition root", () => {
     const { GitHubSignInService } = await import("@/server/services/auth/github-sign-in.service");
     const { SmtpEmailSender } = await import("@/server/services/notifications/adapters/smtp-email-sender");
     const { PostgresRateLimiter } = await import("@devmentor/db");
+    const { BcryptPasswordHasher } = await import("@/server/services/auth/adapters/bcrypt-password-hasher");
+    const { PasswordAccountService } = await import("@/server/services/auth/password-account.service");
     expect(cache.__devmentorContainer).toBe(container);
-    expect(Object.keys(container.registrations)).toEqual(expect.arrayContaining(["logger", "clock", "config", "principalResolver", "orm", "em", "userService", "roleService", "authSessionService", "githubOAuth", "githubSignInService", "emailSender", "rateLimiter"]));
+    expect(Object.keys(container.registrations)).toEqual(expect.arrayContaining(["logger", "clock", "config", "principalResolver", "orm", "em", "userService", "roleService", "authSessionService", "githubOAuth", "githubSignInService", "emailSender", "rateLimiter", "passwordHasher", "passwordAccountService"]));
     const em = { fake: true };
     container.register({ em: asValue(em) });
     const first = createRequestScope();
@@ -39,6 +41,11 @@ describe("composition root", () => {
     // The limiter uses the scope's em, so it is resolved per use.
     expect(first.cradle.rateLimiter).toBeInstanceOf(PostgresRateLimiter);
     expect(first.cradle.rateLimiter).not.toBe(first.cradle.rateLimiter);
+    // One hasher per process (its dummy hash is computed once); the account service is transient.
+    expect(first.cradle.passwordHasher).toBeInstanceOf(BcryptPasswordHasher);
+    expect(first.cradle.passwordHasher).toBe(createRequestScope().cradle.passwordHasher);
+    expect(first.cradle.passwordAccountService).toBeInstanceOf(PasswordAccountService);
+    expect(first.cradle.passwordAccountService).not.toBe(first.cradle.passwordAccountService);
     // No session cookie: signed out without touching config or the database.
     const req = new Request("http://localhost/");
     await expect(first.cradle.principalResolver.resolve(req, new ResponseCookies())).resolves.toBeNull();

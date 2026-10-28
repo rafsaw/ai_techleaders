@@ -30,9 +30,9 @@ function toAccountDto(user: User, roles: Role[]): AccountDto {
     email: user.email,
     displayName: user.name,
     roles,
-    // Password sign-in arrives with Phase 2 (`password_hash`); until then no
-    // account has a password.
-    signInMethods: { github: user.githubId != null, password: false },
+    // A password counts only once it is usable: set and its address
+    // confirmed. An unconfirmed registration cannot sign in yet.
+    signInMethods: { github: user.githubId != null, password: user.passwordHash != null && user.emailConfirmedAt != null },
   };
 }
 

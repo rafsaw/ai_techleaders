@@ -276,6 +276,21 @@ describe("AuthSessionService start and end", () => {
     expect(cookies.toHeaderValues()[0]).not.toContain(TOKEN);
   });
 
+  it("create writes the row through a given transaction em and sets no cookie; setCookie sets it later", async () => {
+    const { em, service } = setup();
+    const tx = fakeEm();
+    const token = await service.create("u-9", tx as unknown as EntityManager);
+    expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(tx.create).toHaveBeenCalledWith(AuthSession, {
+      user: "u-9", tokenHash: hashToken(token), expiresAt: new Date(NOW.getTime() + 30 * DAY),
+    });
+    expect([...tx.rows.values()]).toHaveLength(1);
+    expect(em.create).not.toHaveBeenCalled();
+    const cookies = new ResponseCookies();
+    service.setCookie(cookies, token);
+    expect(cookies.toHeaderValues()).toEqual([`devmentor_session=${token}; Max-Age=2592000; Path=/; HttpOnly; SameSite=Lax`]);
+  });
+
   it("ends a session: deletes its row, clears the cookie, and the token stops resolving", async () => {
     const { em, service } = setup({ rows: [session(new Date(NOW.getTime() + DAY)), session(new Date(NOW.getTime() + DAY), { id: "s-2", tokenHash: "other" })] });
     const cookies = new ResponseCookies();

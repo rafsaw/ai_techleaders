@@ -43,13 +43,28 @@ export class AuthSessionService implements PrincipalResolver {
 
   /** Starts a session for `userId` and sets its cookie (overriding any renewal). */
   async start(userId: string, cookies: ResponseCookies): Promise<void> {
+    this.setCookie(cookies, await this.create(userId));
+  }
+
+  /**
+   * Writes a session row for `userId` through `em` and returns its raw token
+   * without setting a cookie. Pass a transaction's `em` when the session must
+   * commit together with other work (email confirmation), then call
+   * `setCookie` only after that transaction committed.
+   */
+  async create(userId: string, em: EntityManager = this.em): Promise<string> {
     const token = generateToken();
-    const session = this.em.create(AuthSession, {
+    const session = em.create(AuthSession, {
       user: userId,
       tokenHash: hashToken(token),
       expiresAt: new Date(this.clock.now().getTime() + SESSION_LIFETIME_MS),
     });
-    await this.em.persist(session).flush();
+    await em.persist(session).flush();
+    return token;
+  }
+
+  /** Sets the session cookie for a raw token from `create` (overriding any renewal). */
+  setCookie(cookies: ResponseCookies, token: string): void {
     const cookie = this.#cookie();
     cookies.set(cookie.name, token, cookie.options);
   }

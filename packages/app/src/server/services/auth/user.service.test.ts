@@ -91,6 +91,16 @@ describe("user service", () => {
     await expect(service.getAccount("user-id")).resolves.toMatchObject({ signInMethods: { github: true, password: false } });
   });
 
+  it.each([
+    ["no password", { passwordHash: null, emailConfirmedAt: new Date() }, false],
+    ["an unconfirmed password", { passwordHash: "$2b$12$".padEnd(60, "x"), emailConfirmedAt: null }, false],
+    ["a confirmed password", { passwordHash: "$2b$12$".padEnd(60, "x"), emailConfirmedAt: new Date() }, true],
+  ])("reports password sign-in only for a usable password (%s)", async (_label, fields, password) => {
+    const { em, service } = setup();
+    em.findOne.mockResolvedValueOnce(Object.assign(new User(), { ...user, ...fields }));
+    await expect(service.getAccount("user-id")).resolves.toMatchObject({ signInMethods: { github: false, password } });
+  });
+
   it("updates the display name and returns the updated account", async () => {
     const { em, service } = setup();
     const editable = Object.assign(new User(), { ...user });

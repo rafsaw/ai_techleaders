@@ -14,7 +14,9 @@ import { PostgresRateLimiter, registerDb } from "@devmentor/db";
 import { createAppConfig } from "@/server/config";
 import { ArcticGitHubOAuth } from "@/server/services/auth/adapters/arctic-github-oauth";
 import { AuthSessionService } from "@/server/services/auth/auth-session.service";
+import { BcryptPasswordHasher } from "@/server/services/auth/adapters/bcrypt-password-hasher";
 import { GitHubSignInService } from "@/server/services/auth/github-sign-in.service";
+import { PasswordAccountService } from "@/server/services/auth/password-account.service";
 import { RoleService } from "@/server/services/auth/role.service";
 import { UserService } from "@/server/services/auth/user.service";
 import { SmtpEmailSender } from "@/server/services/notifications/adapters/smtp-email-sender";
@@ -33,6 +35,9 @@ function buildContainer(): AppContainer {
     // Callers depend on the GitHubOAuth port; this is its only adapter.
     githubOAuth: asClass(ArcticGitHubOAuth),
     githubSignInService: asClass(GitHubSignInService),
+    // The PasswordHasher port's bcryptjs adapter (cost 12); a singleton so its dummy hash is computed once.
+    passwordHasher: asFunction(() => new BcryptPasswordHasher(), { lifetime: Lifetime.SINGLETON }),
+    passwordAccountService: asClass(PasswordAccountService),
     roleService: asClass(RoleService),
     userService: asClass(UserService),
     // The EmailSender port's SMTP adapter; it reads config.email() on first send.
