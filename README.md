@@ -32,7 +32,7 @@ prints one line per step:
 
 - **Prerequisites:** Node ≥ 22.17, plus Docker and the Compose plugin.
 - **Dependencies:** `npm install`.
-- **PostgreSQL:** `docker compose up -d --wait`.
+- **PostgreSQL and Mailpit:** `docker compose up -d --wait`.
 - **Env:** copies `packages/app/.env.example` to `packages/app/.env`.
 - **Migrations:** `npm run db:migrate`.
 
@@ -81,6 +81,11 @@ password and database `devmentor` on port 5432. If port 5432 is taken, change
 the host port mapping (e.g. `"5433:5432"`) and use the same port in
 `DATABASE_URL`.
 
+The same command starts **Mailpit**, a local SMTP sink: the app sends email to
+`smtp://localhost:1025`, and every message lands in the inbox at
+<http://localhost:8025> instead of a real mailbox. No external account is
+needed.
+
 #### 4. Configure env
 
 Create `packages/app/.env` (not in the repo root: the MikroORM CLI in
@@ -114,6 +119,8 @@ values).
 | `GITHUB_CLIENT_SECRET` | `github` | for GitHub sign-in | OAuth App client secret |
 | `GITHUB_OAUTH_URL` | `github` | no (default `https://github.com`) | OAuth endpoint override for test stubs |
 | `GITHUB_API_URL` | `github` | no (default `https://api.github.com`) | API endpoint override for test stubs |
+| `SMTP_URL` | `email` | for sending email | `smtp://[user:pass@]host:port` (STARTTLS when offered) or `smtps://…` (TLS); local Mailpit: `smtp://localhost:1025` |
+| `MAIL_FROM` | `email` | for sending email | Sender, e.g. `DevMentor <no-reply@example.com>` (quote it in `.env` files) |
 
 **GitHub OAuth App for local sign-in.** In GitHub, open Settings → Developer
 settings → OAuth Apps → New OAuth App. Set the homepage URL to
@@ -254,7 +261,7 @@ npm run db:seed   # optional: sample user
 │   │           ├── container.ts   DI composition root
 │   │           ├── cradle.ts      Cradle types of the app's services
 │   │           ├── http.ts        apiHandler, makeCrudRoute, navigationHandler bound to the container
-│   │           ├── config.ts      lazily validated env sections (APP_URL, GITHUB_*)
+│   │           ├── config.ts      lazily validated env sections (APP_URL, GITHUB_*, SMTP_URL/MAIL_FROM)
 │   │           ├── auth/          page guards, session cookie rules
 │   │           ├── cli/           operator CLI (npm run operator)
 │   │           └── services/<concept>/  domain services
@@ -414,7 +421,9 @@ npm run test:integration
 The suite allocates a disposable PostgreSQL instance, applies committed
 migrations, chooses an available app port, and cleans up the browser, app,
 and container. It never uses your `.env` database. GitHub is replaced by a
-local stub (`packages/app/tests/integration/github-stub.ts`). It covers the
+local stub (`packages/app/tests/integration/github-stub.ts`), and outbound
+email goes to a disposable Mailpit container whose inbox the tests read over
+its HTTP API (`packages/app/tests/integration/mailpit.ts`). It covers the
 public home, GitHub sign-in, the account page and sign-out, operator
 grant/revoke through the real `npm run operator` CLI, admin database
 status/navigation, users validation, creation, reload, and duplicate-email

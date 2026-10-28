@@ -15,8 +15,9 @@ describe("composition root", () => {
     const { AuthSessionService } = await import("@/server/services/auth/auth-session.service");
     const { ArcticGitHubOAuth } = await import("@/server/services/auth/adapters/arctic-github-oauth");
     const { GitHubSignInService } = await import("@/server/services/auth/github-sign-in.service");
+    const { SmtpEmailSender } = await import("@/server/services/notifications/adapters/smtp-email-sender");
     expect(cache.__devmentorContainer).toBe(container);
-    expect(Object.keys(container.registrations)).toEqual(expect.arrayContaining(["logger", "clock", "config", "principalResolver", "orm", "em", "userService", "roleService", "authSessionService", "githubOAuth", "githubSignInService"]));
+    expect(Object.keys(container.registrations)).toEqual(expect.arrayContaining(["logger", "clock", "config", "principalResolver", "orm", "em", "userService", "roleService", "authSessionService", "githubOAuth", "githubSignInService", "emailSender"]));
     const em = { fake: true };
     container.register({ em: asValue(em) });
     const first = createRequestScope();
@@ -31,6 +32,9 @@ describe("composition root", () => {
     // The resolver is the session service; services are transient.
     expect(first.cradle.principalResolver).toBeInstanceOf(AuthSessionService);
     expect(first.cradle.userService).not.toBe(first.cradle.userService);
+    // One SMTP sender per process; resolving it needs no SMTP config.
+    expect(first.cradle.emailSender).toBeInstanceOf(SmtpEmailSender);
+    expect(first.cradle.emailSender).toBe(createRequestScope().cradle.emailSender);
     // No session cookie: signed out without touching config or the database.
     const req = new Request("http://localhost/");
     await expect(first.cradle.principalResolver.resolve(req, new ResponseCookies())).resolves.toBeNull();

@@ -49,6 +49,28 @@ describe("app config", () => {
     expect((error as ConfigError).message).not.toContain("top-secret");
   });
 
+  it("reads the email section", () => {
+    const email = createAppConfig({ SMTP_URL: "smtp://localhost:1025", MAIL_FROM: " DevMentor <no-reply@devmentor.test> " }).email();
+    expect(email).toEqual({ smtpUrl: "smtp://localhost:1025", from: "DevMentor <no-reply@devmentor.test>" });
+    expect(createAppConfig({ SMTP_URL: "smtps://user:pass@mail.test:465", MAIL_FROM: "a@b.test" }).email().smtpUrl).toBe("smtps://user:pass@mail.test:465");
+  });
+
+  it("validates the email section only when read, without echoing the SMTP URL", () => {
+    const config = createAppConfig({ APP_URL: "http://localhost:3000" });
+    expect(config.app().url.port).toBe("3000");
+    expect(() => config.email()).toThrow(new ConfigError(["SMTP_URL", "MAIL_FROM"], []));
+    const invalid = createAppConfig({ SMTP_URL: "https://user:hunter2@mail.test", MAIL_FROM: "   " });
+    let error: unknown;
+    try {
+      invalid.email();
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error).toBeInstanceOf(ConfigError);
+    expect((error as ConfigError).message).toBe("Invalid configuration: invalid SMTP_URL, MAIL_FROM");
+    expect((error as ConfigError).message).not.toContain("hunter2");
+  });
+
   it("reads process.env by default", () => {
     vi.stubEnv("APP_URL", "http://localhost:4000");
     expect(createAppConfig().app().url.port).toBe("4000");

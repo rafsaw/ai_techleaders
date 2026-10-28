@@ -4,6 +4,7 @@ import type { GitHubOAuth } from "@/server/services/auth/github-oauth.port";
 import type { GitHubSignInService } from "@/server/services/auth/github-sign-in.service";
 import type { RoleService } from "@/server/services/auth/role.service";
 import type { UserService } from "@/server/services/auth/user.service";
+import type { EmailSender } from "@/server/services/notifications/email-sender.port";
 
 // Types of the services registered in container.ts, one line per service.
 declare module "@devmentor/core" {
@@ -14,5 +15,6 @@ declare module "@devmentor/core" {
     githubSignInService: GitHubSignInService;
     roleService: RoleService;
     userService: UserService;
+    emailSender: EmailSender;
   }
 }

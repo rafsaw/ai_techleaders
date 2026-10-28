@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-28 — nodemailer 10: own types, and the second argument is message defaults
+
+**Context:** E01 step 2.2 (P10 SMTP adapter). `createTransport(smtpUrl, { connectionTimeout, … })` failed typecheck; the timeouts would otherwise have been silently ignored at runtime.
+**Lesson:** In nodemailer, `createTransport(transport, defaults)`'s second argument is *message* defaults (`from`, headers), not transport options. Pass a URL plus options as one object: `createTransport({ url, connectionTimeout, … })`. nodemailer 10 bundles its own `.d.ts`; don't add `@types/nodemailer` (written for older releases). `sendMail` resolves even when some recipients are refused; check `info.rejected`.
+**Applies to:** `packages/app/src/server/services/notifications/adapters/smtp-email-sender.ts`, any new mail transport.
+
 ### 2026-10-28 — Don't re-validate a server-built redirect with the user-input length limit
 
 **Context:** Review R6 on E01 Phase 1. `returnTo` is accepted up to 512 characters, the callback appends `welcome=1` (or re-encodes it into `/sign-in?error=…&returnTo=…`), and `navigationHandler` re-checked the result with `parseReturnTo` (512), so a valid long destination silently became `/`.

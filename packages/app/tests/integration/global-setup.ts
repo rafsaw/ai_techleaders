@@ -13,6 +13,7 @@ import type { TestProject } from "vitest/node";
 
 import { integrationResultsDirectory, browserExecutable, repositoryRoot } from "./context";
 import { startGitHubStub, type GitHubStub } from "./github-stub";
+import { INTEGRATION_MAIL_FROM, startMailpit, type StartedMailpit } from "./mailpit";
 
 const execute = promisify(execFile);
 
@@ -78,6 +79,7 @@ export default async function setup(project: TestProject) {
   let server: ChildProcess | undefined;
   let migrations: ChildProcess | undefined;
   let githubStub: GitHubStub | undefined;
+  let mailpit: StartedMailpit | undefined;
   let browserReady = false;
   let cleanupPromise: Promise<void> | undefined;
   const serverLog = createWriteStream(join(artifactsDirectory, "server.log"), { flags: "w" });
@@ -105,6 +107,7 @@ export default async function setup(project: TestProject) {
     postgresStream?.destroy();
     postgresLog.end();
     if (postgres) await safely("postgres", () => postgres!.stop({ timeout: 10_000 }));
+    if (mailpit) await safely("mailpit", () => mailpit!.container.stop({ timeout: 10_000 }));
   };
   const cleanup = () => {
     cleanupPromise ??= releaseResources().finally(() => {
@@ -133,6 +136,8 @@ export default async function setup(project: TestProject) {
       .withPassword(randomUUID())
       .withStartupTimeout(120_000)
       .start();
+    // Never inherit SMTP_URL either: mail goes only to this new Mailpit.
+    mailpit = await startMailpit();
     postgresStream = await postgres.logs();
     postgresStream.pipe(postgresLog, { end: false });
     const baseURL = `http://127.0.0.1:${await availablePort()}`;
@@ -152,6 +157,8 @@ export default async function setup(project: TestProject) {
       GITHUB_CLIENT_SECRET: githubClient.clientSecret,
       GITHUB_OAUTH_URL: githubStub.url,
       GITHUB_API_URL: githubStub.url,
+      SMTP_URL: mailpit.smtpURL,
+      MAIL_FROM: INTEGRATION_MAIL_FROM,
     };
     migrations = spawn("npm", ["run", "db:migrate"], {
       cwd: repositoryRoot,
@@ -185,6 +192,8 @@ export default async function setup(project: TestProject) {
     project.provide("baseURL", baseURL);
     project.provide("databaseURL", environment.DATABASE_URL!);
     project.provide("githubStubURL", githubStub.url);
+    project.provide("smtpURL", mailpit.smtpURL);
+    project.provide("mailpitURL", mailpit.apiURL);
     project.provide("browserSession", browserSession);
     project.provide("integrationArtifactsDirectory", artifactsDirectory);
     browserReady = true;
@@ -192,6 +201,6 @@ export default async function setup(project: TestProject) {
   } catch (error) {
     await appendFile(join(artifactsDirectory, "setup.log"), `${String(error)}\n`);
     await cleanup();
-    throw new Error("Integration setup failed. Build the app first and ensure Docker and agent-browser Chromium are available; see test-results/integration logs.", { cause: error });
+    throw new Error("Integration setup failed. Build the app first and ensure Docker (PostgreSQL and Mailpit images) and agent-browser Chromium are available; see test-results/integration logs.", { cause: error });
   }
 }

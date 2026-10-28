@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
     "@mikro-orm/sql",
     "@mikro-orm/migrations",
     "@mikro-orm/seeder",
+    // Node-only SMTP client (net/tls/fs); load it from node_modules at runtime.
+    "nodemailer",
   ],
 };
 

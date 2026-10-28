@@ -17,6 +17,7 @@ import { AuthSessionService } from "@/server/services/auth/auth-session.service"
 import { GitHubSignInService } from "@/server/services/auth/github-sign-in.service";
 import { RoleService } from "@/server/services/auth/role.service";
 import { UserService } from "@/server/services/auth/user.service";
+import { SmtpEmailSender } from "@/server/services/notifications/adapters/smtp-email-sender";
 
 // The composition root: the only place where dependencies are registered.
 // Every service is listed explicitly (no folder scanning) and typed in cradle.ts.
@@ -34,6 +35,8 @@ function buildContainer(): AppContainer {
     githubSignInService: asClass(GitHubSignInService),
     roleService: asClass(RoleService),
     userService: asClass(UserService),
+    // The EmailSender port's SMTP adapter; it reads config.email() on first send.
+    emailSender: asClass(SmtpEmailSender, { lifetime: Lifetime.SINGLETON }),
   });
   return container;
 }
