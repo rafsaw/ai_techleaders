@@ -51,9 +51,9 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 ### Phase 2 — review fixes (Codex review, REQUEST CHANGES, 2026-10-28)
 
-- [~] R7 `/confirm-email` (token page) is marked `noindex`
-- [~] R8 `clientIp` canonicalizes IPv6 (incl. IPv4-mapped) before rate-limit keys
-- [ ] R3.G Full Phase 2 gate + run log
+- [x] R7 `/confirm-email` (token page) is marked `noindex`
+- [x] R8 `clientIp` canonicalizes IPv6 (incl. IPv4-mapped) before rate-limit keys
+- [x] R3.G Full Phase 2 gate + run log
 
 ## Phase 3 — #46 invitation management, then #36 acceptance
 
