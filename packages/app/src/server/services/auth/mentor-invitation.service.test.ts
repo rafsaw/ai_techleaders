@@ -114,6 +114,9 @@ function setup({ rows = [] as Row[], appUrl = "https://devmentor.test" as string
     config: createAppConfig(appUrl === null ? {} : { APP_URL: appUrl }),
     logger,
     emailSender,
+    // Management never grants roles or reads accounts (accept has its own tests).
+    roleService: {} as never,
+    userService: {} as never,
   });
   return { service, events, table, hooks, emailSender, logger };
 }

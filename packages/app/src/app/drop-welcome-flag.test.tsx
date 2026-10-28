@@ -1,7 +1,7 @@
 // jsdom: the helper reads and replaces the browser address.
 import { afterEach, describe, expect, it } from "vitest";
 
-import { dropWelcomeFlag } from "@/app/drop-welcome-flag";
+import { dropQueryFlag, dropWelcomeFlag } from "@/app/drop-welcome-flag";
 
 const address = () => `${window.location.pathname}${window.location.search}${window.location.hash}`;
 
@@ -23,6 +23,15 @@ describe("dropWelcomeFlag (SM-AC7)", () => {
   it("keeps history.state for the Next.js router", () => {
     window.history.replaceState({ tree: "next" }, "", "/account?welcome=1");
     dropWelcomeFlag();
+    expect(window.history.state).toEqual({ tree: "next" });
+  });
+});
+
+describe("dropQueryFlag", () => {
+  it("drops only the named parameter", () => {
+    window.history.replaceState({ tree: "next" }, "", "/?welcome=1&invitation=accepted#top");
+    dropQueryFlag("invitation");
+    expect(address()).toBe("/?welcome=1#top");
     expect(window.history.state).toEqual({ tree: "next" });
   });
 });

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 /**
- * Pages whose address carries a raw single-use token (`/confirm-email` now,
- * `/invite/[token]` in accounts Phase 3; platform P8). The token must not
+ * Pages whose address carries a raw single-use token (`/confirm-email`,
+ * `/invite/[token]`; platform P8). The token must not
  * leave as a referrer, be stored by a browser or shared cache, or be indexed.
  *
  * Both halves are needed: the metadata renders `<meta name="referrer">` and
@@ -21,3 +21,14 @@ export const TOKEN_PAGE_HEADERS = [
   { key: "Cache-Control", value: "private, no-store" },
   { key: "X-Robots-Tag", value: "noindex, nofollow" },
 ];
+
+/** The auth pages that keep a `returnTo`, which is a token page's address after an invitation. */
+export const RETURN_TO_PAGES = ["/sign-in", "/sign-up", "/sign-up/check-email"] as const;
+
+/**
+ * `returnTo` values that carry an invitation token (`/invite/<token>`), as
+ * `next.config.ts` matches the decoded query value. Pages with such a
+ * `returnTo` get the token-page headers too, so a nested token is not leaked
+ * as a referrer, cached or indexed either.
+ */
+export const INVITATION_RETURN_TO_PATTERN = "/invite/.*";

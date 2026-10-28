@@ -5,12 +5,15 @@ import { LinkButton } from "@devmentor/ui/frontend/actions/LinkButton";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { first, withReturnTo } from "@/app/(frontend)/auth-links";
+import { first, returnToPageMetadata, withReturnTo } from "@/app/(frontend)/auth-links";
 import { getPrincipal } from "@/server/auth/page-guards";
 
-export const metadata: Metadata = { title: "Check your email" };
-
 type SearchParams = Record<string, string | string[] | undefined>;
+
+// From an invitation, `returnTo` carries its token: no referrer, no indexing then.
+export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParams> }): Promise<Metadata> {
+  return returnToPageMetadata("Check your email", parseReturnTo(first((await searchParams).returnTo)));
+}
 
 /**
  * /sign-up/check-email (accounts Flow 2, SM-AC3, SM-AC5): "Check your inbox

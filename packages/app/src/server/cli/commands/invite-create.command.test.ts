@@ -63,6 +63,8 @@ function cli({ open = false } = {}) {
       config: createAppConfig({ APP_URL: "https://devmentor.test" }),
       logger,
       emailSender,
+      roleService: {} as never,
+      userService: {} as never,
     })),
   });
   const stdout: string[] = [];

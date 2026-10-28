@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-28 — A Server Component that imports a value from a `"use client"` module gets a reference, not the value
+
+**Context:** E01 step 3.3. Home compared `params[INVITATION_ACCEPTED_FLAG]` with the flag name exported from the client component `invitation-accepted-notice.tsx`. Every unit test passed (Vitest has no RSC boundary), but in `next start` the notice never rendered: across the boundary the export is a client reference, so the lookup key was not `"invitation"`.
+**Lesson:** a `"use client"` module may export components to the server, never plain values (strings, objects, functions to call). Put shared constants in an isomorphic module (here `(frontend)/auth-links.ts`) and import them from both sides. Smoke a server page against the production build (or an integration test) whenever it reads a constant shared with a client component.
+**Applies to:** `packages/app/src/app/**` Server Components importing from client modules.
+
 ### 2026-10-28 — A CLI command that imports a service loads `@devmentor/db` before env
 
 **Context:** E01 step 3.2. All unit tests passed, but every real `npm run operator -- invite …` failed with "unexpected error" (MikroORM: "No database specified"). `invite-flags.ts` imported a constant from `mentor-invitation.service.ts`, which imports `@devmentor/db`; `run-cli.ts` imports every command statically, so the db config read an empty `DATABASE_URL` before `loadEnv` ran. The role commands never hit this because they import nothing from db.

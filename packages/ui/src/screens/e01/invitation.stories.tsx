@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { delay, http } from "msw";
 import { expect, fn, userEvent, waitFor } from "storybook/test";
 
+import { z } from "zod";
+
 import { apiCall } from "@devmentor/ui/api/apiCall";
 import { InvitationPanel, type InvitationState } from "@devmentor/ui/components/auth/InvitationPanel";
 
@@ -13,6 +15,9 @@ const SIGN_OUT = "/api/auth/sign-out";
 const TOKEN = "k7Qm2xV9pLr4";
 const returnTo = encodeURIComponent(`/invite/${TOKEN}`);
 const navigate = fn();
+// The app passes the route's invitationAcceptSchema; these mirror it.
+const tokenSchema = z.object({ token: z.string().min(1) });
+const noBody = z.object({});
 
 type Status = InvitationState["status"];
 
@@ -26,8 +31,12 @@ function stateFor(status: Status): InvitationState {
       return {
         status,
         currentEmail: "ada.private@example.com",
-        signOut: () => apiCall(SIGN_OUT, { method: "POST" }),
-        onSignedOut: navigate,
+        signOut: {
+          schema: noBody,
+          values: {},
+          submit: (_values, { signal }) => apiCall(SIGN_OUT, { method: "POST", signal }),
+          onDone: () => navigate(`/invite/${TOKEN}`),
+        },
       };
     case "already-mentor":
       return { status };
@@ -36,8 +45,13 @@ function stateFor(status: Status): InvitationState {
         status,
         displayName: "Ada Nowak",
         email: "ada@example.com",
-        accept: () => apiCall(ACCEPT, { method: "POST", body: { token: TOKEN } }),
-        onAccepted: () => navigate("/mentor"),
+        accept: {
+          schema: tokenSchema,
+          values: { token: TOKEN },
+          submit: (body, { signal }) => apiCall(ACCEPT, { method: "POST", body, signal }),
+          // E01 standalone: home with the accepted notice (SM-AC8a); /mentor from E02 Phase 1.
+          onDone: () => navigate("/?invitation=accepted"),
+        },
       };
   }
 }
@@ -67,11 +81,11 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Valid, signed in with the invited address: Accept invitation, then /mentor. */
+/** Valid, signed in with the invited address: Accept invitation, then home with the accepted notice (E01 standalone). */
 export const Valid: Story = {
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Accept invitation" }));
-    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/mentor"));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/?invitation=accepted"));
   },
 };
 

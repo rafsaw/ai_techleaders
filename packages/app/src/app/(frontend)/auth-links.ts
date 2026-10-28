@@ -3,6 +3,10 @@
 // sign-in, sign-up and the confirmation pages never loses an invitation or a
 // slot. Isomorphic: server pages and client forms build the same URLs.
 
+import type { Metadata } from "next";
+
+import { TOKEN_PAGE_METADATA } from "@/app/token-page";
+
 type SearchValue = string | string[] | undefined;
 
 /** The first of a repeated query parameter, as `/sign-in` already reads `returnTo`. */
@@ -30,3 +34,24 @@ export function checkEmailPath(email: string, emailSent: boolean, returnTo: stri
 export function isInvitation(returnTo: string | null | undefined): boolean {
   return returnTo?.startsWith("/invite/") ?? false;
 }
+
+/**
+ * Metadata for a page that keeps a `returnTo` (`RETURN_TO_PAGES`): its title,
+ * plus the token-page rules when the validated `returnTo` is an invitation,
+ * whose address carries the token (platform P8).
+ */
+export function returnToPageMetadata(title: string, returnTo: string | null): Metadata {
+  return isInvitation(returnTo) ? { title, ...TOKEN_PAGE_METADATA } : { title };
+}
+
+/** The flag a successful acceptance adds to `/`, for its one-time notice (SM-AC8a). */
+export const INVITATION_ACCEPTED_FLAG = "invitation";
+
+/**
+ * Where a successful acceptance goes (SM-AC8a): home, with the one-time
+ * "Invitation accepted" notice, while E01 runs standalone. E02 Phase 1
+ * changes it to `/mentor`; E01 never navigates to an unshipped page.
+ * Kept here, not in the client panel: a server page importing a value from a
+ * "use client" module gets a client reference, not the value.
+ */
+export const INVITATION_ACCEPTED_DESTINATION = `/?${INVITATION_ACCEPTED_FLAG}=accepted`;

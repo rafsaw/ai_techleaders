@@ -51,6 +51,7 @@ The five page states of E01 Flow 3: `invalid`, `signed-out`, `mismatch`, `alread
 | Invalid | *Invalid* |
 | Loading | *Pending* |
 | Error: revoked meanwhile (404) | *Accept failed* |
+| Error: too many attempts (429) | *Rate limited* |
 | Long name and address, 320 px | *Long content, narrow* |
 | Empty, many | not applicable |
 
@@ -59,7 +60,11 @@ The five page states of E01 Flow 3: `invalid`, `signed-out`, `mismatch`, `alread
 ## 7. Behaviour and accessibility
 
 - A mismatching account never sees the invited address or an Accept button (E01 Flow 3).
-- Accept and Sign out show their pending label and the server's message on failure; they do not navigate on failure (E01 F5).
+- Accept and Sign out run through the form core (`useSchemaForm`, F2): one request at a time even
+  for a double click, `signal` aborted on unmount, a 429 always reads the shared rate-limit message,
+  and after success the button stays pending until the page navigates away (`lockAfterSuccess`),
+  so a late click posts nothing.
+- They show the server's message on failure and do not navigate on failure (E01 F5).
 - Errors `role="alert"`; the already-mentor note `role="status"`.
 
 ## 8. Content
@@ -81,7 +86,8 @@ words (P-A3, proposal approved by Rafał).
 
 | Prop | Type | Description |
 |---|---|---|
-| `state` | union of the five states; `valid` carries `displayName`, `email`, `accept`, `onAccepted`; `mismatch` carries `currentEmail`, `signOut`, `onSignedOut`; `signed-out` carries `signInHref`, `signUpHref` | from the server |
+| `state` | union of the five states; `valid` carries `displayName`, `email`, `accept`; `mismatch` carries `currentEmail`, `signOut`; `signed-out` carries `signInHref`, `signUpHref` | from the server |
+| `InvitationAction` | `{ schema, values, submit(values, { signal }), onDone }` | `schema` is the route's request schema, `values` the hidden body (`{ token }` or `{}`), `onDone` runs after success only |
 
 <Controls of={Stories.Playground} />
 
@@ -93,8 +99,13 @@ words (P-A3, proposal approved by Rafał).
     status: "valid",
     displayName: account.displayName,
     email: account.email,
-    accept: () => apiCall("/api/auth/invitations/accept", { method: "POST", body: { token } }),
-    onAccepted: () => window.location.assign("/mentor"),
+    accept: {
+      schema: invitationAcceptSchema,
+      values: { token },
+      submit: (body, { signal }) => apiCall("/api/auth/invitations/accept", { method: "POST", body, signal }),
+      // E01 standalone: home with the accepted notice; /mentor once E02 Phase 1 ships.
+      onDone: () => window.location.assign("/?invitation=accepted"),
+    },
   }}
 />
 ```

@@ -2,13 +2,16 @@ import { parseReturnTo, RETURN_TO_FALLBACK } from "@devmentor/core/validators/au
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { first, withReturnTo } from "@/app/(frontend)/auth-links";
+import { first, returnToPageMetadata, withReturnTo } from "@/app/(frontend)/auth-links";
 import { AppSignInForm } from "@/app/(frontend)/sign-in/sign-in-form";
 import { getPrincipal } from "@/server/auth/page-guards";
 
-export const metadata: Metadata = { title: "Sign in" };
-
 type SearchParams = Record<string, string | string[] | undefined>;
+
+// From an invitation, `returnTo` carries its token: no referrer, no indexing then.
+export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParams> }): Promise<Metadata> {
+  return returnToPageMetadata("Sign in", parseReturnTo(first((await searchParams).returnTo)));
+}
 
 /**
  * /sign-in (accounts Flows 1 and 2): GitHub first, then the email form and

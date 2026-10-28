@@ -6,11 +6,11 @@ import type { Principal } from "@devmentor/core";
 import { apiCall } from "@devmentor/ui/api/apiCall";
 import type { ApiResult } from "@devmentor/ui/api/types";
 
-import { checkEmailPath, first, isInvitation, withReturnTo } from "@/app/(frontend)/auth-links";
+import { checkEmailPath, first, isInvitation, returnToPageMetadata, withReturnTo } from "@/app/(frontend)/auth-links";
 import ConfirmEmailPage, { metadata as confirmMetadata } from "@/app/(frontend)/confirm-email/page";
-import SignInPage from "@/app/(frontend)/sign-in/page";
-import CheckEmailPage, { metadata as checkEmailMetadata } from "@/app/(frontend)/sign-up/check-email/page";
-import SignUpPage, { metadata as signUpMetadata } from "@/app/(frontend)/sign-up/page";
+import SignInPage, { generateMetadata as signInMetadata } from "@/app/(frontend)/sign-in/page";
+import CheckEmailPage, { generateMetadata as checkEmailMetadata } from "@/app/(frontend)/sign-up/check-email/page";
+import SignUpPage, { generateMetadata as signUpMetadata } from "@/app/(frontend)/sign-up/page";
 import { navigateFully } from "@/app/full-navigation";
 import { getPrincipal } from "@/server/auth/page-guards";
 
@@ -53,6 +53,28 @@ describe("auth links", () => {
     expect(isInvitation("/invite/abc")).toBe(true);
     expect(isInvitation("/invitations")).toBe(false);
     expect(isInvitation(null)).toBe(false);
+  });
+});
+
+describe("auth pages with an invitation returnTo (nested token)", () => {
+  const tokenPage = { referrer: "no-referrer", robots: { index: false, follow: false } };
+
+  it.each([
+    ["/sign-in", signInMetadata, "Sign in"],
+    ["/sign-up", signUpMetadata, "Create an account"],
+    ["/sign-up/check-email", checkEmailMetadata, "Check your email"],
+  ] as const)("%s is no-referrer and noindex only while its returnTo is an invitation", async (_page, metadataOf, title) => {
+    expect(await metadataOf(params({ returnTo: "/invite/secret-token" }))).toEqual({ title, ...tokenPage });
+    expect(await metadataOf(params({ returnTo: ["/invite/secret-token", "/account"] }))).toEqual({ title, ...tokenPage });
+    expect(await metadataOf(params({ returnTo: "/account" }))).toEqual({ title });
+    // An unsafe value is no returnTo at all.
+    expect(await metadataOf(params({ returnTo: "//evil.example/invite/x" }))).toEqual({ title });
+    expect(await metadataOf(params())).toEqual({ title });
+  });
+
+  it("builds the rules from the validated returnTo", () => {
+    expect(returnToPageMetadata("Sign in", "/invite/abc")).toEqual({ title: "Sign in", ...tokenPage });
+    expect(returnToPageMetadata("Sign in", null)).toEqual({ title: "Sign in" });
   });
 });
 
@@ -108,7 +130,7 @@ describe("/sign-in email form", () => {
 describe("/sign-up", () => {
   it("shows N03, the password rule and the sign-in link before typing", async () => {
     render(await SignUpPage(params()));
-    expect(signUpMetadata.title).toBe("Create an account");
+    expect(await signUpMetadata(params())).toEqual({ title: "Create an account" });
     expect(screen.getByRole("heading", { level: 1, name: "Create an account" })).toBeVisible();
     expect(screen.getByRole("status")).toHaveTextContent("Password reset is not available yet.Save your password in a password manager, or use GitHub sign-in.");
     expect(screen.getByLabelText("Password")).toHaveAccessibleDescription("Use a short phrase of at least 15 characters.");
@@ -176,7 +198,7 @@ describe("/sign-up", () => {
 describe("/sign-up/check-email", () => {
   it("says where the link went and how long it works", async () => {
     render(await CheckEmailPage(params({ email: "ada@example.com", returnTo: "/account" })));
-    expect(checkEmailMetadata.title).toBe("Check your email");
+    expect(await checkEmailMetadata(params({ email: "ada@example.com" }))).toEqual({ title: "Check your email" });
     expect(screen.getByRole("heading", { level: 1, name: "Check your email" })).toBeVisible();
     expect(screen.getByRole("status")).toHaveTextContent("Check your inbox at ada@example.comThe link expires in 24 hours.");
     expect(screen.getByRole("link", { name: "Sign in" })).toHaveAttribute("href", "/sign-in?returnTo=%2Faccount");

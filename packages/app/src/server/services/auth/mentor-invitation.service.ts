@@ -1,6 +1,28 @@
-import { ConflictError, generateToken, hashToken, NotFoundError, summarizeError, type Cradle } from "@devmentor/core";
-import { LockMode, MentorInvitation, UniqueConstraintViolationException, type EntityManager } from "@devmentor/db";
+import {
+  ConflictError,
+  ForbiddenError,
+  generateToken,
+  hashToken,
+  isWellFormedToken,
+  NotFoundError,
+  summarizeError,
+  UnauthorizedError,
+  type Cradle,
+  type Principal,
+} from "@devmentor/core";
+import { INVITATION_INVALID_MESSAGE } from "@devmentor/core/validators/auth/invitation-accept.schema";
+import {
+  consumeSingleUseToken,
+  inspectSingleUseToken,
+  LockMode,
+  MentorInvitation,
+  UniqueConstraintViolationException,
+  User,
+  UserRole,
+  type EntityManager,
+} from "@devmentor/db";
 
+import type { AccountDto } from "@/server/services/auth/user.service";
 import { INVITATION_LIFETIME_DAYS } from "@/server/services/auth/mentor-invitation.policy";
 import { mentorInvitationEmail } from "@/server/services/notifications/templates/mentor-invitation";
 
@@ -32,6 +54,33 @@ interface PendingInvitation {
   token: string;
 }
 
+/**
+ * What `/invite/[token]` shows (accounts Flow 3 step 2). An unknown,
+ * malformed, used, expired, revoked or rotated (resent) link is one `invalid`
+ * state. A mismatching or unverified account sees only its own address, never
+ * the invited one.
+ */
+export type InvitationPageState =
+  | { status: "invalid" }
+  | { status: "signed-out" }
+  | { status: "mismatch"; currentEmail: string }
+  | { status: "already-mentor" }
+  | { status: "valid"; displayName: string; email: string };
+
+/** The 403 for an account whose verified address is not the invited one; it never names that address. */
+export const INVITATION_EMAIL_MISMATCH_MESSAGE = "This invitation requires the verified email address it was sent to";
+/** The 409 for an account that already holds mentor; the invitation stays unconsumed. */
+export const ALREADY_MENTOR_MESSAGE = "You already have the mentor role";
+
+function invalidInvitation(): NotFoundError {
+  return new NotFoundError(INVITATION_INVALID_MESSAGE);
+}
+
+/** Only a verified account whose (normalized) address is the bound one may accept. */
+function isInvitee(user: User, invitation: MentorInvitation): boolean {
+  return user.emailConfirmedAt != null && user.email === invitation.email;
+}
+
 export function activeInvitationConflict(email: string): ConflictError {
   return new ConflictError(`${email} already has an open invitation. Use invite resend or revoke.`);
 }
@@ -59,13 +108,25 @@ export class MentorInvitationService {
   private readonly config: Cradle["config"];
   private readonly logger: Cradle["logger"];
   private readonly emailSender: Cradle["emailSender"];
+  private readonly roleService: Cradle["roleService"];
+  private readonly userService: Cradle["userService"];
 
-  constructor({ em, clock, config, logger, emailSender }: Pick<Cradle, "em" | "clock" | "config" | "logger" | "emailSender">) {
+  constructor({
+    em,
+    clock,
+    config,
+    logger,
+    emailSender,
+    roleService,
+    userService,
+  }: Pick<Cradle, "em" | "clock" | "config" | "logger" | "emailSender" | "roleService" | "userService">) {
     this.em = em;
     this.clock = clock;
     this.config = config;
     this.logger = logger;
     this.emailSender = emailSender;
+    this.roleService = roleService;
+    this.userService = userService;
   }
 
   /**
@@ -139,6 +200,74 @@ export class MentorInvitationService {
       return { invitation: open, token };
     }, { clear: true });
     return this.#deliver(pending);
+  }
+
+  /**
+   * The state of an invitation link for `/invite/[token]` and who is looking
+   * (accounts Flow 3 step 2). Reads only: it never consumes, locks or
+   * changes anything (AD5), so a mail scanner's GET is harmless.
+   */
+  async inspect(token: string, principal: Principal | null): Promise<InvitationPageState> {
+    const invitation = await this.#usable(this.em, token);
+    if (!invitation) return { status: "invalid" };
+    if (!principal) return { status: "signed-out" };
+    const user = await this.em.findOne(User, { id: principal.userId });
+    // A session whose account is gone (deleted meanwhile) is no one.
+    if (!user) return { status: "signed-out" };
+    if (!isInvitee(user, invitation)) return { status: "mismatch", currentEmail: user.email };
+    if (await this.#isMentor(this.em, user.id)) return { status: "already-mentor" };
+    return { status: "valid", displayName: user.name, email: user.email };
+  }
+
+  /**
+   * Accepts the invitation for the signed-in account (accounts Flow 3 step
+   * 3). One transaction locks the user, then the invitation (the credential
+   * lock order; revoke and resend lock the same invitation row), and re-reads
+   * both under the locks:
+   *
+   * - unknown, used, expired, revoked or rotated: 404 `not_found`;
+   * - unverified, or another address: 403 `forbidden`, nothing consumed;
+   * - already a mentor: 409 `conflict`, nothing consumed;
+   * - otherwise consume the token (P9), record `acceptedBy` and add mentor
+   *   through `RoleService.grantMentorFromInvitation`, keeping every role.
+   *
+   * The session is not touched: no rotation, and ordinary P3 renewal sets the
+   * cookie. Returns the account as it is now, mentor included.
+   */
+  async accept(token: string, principal: Principal): Promise<AccountDto> {
+    await this.em.transactional(async (em) => {
+      const user = await em.findOne(User, { id: principal.userId }, { lockMode: LockMode.PESSIMISTIC_WRITE });
+      if (!user) throw new UnauthorizedError();
+      if (isWellFormedToken(token)) {
+        await em.findOne(MentorInvitation, { tokenHash: hashToken(token) }, { lockMode: LockMode.PESSIMISTIC_WRITE });
+      }
+      const invitation = await this.#usable(em, token);
+      if (!invitation) throw invalidInvitation();
+      if (!isInvitee(user, invitation)) throw new ForbiddenError(INVITATION_EMAIL_MISMATCH_MESSAGE);
+      if (await this.#isMentor(em, user.id)) throw new ConflictError(ALREADY_MENTOR_MESSAGE);
+
+      const consumed = await consumeSingleUseToken(em, MentorInvitation, token, this.clock.now());
+      if (consumed.status !== "consumed") throw invalidInvitation();
+      consumed.record.acceptedBy = user;
+      this.roleService.grantMentorFromInvitation(em, { user, invitation: consumed.record });
+    }, { clear: true });
+    return this.userService.getAccount(principal.userId);
+  }
+
+  /**
+   * The invitation behind a raw token while it can still be accepted: found
+   * by hash (P9), unused, unexpired and not revoked. Revocation is this
+   * concept's own rule, so the generic token helper does not know it; a
+   * rotated (resent) token no longer matches any hash.
+   */
+  async #usable(em: EntityManager, token: string): Promise<MentorInvitation | null> {
+    const lookup = await inspectSingleUseToken(em, MentorInvitation, token, this.clock.now());
+    if (lookup.status !== "valid" || lookup.record.revokedAt) return null;
+    return lookup.record;
+  }
+
+  async #isMentor(em: EntityManager, userId: string): Promise<boolean> {
+    return (await em.count(UserRole, { user: userId, role: "mentor" })) > 0;
   }
 
   /** The address's open invitation (expired or not), locked for this transaction. */

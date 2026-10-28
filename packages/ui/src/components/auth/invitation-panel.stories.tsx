@@ -1,15 +1,24 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor } from "storybook/test";
+import { z } from "zod";
 
 import type { ApiResult } from "@devmentor/ui/api/types";
-import { InvitationPanel } from "@devmentor/ui/components/auth/InvitationPanel";
+import { InvitationPanel, type InvitationAction } from "@devmentor/ui/components/auth/InvitationPanel";
 
+// The app passes the route's invitationAcceptSchema; these mirror it.
+const tokenSchema = z.object({ token: z.string().min(1, "This invitation is not valid") });
+const noBody = z.object({});
+
+function acceptAction(submit: InvitationAction["submit"]): InvitationAction {
+  return { schema: tokenSchema, values: { token: "tok" }, submit, onDone: fn() };
+}
+
+const accepted = acceptAction(fn(async (): Promise<ApiResult<unknown>> => ({ ok: true, data: {} })));
 const valid = {
   status: "valid" as const,
   displayName: "Ada Nowak",
   email: "ada@example.com",
-  accept: fn(async (): Promise<ApiResult<unknown>> => ({ ok: true, data: {} })),
-  onAccepted: fn(),
+  accept: accepted,
 };
 
 const meta = {
@@ -27,7 +36,10 @@ type Story = StoryObj<typeof meta>;
 export const Playground: Story = {
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Accept invitation" }));
-    await waitFor(() => expect(valid.onAccepted).toHaveBeenCalled());
+    await waitFor(() => expect(accepted.onDone).toHaveBeenCalled());
+    // Locked after success while the page navigates: a second click sends nothing.
+    await expect(canvas.getByRole("button", { name: "Accepting invitation…" })).toBeDisabled();
+    await expect(accepted.submit).toHaveBeenCalledTimes(1);
   },
 };
 
@@ -42,8 +54,12 @@ export const Mismatch: Story = {
     state: {
       status: "mismatch",
       currentEmail: "ada@work.example",
-      signOut: fn(async (): Promise<ApiResult<unknown>> => ({ ok: true, data: { redirectTo: "/" } })),
-      onSignedOut: fn(),
+      signOut: {
+        schema: noBody,
+        values: {},
+        submit: fn(async (): Promise<ApiResult<unknown>> => ({ ok: true, data: { redirectTo: "/" } })),
+        onDone: fn(),
+      },
     },
   },
   play: async ({ canvas }) => {
@@ -61,7 +77,7 @@ export const Invalid: Story = { args: { state: { status: "invalid" } } };
 
 /** Loading: Accepting invitation… while the server works. */
 export const Pending: Story = {
-  args: { state: { ...valid, accept: fn(() => new Promise<ApiResult<unknown>>(() => {})) } },
+  args: { state: { ...valid, accept: acceptAction(fn(() => new Promise<ApiResult<unknown>>(() => {}))) } },
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Accept invitation" }));
     await expect(canvas.getByRole("button", { name: "Accepting invitation…" })).toBeDisabled();
@@ -73,12 +89,27 @@ export const AcceptFailed: Story = {
   args: {
     state: {
       ...valid,
-      accept: fn(async (): Promise<ApiResult<unknown>> => ({ ok: false, error: { code: "not_found", message: "This invitation is not valid" } })),
+      accept: acceptAction(fn(async (): Promise<ApiResult<unknown>> => ({ ok: false, error: { code: "not_found", message: "This invitation is not valid" } }))),
     },
   },
   play: async ({ canvas }) => {
     await userEvent.click(canvas.getByRole("button", { name: "Accept invitation" }));
     await expect(await canvas.findByRole("alert")).toHaveTextContent("This invitation is not valid");
+    await expect(canvas.getByRole("button", { name: "Accept invitation" })).toBeEnabled();
+  },
+};
+
+/** Error: 429 always reads the shared rate-limit message, without a countdown. */
+export const RateLimited: Story = {
+  args: {
+    state: {
+      ...valid,
+      accept: acceptAction(fn(async (): Promise<ApiResult<unknown>> => ({ ok: false, error: { code: "rate_limited", message: "Slow down" } }))),
+    },
+  },
+  play: async ({ canvas }) => {
+    await userEvent.click(canvas.getByRole("button", { name: "Accept invitation" }));
+    await expect(await canvas.findByRole("alert")).toHaveTextContent("Too many attempts. Try again later");
   },
 };
 

@@ -49,11 +49,30 @@ describe("page composition", () => {
     });
 
   it("renders the public heading without a backend link, reading the principal for activity", async () => {
-    render(await Home());
+    render(await Home({ searchParams: Promise.resolve({}) }));
     expect(getPrincipal).toHaveBeenCalled();
     expect(screen.getByRole("heading", { name: "DevMentor" })).toBeVisible();
     // The (frontend) header carries the sign-in state and Backend for operators.
     expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("shows a new mentor the one-time accepted notice after an invitation (SM-AC8a) and drops the flag", async () => {
+    vi.mocked(getPrincipal).mockResolvedValue({ ...operator, roles: ["mentee", "mentor"] });
+    window.history.replaceState(null, "", "/?invitation=accepted");
+    render(await Home({ searchParams: Promise.resolve({ invitation: ["accepted", "x"] }) }));
+    expect(screen.getByRole("status")).toHaveTextContent("Invitation accepted. You're now a mentor.");
+    expect(window.location.search).toBe("");
+  });
+
+  it.each([
+    ["signed out", null, "accepted"],
+    ["an account without mentor", operator, "accepted"],
+    ["another flag value", { ...operator, roles: ["mentor"] } satisfies Principal, "yes"],
+  ])("shows no accepted notice to %s", async (_case, principal, value) => {
+    vi.mocked(getPrincipal).mockResolvedValue(principal);
+    render(await Home({ searchParams: Promise.resolve({ invitation: value }) }));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("provides backend navigation around the page for an operator", async () => {

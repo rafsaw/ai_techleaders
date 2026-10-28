@@ -7,7 +7,7 @@ import type { ApiResult } from "../../api/types";
 import { AccountSummary } from "./AccountSummary";
 import { CHECK_EMAIL_EXPIRY, CheckEmailNotice, EMAIL_NOT_SENT } from "./CheckEmailNotice";
 import { ConfirmEmailPanel } from "./ConfirmEmailPanel";
-import { InvitationPanel } from "./InvitationPanel";
+import { InvitationPanel, type InvitationAction } from "./InvitationPanel";
 import { GITHUB_ERRORS, SIGN_IN_ERRORS, SignInOptions } from "./SignInOptions";
 import { SiteHeader } from "./SiteHeader";
 import { DISPLAY_NAME_HINT, INVITED_NOTICE, SignUpForm } from "./SignUpForm";
@@ -229,29 +229,73 @@ describe("InvitationPanel", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it("accepts for a matching account and shows the server's message on failure", async () => {
+  const tokenSchema = z.object({ token: z.string().min(1, "This invitation is not valid") });
+  const noBody = z.object({});
+  const action = (submit: InvitationAction["submit"], onDone = vi.fn(), values: Record<string, string> = { token: "tok" }) =>
+    ({ schema: values.token === undefined ? noBody : tokenSchema, values, submit, onDone }) as InvitationAction;
+
+  it("accepts for a matching account, posting the token with an abort signal, and shows the server's message on failure", async () => {
     const onAccepted = vi.fn();
     const accept = vi.fn()
       .mockResolvedValueOnce(fail("conflict", "You already have the mentor role"))
       .mockResolvedValueOnce({ ok: true, data: {} });
-    render(<InvitationPanel state={{ status: "valid", displayName: "Ada Nowak", email: "ada@example.com", accept, onAccepted }} />);
+    render(<InvitationPanel state={{ status: "valid", displayName: "Ada Nowak", email: "ada@example.com", accept: action(accept, onAccepted) }} />);
     expect(screen.getByText(/This account will receive the mentor role/)).toHaveTextContent("Accept as Ada Nowak (ada@example.com).");
     fireEvent.click(screen.getByRole("button", { name: "Accept invitation" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("You already have the mentor role");
+    expect(accept).toHaveBeenCalledWith({ token: "tok" }, { signal: expect.any(AbortSignal) });
     expect(onAccepted).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Accept invitation" }));
     await waitFor(() => expect(onAccepted).toHaveBeenCalledOnce());
   });
 
-  it("offers only sign-out to a mismatching account, without an Accept button", async () => {
+  it("sends one accept for a double click, and stays locked after success until the page navigates away", async () => {
+    const onAccepted = vi.fn();
+    const accept = vi.fn().mockResolvedValue({ ok: true, data: {} });
+    render(<InvitationPanel state={{ status: "valid", displayName: "Ada", email: "ada@example.com", accept: action(accept, onAccepted) }} />);
+    const button = screen.getByRole("button", { name: "Accept invitation" });
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await waitFor(() => expect(onAccepted).toHaveBeenCalledOnce());
+    // A late click after success (the navigation is still loading) posts nothing.
+    expect(screen.getByRole("button", { name: "Accepting invitation…" })).toBeDisabled();
+    fireEvent.submit(screen.getByRole("button", { name: "Accepting invitation…" }).closest("form")!);
+    await Promise.resolve();
+    expect(accept).toHaveBeenCalledOnce();
+  });
+
+  it("shows a 429 as the shared rate-limit message and a field-level failure as the form's", async () => {
+    const accept = vi.fn()
+      .mockResolvedValueOnce(fail("rate_limited", "Slow down"))
+      .mockResolvedValueOnce({ ok: false, error: { code: "validation_error", message: "Invalid input", fieldErrors: { token: ["This invitation is not valid"] } } });
+    render(<InvitationPanel state={{ status: "valid", displayName: "Ada", email: "ada@example.com", accept: action(accept) }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Accept invitation" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Too many attempts. Try again later");
+    fireEvent.click(screen.getByRole("button", { name: "Accept invitation" }));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("This invitation is not valid"));
+  });
+
+  it("offers only sign-out to a mismatching account, without an Accept button or the invited address", async () => {
     const onSignedOut = vi.fn();
     const signOut = vi.fn().mockResolvedValue({ ok: true, data: { redirectTo: "/" } });
-    render(<InvitationPanel state={{ status: "mismatch", currentEmail: "ada@work.example", signOut, onSignedOut }} />);
+    render(<InvitationPanel state={{ status: "mismatch", currentEmail: "ada@work.example", signOut: action(signOut, onSignedOut, {}) }} />);
     expect(screen.getByRole("alert")).toHaveTextContent("You are signed in as ada@work.example.");
+    expect(screen.getByRole("alert")).toHaveTextContent("Or ask the DevMentor team to re-invite ada@work.example.");
     expect(screen.queryByRole("button", { name: "Accept invitation" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
     expect(screen.getByRole("button", { name: "Signing out…" })).toBeDisabled();
     await waitFor(() => expect(onSignedOut).toHaveBeenCalledOnce());
+    expect(signOut).toHaveBeenCalledWith({}, { signal: expect.any(AbortSignal) });
+  });
+
+  it("stays on the page when sign-out fails", async () => {
+    const onSignedOut = vi.fn();
+    const signOut = vi.fn().mockResolvedValue(fail("network_error", "Could not reach the server. Check your connection and try again."));
+    render(<InvitationPanel state={{ status: "mismatch", currentEmail: "ada@work.example", signOut: action(signOut, onSignedOut, {}) }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    await waitFor(() => expect(screen.getAllByRole("alert").at(-1)).toHaveTextContent("Could not reach the server."));
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeEnabled();
+    expect(onSignedOut).not.toHaveBeenCalled();
   });
 });
 
