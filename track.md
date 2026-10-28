@@ -47,7 +47,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - [x] 2.5 `PasswordHasher`, `PasswordAccountService`, schemas, four POST routes, AD3 claim rule in GitHub sign-in
 - [x] 2.6 Public-form infrastructure (F2/F3) and UI: `/sign-in` email form, `/sign-up`, `/sign-up/check-email`, `/confirm-email`
 - [x] 2.7 Documentation (README, AGENTS.md, BACKWARD_COMPATIBILITY.md) — spec step 2.7 (no credential race tests) is a non-task
-- [~] 2.G Phase 2 full gate + run log → **manual test pause**
+- [x] 2.G Phase 2 full gate + run log → **manual test pause**
 
 ## Phase 3 — #46 invitation management, then #36 acceptance
 
