@@ -2,10 +2,12 @@ import { userCreateSchema } from "@devmentor/core/validators/auth/user-create.sc
 
 import { makeCrudRoute } from "@/server/http";
 
-// TODO(auth): unauthenticated until the auth concept lands; then guard with
-// requireSession before exposing this outside development.
+// Public until the operator gate (accounts spec, Phase 1 step 10) switches
+// it to `access: { role: "operator" }`.
 export const { GET, POST } = makeCrudRoute({
   methods: ["GET", "POST"],
+  access: "public",
+  logRoute: "/api/users",
   service: ({ userService }) => userService,
   createSchema: userCreateSchema,
 });

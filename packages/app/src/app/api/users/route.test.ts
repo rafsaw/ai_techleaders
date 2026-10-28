@@ -1,9 +1,10 @@
-import { asValue, createAppContainer, registerCore } from "@devmentor/core";
+import { asValue, createAppContainer, registerCore, type Principal } from "@devmentor/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/server/container", () => {
   const container = createAppContainer();
   registerCore(container);
+  container.register({ principalResolver: asValue({ resolve: async () => null }) });
   return { container };
 });
 
@@ -31,5 +32,16 @@ describe("users API route", () => {
     }), ctx);
     expect(invalid.status).toBe(400);
     expect(service.create).toHaveBeenCalledOnce();
+  });
+
+  it("stays public until the operator gate: a signed-in caller is not required", async () => {
+    // Step 1.10 switches this route to `access: { role: "operator" }`.
+    const principal: Principal = { userId: "u", sessionId: "s", displayName: "Ada", roles: ["mentee"] };
+    container.register({ userService: asValue({ list: vi.fn().mockResolvedValue([]) }),
+      principalResolver: asValue({ resolve: vi.fn().mockResolvedValue(principal) }) });
+    const response = await GET(new Request("http://localhost/api/users"), { params: Promise.resolve({}) });
+    expect(response.status).toBe(200);
+    container.register({ principalResolver: asValue({ resolve: async () => null }) });
+    expect((await GET(new Request("http://localhost/api/users"), { params: Promise.resolve({}) })).status).toBe(200);
   });
 });

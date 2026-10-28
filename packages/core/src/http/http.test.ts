@@ -10,7 +10,7 @@ import {
 function setup() {
   const container = createAppContainer();
   const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
-  container.register({ logger: asValue(logger) });
+  container.register({ logger: asValue(logger), principalResolver: asValue({ resolve: async () => null }) });
   return { container, logger, apiHandler: createApiHandler(container) };
 }
 
@@ -73,7 +73,7 @@ describe("input validation", () => {
 describe("API envelope", () => {
   it.each(["GET", "HEAD", "OPTIONS"])("permits safe %s requests without CSRF", async (method) => {
     const { apiHandler } = setup();
-    const response = await apiHandler(async () => ({ accepted: true }))(request(method, undefined, undefined, false), ctx);
+    const response = await apiHandler(async () => ({ accepted: true }), { access: "public" })(request(method, undefined, undefined, false), ctx);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true, data: { accepted: true } });
   });
@@ -86,7 +86,7 @@ describe("API envelope", () => {
       expect(cradle.logger).toBe(logger);
       return "created";
     });
-    const wrapped = apiHandler(handler, { status: 201 });
+    const wrapped = apiHandler(handler, { access: "public", status: 201 });
     const response = await wrapped(request("POST"), ctx);
     await wrapped(request("POST"), ctx);
     expect(scopeSpy).toHaveBeenCalledTimes(2);
@@ -97,14 +97,14 @@ describe("API envelope", () => {
 
   it.each([undefined, null])("normalizes nullish data %s", async (data) => {
     const { apiHandler } = setup();
-    const response = await apiHandler(async () => data, {})(request(), ctx);
+    const response = await apiHandler(async () => data, { access: "public" })(request(), ctx);
     expect(await response.json()).toEqual({ ok: true, data: null });
   });
 
   it("rejects missing CSRF before executing state-changing handlers", async () => {
     const { apiHandler } = setup();
     const handler = vi.fn();
-    const response = await apiHandler(handler)(request("POST", undefined, undefined, false), ctx);
+    const response = await apiHandler(handler, { access: "public" })(request("POST", undefined, undefined, false), ctx);
     expect(handler).not.toHaveBeenCalled();
     expect(response.status).toBe(403);
     expect(await response.json()).toEqual({ ok: false, error: { code: "forbidden", message: "Missing CSRF header" } });
@@ -113,7 +113,7 @@ describe("API envelope", () => {
   it.each([new UnauthorizedError(), new ForbiddenError(), new NotFoundError(), new ConflictError(),
     new ValidationError({ name: ["required"] })])("maps domain error $code", async (error) => {
     const { apiHandler, logger } = setup();
-    const response = await apiHandler(async () => { throw error; })(request(), ctx);
+    const response = await apiHandler(async () => { throw error; }, { access: "public" })(request(), ctx);
     expect(response.status).toBe(error.status);
     expect(await response.json()).toEqual({ ok: false, error: {
       code: error.code, message: error.message,
@@ -125,11 +125,10 @@ describe("API envelope", () => {
   it("logs unexpected failures without disclosing their details", async () => {
     const { apiHandler, logger } = setup();
     const error = new Error("private details");
-    const req = request();
-    const response = await apiHandler(async () => { throw error; })(req, ctx);
+    const response = await apiHandler(async () => { throw error; }, { access: "public" })(request(), ctx);
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({ ok: false, error: { code: "internal_error", message: "Something went wrong" } });
-    expect(logger.error).toHaveBeenCalledWith("Unhandled API error", { method: "GET", url: req.url, error });
+    expect(logger.error).toHaveBeenCalledWith("Unhandled API error", { method: "GET", route: "api", error: { name: "Error" } });
   });
 });
 
@@ -139,7 +138,7 @@ describe("CRUD handlers", () => {
     const service = { list: vi.fn().mockResolvedValue([]), create: vi.fn().mockResolvedValue({ id: "new" }),
       update: vi.fn().mockResolvedValue({ id: "updated" }), delete: vi.fn().mockResolvedValue(undefined) };
     const schema = z.object({ name: z.string().trim().min(1) });
-    const routes = createMakeCrudRoute(apiHandler)({ methods: ["GET", "POST", "PUT", "DELETE"],
+    const routes = createMakeCrudRoute(apiHandler)({ methods: ["GET", "POST", "PUT", "DELETE"], access: "public",
       service: () => service, createSchema: schema, updateSchema: schema });
     return { routes, service };
   }
@@ -171,7 +170,7 @@ describe("CRUD handlers", () => {
 
   it("only exposes requested methods and maps service failures", async () => {
     const { apiHandler } = setup();
-    const routes = createMakeCrudRoute(apiHandler)({ methods: ["GET"], service: () => ({
+    const routes = createMakeCrudRoute(apiHandler)({ methods: ["GET"], access: "public", service: () => ({
       list: async () => { throw new NotFoundError("gone"); },
     }) });
     expect(Object.keys(routes)).toEqual(["GET"]);

@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import type { Cradle } from "../di/container";
 import type { ApiHandler, RouteHandler } from "./apiHandler";
+import type { Access } from "./auth";
 import { parseInput, readJsonBody } from "./validation";
 
 export type CrudMethod = "GET" | "POST" | "PUT" | "DELETE";
@@ -24,6 +25,10 @@ interface ServiceMethodFor {
 export type CrudRouteConfig<M extends CrudMethod, TCreate, TUpdate> = {
   /** The HTTP methods to expose; the route file re-exports exactly these. */
   methods: readonly M[];
+  /** Who may call every exposed method (platform PD3). Required: there is no default. */
+  access: Access;
+  /** Static route template for unexpected-error logs, e.g. `/api/users`. */
+  logRoute?: string;
   /** Resolves the concept's service from the request-scoped cradle. */
   service: (cradle: Cradle) => Pick<CrudService<TCreate, TUpdate>, ServiceMethodFor[M]>;
 } & ("POST" extends M ? { createSchema: z.ZodType<TCreate> } : unknown) &
@@ -46,6 +51,7 @@ function idFromQuery(req: Request): string {
  * ```ts
  * export const { GET, POST } = makeCrudRoute({
  *   methods: ["GET", "POST"],
+ *   access: "user",
  *   service: ({ favoriteService }) => favoriteService,
  *   createSchema: favoriteCreateSchema,
  * });
@@ -60,28 +66,35 @@ export function createMakeCrudRoute(apiHandler: ApiHandler): MakeCrudRoute {
   ) => {
     // The config type guarantees the service methods and schemas exist for
     // every method in `config.methods`; widen it once to build the handlers.
-    const { service, createSchema, updateSchema } = config as unknown as {
+    const { access, logRoute, service, createSchema, updateSchema } = config as unknown as {
+      access: Access;
+      logRoute?: string;
       service: (cradle: Cradle) => CrudService<TCreate, TUpdate>;
       createSchema: z.ZodType<TCreate>;
       updateSchema: z.ZodType<TUpdate>;
     };
 
+    const options = { access, logRoute };
+
     const builders: Record<CrudMethod, () => RouteHandler> = {
-      GET: () => apiHandler(({ cradle }) => service(cradle).list()),
+      GET: () => apiHandler(({ cradle }) => service(cradle).list(), options),
       POST: () =>
         apiHandler(
           async ({ req, cradle }) =>
             service(cradle).create(parseInput(createSchema, await readJsonBody(req))),
-          { status: 201 },
+          { ...options, status: 201 },
         ),
       PUT: () =>
-        apiHandler(async ({ req, cradle }) =>
-          service(cradle).update(
-            idFromQuery(req),
-            parseInput(updateSchema, await readJsonBody(req)),
-          ),
+        apiHandler(
+          async ({ req, cradle }) =>
+            service(cradle).update(
+              idFromQuery(req),
+              parseInput(updateSchema, await readJsonBody(req)),
+            ),
+          options,
         ),
-      DELETE: () => apiHandler(({ req, cradle }) => service(cradle).delete(idFromQuery(req))),
+      DELETE: () =>
+        apiHandler(({ req, cradle }) => service(cradle).delete(idFromQuery(req)), options),
     };
 
     return Object.fromEntries(
