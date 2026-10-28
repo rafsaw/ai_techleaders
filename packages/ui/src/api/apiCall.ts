@@ -4,7 +4,7 @@ import {
   type ApiFailure,
   type ApiResult,
   type FieldErrors,
-} from "@devmentor/ui/backend/api/types";
+} from "@devmentor/ui/api/types";
 
 export interface ApiCallOptions extends Omit<RequestInit, "body"> {
   /** Serialized as JSON. */

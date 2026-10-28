@@ -84,7 +84,7 @@ Imports name the module; select the named export shown in its API page. Compound
 
 ## Shared behavior and boundaries
 
-Use `useSchemaForm` from `@devmentor/ui/forms/useSchemaForm` for form behavior and `apiCall` / `apiCallOrThrow` from `@devmentor/ui/backend/api/apiCall` for `/api/*` (F2, reusable API/UI layer). Use `cn` from `@devmentor/ui/lib/utils` to preserve the custom token utilities (existing package contract). These are behavior helpers, not visual components.
+Use `useSchemaForm` from `@devmentor/ui/forms/useSchemaForm` for form behavior and `apiCall` / `apiCallOrThrow` from `@devmentor/ui/api/apiCall` for `/api/*` (F2, reusable API/UI layer). Use `cn` from `@devmentor/ui/lib/utils` to preserve the custom token utilities (existing package contract). These are behavior helpers, not visual components.
 
 Stories use simulated API responses and replacement schemas; they do not implement application authentication, persistence, Stripe or routing. Read [What is missing](?path=/docs/design-system-what-is-missing--docs) before implementing. Source: POSTEP stage 3 limitations.
 

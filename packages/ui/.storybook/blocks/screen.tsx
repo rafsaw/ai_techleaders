@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { fn } from "storybook/test";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { SiteHeader, type SiteHeaderProps } from "@devmentor/ui/components/auth/SiteHeader";
 import { cn } from "@devmentor/ui/lib/utils";
 

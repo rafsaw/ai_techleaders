@@ -2,7 +2,7 @@
 
 import { useState, type ComponentType, type ReactNode } from "react";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { LinkButton, linkButtonVariants } from "@devmentor/ui/frontend/actions/LinkButton";
 import { cn } from "@devmentor/ui/lib/utils";
 

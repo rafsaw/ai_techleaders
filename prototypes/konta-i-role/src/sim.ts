@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 
 import {
   alreadyHaveAccountMail, CONFIRM_LINK_TTL, confirmationMail, GITHUB_IDENTITIES, NOW, SEED_ACCOUNTS,

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { delay, http } from "msw";
 import { expect, fn, userEvent, waitFor } from "storybook/test";
 
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
+import { apiCall } from "@devmentor/ui/api/apiCall";
 import { N03_BODY, N03_TITLE } from "@devmentor/ui/components/auth/SignInOptions";
 import { LinkButton } from "@devmentor/ui/frontend/actions/LinkButton";
 import { Notice } from "@devmentor/ui/frontend/feedback/Notice";

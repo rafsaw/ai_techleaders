@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn } from "storybook/test";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { SetupChecklist } from "@devmentor/ui/components/mentors/SetupChecklist";
 import type { PayoutSetup } from "@devmentor/ui/components/payments/PayoutStatus";
 

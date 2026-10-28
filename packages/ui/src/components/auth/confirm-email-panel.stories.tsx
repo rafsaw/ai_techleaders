@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor } from "storybook/test";
 import { z } from "zod";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { ConfirmEmailPanel } from "@devmentor/ui/components/auth/ConfirmEmailPanel";
 
 const schema = z.object({ password: z.string().min(1, "Enter your password") });

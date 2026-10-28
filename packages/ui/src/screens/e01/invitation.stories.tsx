@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { delay, http } from "msw";
 import { expect, fn, userEvent, waitFor } from "storybook/test";
 
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
+import { apiCall } from "@devmentor/ui/api/apiCall";
 import { InvitationPanel, type InvitationState } from "@devmentor/ui/components/auth/InvitationPanel";
 
 import { fail, ok } from "../../../.storybook/blocks/fixtures";

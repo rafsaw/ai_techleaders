@@ -7,6 +7,44 @@ const frameworks = ["react", "react/*", "react-dom", "react-dom/*", "next", "nex
 const restrictImports = (...patterns) => ({
   rules: { "no-restricted-imports": ["error", { patterns }] },
 });
+const uiBoundary = {
+  group: ["@devmentor/app", "@devmentor/app/*", "@devmentor/core", "@devmentor/core/*", "@devmentor/db", "@devmentor/db/*", "@mikro-orm/*"],
+  message: "ui is presentation only and depends on no other workspace package.",
+};
+const appBoundary = {
+  group: ["@mikro-orm/*"],
+  message: "Only @devmentor/db imports MikroORM; import what you need from it.",
+};
+
+// UI areas (platform PD2/F3). Public pages are Tailwind-only: no shadcn
+// primitives (`components/<name>`), backend panels or Base UI. Domain
+// components in `components/<concept>/` are allowed only when listed here as
+// Tailwind-only; each listed file is itself held to the same rules, and ui's
+// public files may not use relative imports, so no wrapper can pull a
+// primitive in transitively. Signed-in and backend areas use shadcn freely.
+const tailwindDomainComponents = [
+  "auth/ConfirmEmailPanel",
+  "auth/InvitationPanel",
+  "auth/SignInOptions",
+  "auth/SiteHeader",
+  "mentors/MentorProfileHeader",
+  "mentors/NotBookableNotice",
+  "mentors/PriceList",
+  "mentors/PublicWorkLinks",
+  "mentors/TextOnlyNote",
+];
+const publicAreaMessage =
+  "Public pages use Tailwind only (platform PD2/F3): no shadcn primitives, backend panels or Base UI. Use @devmentor/ui/frontend/* or a Tailwind-only domain component.";
+const publicArea = [
+  { regex: `^@devmentor/ui/components/(?!(?:${tailwindDomainComponents.join("|")})$)`, message: publicAreaMessage },
+  { regex: "^@devmentor/ui/backend/", message: publicAreaMessage },
+  { regex: "^@base-ui/", message: publicAreaMessage },
+];
+const noRelative = {
+  regex: "^\\.",
+  message: "Public ui code imports through @devmentor/ui/* so the area rules can check every dependency.",
+};
+const sourceOnly = ["**/*.test.*", "**/*.stories.*"];
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -33,17 +71,23 @@ const eslintConfig = defineConfig([
   },
   {
     files: ["packages/ui/**"],
-    ...restrictImports({
-      group: ["@devmentor/app", "@devmentor/app/*", "@devmentor/core", "@devmentor/core/*", "@devmentor/db", "@devmentor/db/*", "@mikro-orm/*"],
-      message: "ui is presentation only and depends on no other workspace package.",
-    }),
+    ...restrictImports(uiBoundary),
   },
   {
     files: ["packages/app/**"],
-    ...restrictImports({
-      group: ["@mikro-orm/*"],
-      message: "Only @devmentor/db imports MikroORM; import what you need from it.",
-    }),
+    ...restrictImports(appBoundary),
+  },
+  // Later entries replace the rule for these files, so each repeats its
+  // package boundary.
+  {
+    files: ["packages/ui/src/frontend/**", ...tailwindDomainComponents.map((name) => `packages/ui/src/components/${name}.tsx`)],
+    ignores: sourceOnly,
+    ...restrictImports(uiBoundary, ...publicArea, noRelative),
+  },
+  {
+    files: ["packages/app/src/app/(frontend)/**", "packages/app/src/app/site-header.tsx"],
+    ignores: sourceOnly,
+    ...restrictImports(appBoundary, ...publicArea),
   },
   globalIgnores([
     "**/.next/**",

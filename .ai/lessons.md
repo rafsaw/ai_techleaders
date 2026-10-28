@@ -27,6 +27,20 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-27 — A layout's redirect beats the page's, and agent-browser can't fake every failure
+
+**Context:** E01 step 1.9, the `(app)` layout and `/account`. With `requirePrincipal` in both, a
+signed-out visit to `/account` redirected to `/sign-in?returnTo=%2F`: the layout renders first and
+its redirect wins, and a layout does not know the requested path. In the integration tests,
+`agent-browser network route … --abort` did not stop a `fetch` POST (it reached the server), and
+`fill <field> ""` left a React-controlled input unchanged.
+**Lesson:** put redirecting guards (with `returnTo`) in pages, not layouts; a layout may read
+`getPrincipal()` for display only. To make a client request fail in agent-browser use
+`set offline on` / `off`; to submit an "empty" field, fill whitespace that the schema trims; to
+wait for a `history.replaceState` URL change use `wait --fn`, not `wait --url`.
+**Applies to:** `packages/app/src/app/(app)/layout.tsx`, future signed-in layouts,
+`packages/app/tests/integration/`.
+
 ### 2026-10-27 — React `cache()` is a no-op in unit tests unless you load the server build
 
 **Context:** E01 step 1.7 page guards: `getPrincipal = cache(...)` must dedupe within one render

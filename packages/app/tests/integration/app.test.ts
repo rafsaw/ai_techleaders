@@ -270,4 +270,193 @@ describe("production application with ephemeral PostgreSQL", () => {
       }
     });
   });
+
+  // Accounts UI (accounts Phase 1 step 9) in the browser, through the GitHub
+  // stub's Authorize/Cancel screen. The steps share one browser session and
+  // run in order: signed out → signed in → signed out → signed in again.
+  describe("accounts UI: GitHub sign-in, account and sign-out", () => {
+    const githubStubURL = inject("githubStubURL");
+    const githubId = 3_000_000 + Math.floor(Math.random() * 1_000_000);
+    const email = `grace-${randomUUID()}@example.com`;
+
+    async function query<T extends pg.QueryResultRow>(text: string, values: unknown[] = []): Promise<T[]> {
+      const client = new pg.Client({ connectionString: databaseURL });
+      await client.connect();
+      try {
+        return (await client.query<T>(text, values)).rows;
+      } finally {
+        await client.end();
+      }
+    }
+
+    async function headerLinks(): Promise<string> {
+      return (await browser.snapshot()).split(/^\s*- main/m)[0]!;
+    }
+
+    async function sessionCookie() {
+      return (await browser.cookies()).find((cookie) => cookie.name === "devmentor_session");
+    }
+
+    /** Polls until the session's DB expiry is at least `minimumMs` from now. */
+    async function expectExpiryAdvanced(userId: string, minimumMs: number): Promise<void> {
+      const deadline = Date.now() + 10_000;
+      for (;;) {
+        const [row] = await query<{ remaining_ms: number }>(
+          "select extract(epoch from (max(expires_at) - now())) * 1000 as remaining_ms from auth_sessions where user_id = $1", [userId]);
+        if (Number(row!.remaining_ms) >= minimumMs) return;
+        if (Date.now() > deadline) throw new Error(`DB expiry did not advance (${row!.remaining_ms} ms left)`);
+        await browser.command("wait", "250");
+      }
+    }
+
+    /** Moves the session's DB expiry back to 29 days, outside the one-hour throttle. */
+    function ageSession(userId: string) {
+      return query("update auth_sessions set expires_at = now() + interval '29 days' where user_id = $1", [userId]);
+    }
+
+    const DAY_MS = 24 * 60 * 60 * 1000;
+
+    async function signInWithGitHub(decision: "Authorize" | "Cancel") {
+      await browser.command("open", `${baseURL}/`);
+      await browser.click("link", "Sign in");
+      await browser.waitForText("Sign in with GitHub");
+      expect(await browser.url()).toBe(`${baseURL}/sign-in`);
+      await browser.click("link", "Sign in with GitHub");
+      await browser.waitForText("Authorize DevMentor");
+      await browser.click("link", decision);
+    }
+
+    it("keeps a signed-out visitor out of /account with returnTo", async () => {
+      await browser.command("cookies", "clear");
+      await browser.command("open", `${baseURL}/account`);
+      await browser.waitForText("Sign in with GitHub");
+      expect(await browser.url()).toBe(`${baseURL}/sign-in?returnTo=%2Faccount`);
+      expect(await browser.heading("Sign in")).toBe("Sign in");
+    });
+
+    it("shows the cancelled banner after GitHub is denied and stays signed out", async () => {
+      await setGitHubStubUser(githubStubURL, {
+        id: githubId, login: `grace-${githubId}`, name: "Grace Hopper",
+        emails: [{ email, primary: true, verified: true }],
+      });
+      await signInWithGitHub("Cancel");
+      await browser.waitForText("GitHub sign-in was cancelled.");
+      expect(await browser.url()).toBe(`${baseURL}/sign-in?error=github_cancelled`);
+      expect(await browser.snapshot()).toContain("Try again");
+      expect(await browser.visible("link", "Sign in")).toBe(true);
+      expect(await headerLinks()).not.toContain("Sign out");
+      expect(await sessionCookie()).toBeUndefined();
+      expect(await query("select id from users where github_id = $1", [String(githubId)])).toEqual([]);
+    });
+
+    it("signs in with GitHub and lands on /account?welcome=1 showing the GitHub name once", async () => {
+      await signInWithGitHub("Authorize");
+      await browser.waitForText("This is the name others see. You can change it.");
+      expect((await browser.command("get", "title")).title).toBe("Account · DevMentor");
+      expect(await browser.value("Display name")).toBe("Grace Hopper");
+      expect(await browser.visible("link", "Grace Hopper")).toBe(true);
+      expect(await browser.visible("button", "Sign out")).toBe(true);
+      const page = await browser.snapshot();
+      expect(page).toContain(email);
+      expect(page).toContain("mentee");
+      expect(page).toContain("GitHub");
+      // The one-time flag is dropped from the address once shown…
+      await browser.command("wait", "--fn", "location.pathname === '/account' && location.search === ''");
+      expect(await browser.url()).toBe(`${baseURL}/account`);
+      await browser.capture("account-welcome");
+      // …so a reload does not show the notice again (SM-AC7).
+      await browser.command("reload");
+      await browser.waitForText(email);
+      expect(await browser.snapshot()).not.toContain("This is the name others see");
+      expect(await sessionCookie()).toMatchObject({ value: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/) });
+    });
+
+    it("saves a new display name, keeps it in the field and persists it", async () => {
+      // Spaces only: trimmed to empty by the shared schema.
+      await browser.fill("Display name", "   ");
+      await browser.click("button", "Save name");
+      await browser.waitForText("Display name is required");
+      await browser.fill("Display name", "Grace B. Hopper");
+      await browser.click("button", "Save name");
+      await browser.waitForText("Name saved");
+      expect(await browser.value("Display name")).toBe("Grace B. Hopper");
+      // The header refreshes with the saved name.
+      await browser.command("wait", "--text", "Grace B. Hopper");
+      await browser.command("wait", "--fn", "[...document.querySelectorAll('header a')].some((a) => a.textContent === 'Grace B. Hopper')");
+      await browser.capture("account-name-saved");
+      expect(await query("select name from users where github_id = $1", [String(githubId)])).toEqual([{ name: "Grace B. Hopper" }]);
+
+      await browser.command("reload");
+      await browser.waitForText(email);
+      expect(await browser.value("Display name")).toBe("Grace B. Hopper");
+    });
+
+    it("renews the cookie on page navigations and advances DB expiry once the throttle window passed", async () => {
+      const [user] = await query<{ id: string }>("select id from users where github_id = $1", [String(githubId)]);
+      await browser.command("open", `${baseURL}/`);
+      await browser.waitForText("A project for tech leaders");
+
+      // Public to public: the brand link from / to / (client navigation).
+      await ageSession(user!.id);
+      const before = (await sessionCookie())!.expires;
+      await browser.command("wait", "1100");
+      await browser.click("link", "DevMentor");
+      await expectExpiryAdvanced(user!.id, 30 * DAY_MS - 60_000);
+      expect((await sessionCookie())!.expires).toBeGreaterThan(before);
+
+      // Into the signed-in area, then a page-only navigation inside it.
+      await browser.click("link", "Grace B. Hopper");
+      await browser.waitForText(email);
+      expect(await browser.url()).toBe(`${baseURL}/account`);
+      await ageSession(user!.id);
+      const renewed = (await sessionCookie())!.expires;
+      await browser.command("wait", "1100");
+      await browser.click("link", "Grace B. Hopper");
+      await expectExpiryAdvanced(user!.id, 30 * DAY_MS - 60_000);
+      expect((await sessionCookie())!.expires).toBeGreaterThan(renewed);
+    });
+
+    it("stays on the page with an error when sign-out fails", async () => {
+      // Offline, the sign-out request fails before reaching the server.
+      await browser.command("set", "offline", "on");
+      try {
+        await browser.click("button", "Sign out");
+        await browser.waitForText("Could not sign out. Try again.");
+      } finally {
+        await browser.command("set", "offline", "off");
+      }
+      expect(await browser.url()).toBe(`${baseURL}/account`);
+      expect(await browser.visible("link", "Grace B. Hopper")).toBe(true);
+      await browser.capture("sign-out-failed");
+      expect(await sessionCookie()).toBeDefined();
+    });
+
+    it("signs out with a full navigation to / and the header shows Sign in", async () => {
+      const [user] = await query<{ id: string }>("select id from users where github_id = $1", [String(githubId)]);
+      await browser.click("button", "Sign out");
+      await browser.command("wait", "--url", `${baseURL}/`);
+      await browser.waitForText("A project for tech leaders");
+      expect(await browser.visible("link", "Sign in")).toBe(true);
+      expect(await headerLinks()).not.toContain("Grace B. Hopper");
+      expect(await sessionCookie()).toBeUndefined();
+      expect(await query("select id from auth_sessions where user_id = $1", [user!.id])).toEqual([]);
+    });
+
+    it("signs in again with the same GitHub account without creating a duplicate", async () => {
+      await signInWithGitHub("Authorize");
+      await browser.command("wait", "--url", `${baseURL}/`);
+      await browser.waitForText("Grace B. Hopper");
+      // The edited name is kept: GitHub's name never overwrites it.
+      expect(await browser.visible("link", "Grace B. Hopper")).toBe(true);
+      const users = await query<{ name: string }>("select name from users where github_id = $1 or email = $2", [String(githubId), email]);
+      expect(users).toEqual([{ name: "Grace B. Hopper" }]);
+
+      await browser.click("link", "Grace B. Hopper");
+      await browser.waitForText(email);
+      expect(await browser.snapshot()).not.toContain("This is the name others see");
+      // Leave the shared browser session signed out.
+      await browser.click("button", "Sign out");
+      await browser.command("wait", "--url", `${baseURL}/`);
+    });
+  });
 });

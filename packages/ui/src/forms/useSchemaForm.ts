@@ -3,7 +3,7 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import type { z } from "zod";
 
-import type { ApiResult, FieldErrors } from "@devmentor/ui/backend/api/types";
+import type { ApiResult, FieldErrors } from "@devmentor/ui/api/types";
 import { toFieldErrors } from "@devmentor/ui/forms/field-errors";
 
 export type FieldName<TSchema extends z.ZodType> = Extract<keyof z.input<TSchema>, string>;

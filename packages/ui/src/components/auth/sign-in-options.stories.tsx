@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor } from "storybook/test";
 import { z } from "zod";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { SignInOptions } from "@devmentor/ui/components/auth/SignInOptions";
 
 // Story-only stand-in for signInSchema (E01 Phase 2): email and password, no returnTo.

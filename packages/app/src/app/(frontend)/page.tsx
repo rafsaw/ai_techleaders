@@ -1,7 +1,11 @@
 import Link from "next/link";
 
-// Frontend (public) pages: styled with plain Tailwind utilities.
-export default function Home() {
+import { getPrincipal } from "@/server/auth/page-guards";
+
+// Frontend (public) pages: styled with plain Tailwind utilities. Like every
+// public leaf, it reads the principal so a signed-in visit records activity.
+export default async function Home() {
+  await getPrincipal();
   return (
     <main className="mx-auto flex min-h-dvh max-w-3xl flex-col justify-center gap-6 px-6 py-24">
       <p className="text-sm font-medium tracking-widest text-muted-foreground uppercase">

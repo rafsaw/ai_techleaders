@@ -3,7 +3,7 @@ import { delay, http } from "msw";
 import { expect, fn, userEvent, waitFor } from "storybook/test";
 import { z } from "zod";
 
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
+import { apiCall } from "@devmentor/ui/api/apiCall";
 import { ConfirmEmailPanel, type ConfirmEmailState } from "@devmentor/ui/components/auth/ConfirmEmailPanel";
 
 import { fail, ok } from "../../../.storybook/blocks/fixtures";

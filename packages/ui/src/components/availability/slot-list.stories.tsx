@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { SlotList } from "@devmentor/ui/components/availability/SlotList";
 import { BOOKED_SENTENCE, SlotRow } from "@devmentor/ui/components/availability/SlotRow";
 

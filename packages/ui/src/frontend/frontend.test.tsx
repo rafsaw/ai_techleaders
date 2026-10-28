@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import type { ApiResult } from "../backend/api/types";
+import type { ApiResult } from "../api/types";
 import { LinkButton, linkButtonVariants } from "./actions/LinkButton";
 import { Notice } from "./feedback/Notice";
 import { PASSWORD_HINT, PasswordField } from "./forms/PasswordField";

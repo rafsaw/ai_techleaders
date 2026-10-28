@@ -2,7 +2,7 @@
 
 import type { z } from "zod";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { LinkButton } from "@devmentor/ui/frontend/actions/LinkButton";
 import { Notice } from "@devmentor/ui/frontend/feedback/Notice";
 import { SchemaForm } from "@devmentor/ui/frontend/forms/SchemaForm";

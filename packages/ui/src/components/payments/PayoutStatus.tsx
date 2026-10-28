@@ -3,7 +3,7 @@
 import { useId, useState, type FormEvent } from "react";
 import { OctagonXIcon } from "lucide-react";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { Alert, AlertTitle } from "@devmentor/ui/components/alert";
 import { Button, buttonVariants } from "@devmentor/ui/components/button";
 import { Field, FieldDescription, FieldError, FieldLabel } from "@devmentor/ui/components/field";

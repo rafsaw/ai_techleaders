@@ -5,7 +5,7 @@ import { useId, useState } from "react";
 import { expect, fireEvent, userEvent, waitFor } from "storybook/test";
 import { z } from "zod";
 
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
+import { apiCall } from "@devmentor/ui/api/apiCall";
 import { Alert, AlertTitle } from "@devmentor/ui/components/alert";
 import { SlotList } from "@devmentor/ui/components/availability/SlotList";
 import { SlotRow } from "@devmentor/ui/components/availability/SlotRow";

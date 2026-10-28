@@ -2,8 +2,8 @@ import "@testing-library/jest-dom/vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import { apiCall } from "@devmentor/ui/api/apiCall";
+import type { ApiResult } from "@devmentor/ui/api/types";
 
 import Home from "@/app/(frontend)/page";
 import BackendLayout from "@/app/backend/layout";
@@ -11,12 +11,14 @@ import Dashboard, { metadata as dashboardMetadata } from "@/app/backend/page";
 import UsersPage, { metadata as usersMetadata } from "@/app/backend/users/page";
 import { UsersPanel } from "@/app/backend/users/users-panel";
 import RootLayout, { metadata } from "@/app/layout";
+import { getPrincipal } from "@/server/auth/page-guards";
 
 const { count, connection } = vi.hoisted(() => ({ count: vi.fn(), connection: vi.fn() }));
 vi.mock("next/server", () => ({ connection }));
 vi.mock("@/server/container", () => ({ createRequestScope: () => ({ cradle: { userService: { count } } }) }));
 vi.mock("next/font/google", () => ({ Geist: () => ({ variable: "geist-font" }) }));
-vi.mock("@devmentor/ui/backend/api/apiCall", () => ({ apiCall: vi.fn() }));
+vi.mock("@devmentor/ui/api/apiCall", () => ({ apiCall: vi.fn() }));
+vi.mock("@/server/auth/page-guards", () => ({ getPrincipal: vi.fn().mockResolvedValue(null) }));
 
 describe("page composition", () => {
   it("declares distinct dashboard and users document titles", () => {
@@ -24,8 +26,9 @@ describe("page composition", () => {
     expect(usersMetadata.title).toBe("Users");
   });
 
-  it("renders the public heading and admin link", () => {
-    render(<Home />);
+  it("renders the public heading and admin link, reading the principal for activity", async () => {
+    render(await Home());
+    expect(getPrincipal).toHaveBeenCalled();
     expect(screen.getByRole("heading", { name: "DevMentor" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Open backend" })).toHaveAttribute("href", "/backend");
   });

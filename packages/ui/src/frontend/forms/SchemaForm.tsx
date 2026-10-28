@@ -3,7 +3,7 @@
 import type { ChangeEvent, ReactNode } from "react";
 import type { z } from "zod";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { useSchemaForm, type FieldName } from "@devmentor/ui/forms/useSchemaForm";
 import { Notice } from "@devmentor/ui/frontend/feedback/Notice";
 import { PasswordField } from "@devmentor/ui/frontend/forms/PasswordField";

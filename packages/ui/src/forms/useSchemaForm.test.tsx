@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import type { ApiResult } from "../backend/api/types";
+import type { ApiResult } from "../api/types";
 import { toFieldErrors } from "./field-errors";
 import { useSchemaForm, type UseSchemaFormOptions } from "./useSchemaForm";
 

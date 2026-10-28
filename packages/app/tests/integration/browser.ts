@@ -71,6 +71,26 @@ export class IntegrationBrowser {
     await this.command("fill", await this.reference("textbox", label), value);
   }
 
+  /** The current value of the textbox with this accessible name. */
+  async value(label: string): Promise<string> {
+    const result = await this.command("get", "value", await this.reference("textbox", label));
+    if (typeof result.value !== "string") throw new Error("agent-browser did not return a field value");
+    return result.value;
+  }
+
+  async url(): Promise<string> {
+    const result = await this.command("get", "url");
+    if (typeof result.url !== "string") throw new Error("agent-browser did not return the URL");
+    return result.url;
+  }
+
+  /** The session's browser cookies (name, value, expires in epoch seconds, …). */
+  async cookies(): Promise<{ name: string; value: string; expires: number }[]> {
+    const result = await this.command("cookies", "get");
+    if (!Array.isArray(result.cookies)) throw new Error(`agent-browser returned no cookie list: ${JSON.stringify(result)}`);
+    return result.cookies as { name: string; value: string; expires: number }[];
+  }
+
   async waitForText(text: string): Promise<void> {
     await this.command("wait", "--text", text);
   }

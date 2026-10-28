@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 
 import { userCreateSchema } from "@devmentor/core/validators/auth/user-create.schema";
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import { apiCall } from "@devmentor/ui/api/apiCall";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { CrudForm, type CrudField } from "@devmentor/ui/backend/forms/CrudForm";
 import { DataTable, type DataTableColumn } from "@devmentor/ui/backend/tables/DataTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@devmentor/ui/components/card";

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor, type within } from "storybook/test";
 import { z } from "zod";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { Notice } from "@devmentor/ui/frontend/feedback/Notice";
 import { SchemaForm } from "@devmentor/ui/frontend/forms/SchemaForm";
 

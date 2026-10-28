@@ -1,4 +1,4 @@
-import type { FieldErrors } from "@devmentor/ui/backend/api/types";
+import type { FieldErrors } from "@devmentor/ui/api/types";
 
 type Issue = { path: readonly PropertyKey[]; message: string };
 

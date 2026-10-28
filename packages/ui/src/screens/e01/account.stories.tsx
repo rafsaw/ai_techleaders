@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { delay, http } from "msw";
 import { expect, userEvent } from "storybook/test";
 
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
+import { apiCall } from "@devmentor/ui/api/apiCall";
 import { CrudForm } from "@devmentor/ui/backend/forms/CrudForm";
 import { AccountSummary } from "@devmentor/ui/components/auth/AccountSummary";
 
@@ -28,6 +28,7 @@ function AccountScreen({ displayName, roles, signInMethods, welcome }: Args) {
           fields={[{ name: "displayName", label: "Display name", autoComplete: "name" }]}
           initialValues={{ displayName }}
           onSubmit={(body) => apiCall(ACCOUNT, { method: "PATCH", body })}
+          resetOnSuccess={false}
         />
       </AccountSummary>
     </Screen>

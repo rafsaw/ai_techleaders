@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import type { ApiResult } from "../../backend/api/types";
+import type { ApiResult } from "../../api/types";
 import { AccountSummary } from "./AccountSummary";
 import { ConfirmEmailPanel } from "./ConfirmEmailPanel";
 import { InvitationPanel } from "./InvitationPanel";
