@@ -156,7 +156,8 @@ describe("production application with ephemeral PostgreSQL", () => {
     const forged = "A".repeat(43);
     const page = await fetch(`${baseURL}/backend`, { redirect: "manual", headers: { cookie: `devmentor_session=${forged}` } });
     expect(page.status).toBe(307);
-    expect(page.headers.get("location")).toMatch(/\/sign-in\?returnTo=%2Fbackend$/);
+    // An unknown token looks like a deleted session, so sign-in says it expired (SM-AC2).
+    expect(page.headers.get("location")).toMatch(/\/sign-in\?error=session_expired&returnTo=%2Fbackend$/);
     expect(page.headers.getSetCookie().some((value) => value.startsWith(`devmentor_session=${forged};`))).toBe(true);
     expect((await fetch(`${baseURL}/api/users`, { headers: { cookie: `devmentor_session=${forged}` } })).status).toBe(401);
   });
@@ -577,6 +578,48 @@ describe("production application with ephemeral PostgreSQL", () => {
       // Leave the shared browser session signed out.
       await browser.click("button", "Sign out");
       await browser.command("wait", "--url", `${baseURL}/`);
+    });
+
+    it("redirects a signed-in /sign-in (SM-AC1); says the session expired, keeps returnTo and discards an unsaved name (SM-AC2)", async () => {
+      const [user] = await query<{ id: string }>("select id from users where github_id = $1", [String(githubId)]);
+      const expire = () => query("update auth_sessions set expires_at = now() - interval '1 minute' where user_id = $1", [user!.id]);
+      await signInWithGitHub("Authorize");
+      await browser.command("wait", "--url", `${baseURL}/`);
+
+      // A page request with an expired session: the guard redirects with the banner.
+      await expire();
+      await browser.command("open", `${baseURL}/account`);
+      await browser.waitForText("Your session expired.");
+      expect(await browser.url()).toBe(`${baseURL}/sign-in?error=session_expired&returnTo=%2Faccount`);
+      expect(await browser.snapshot()).toContain("Sign in again.");
+      expect(await headerLinks()).not.toContain("Sign out");
+      await browser.capture("session-expired-page");
+
+      // Signing in again returns to /account.
+      await browser.click("link", "Sign in with GitHub");
+      await browser.waitForText("Authorize DevMentor");
+      await browser.click("link", "Authorize");
+      await browser.command("wait", "--url", `${baseURL}/account`);
+      await browser.waitForText(email);
+
+      // Signed in, /sign-in goes to the safe returnTo, otherwise to / (SM-AC1).
+      await browser.command("open", `${baseURL}/sign-in?returnTo=%2Faccount`);
+      await browser.command("wait", "--url", `${baseURL}/account`);
+      await browser.waitForText(email);
+      await browser.command("open", `${baseURL}/sign-in?returnTo=https%3A%2F%2Fevil.example`);
+      await browser.command("wait", "--url", `${baseURL}/`);
+      await browser.command("open", `${baseURL}/account`);
+      await browser.waitForText(email);
+
+      // An API write with an expired session: full navigation to sign-in, the name is not saved.
+      await expire();
+      await browser.fill("Display name", "Unsaved Name");
+      await browser.click("button", "Save name");
+      await browser.waitForText("Your session expired.");
+      expect(await browser.url()).toBe(`${baseURL}/sign-in?error=session_expired&returnTo=%2Faccount`);
+      expect(await query("select name from users where id = $1", [user!.id])).toEqual([{ name: "Grace B. Hopper" }]);
+      expect(await query("select id from auth_sessions where user_id = $1", [user!.id])).toEqual([]);
+      await browser.command("cookies", "clear");
     });
   });
 });

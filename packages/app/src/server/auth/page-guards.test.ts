@@ -183,6 +183,11 @@ describe("requirePrincipal", () => {
       expect(error.url).toBe("/sign-in?returnTo=%2F");
     }
   });
+
+  it("adds no session-expired banner for a cookie this origin never issued", async () => {
+    const error = await caught(request(`__Host-devmentor_session=${TOKEN}`, () => requirePrincipal({ returnTo: "/account" })));
+    expect(error.url).toBe("/sign-in?returnTo=%2Faccount");
+  });
 });
 
 describe("requireRole", () => {
@@ -222,7 +227,7 @@ describe("Proxy renewal grants nothing", () => {
     await expect(request(`devmentor_session=${UNKNOWN}`, getPrincipal)).resolves.toBeNull();
     expect(db.em.findOne).toHaveBeenCalledOnce();
     const error = await caught(request(`devmentor_session=${UNKNOWN}`, () => requirePrincipal({ returnTo: "/account" })));
-    expect(error.url).toBe("/sign-in?returnTo=%2Faccount");
+    expect(error.url).toBe("/sign-in?error=session_expired&returnTo=%2Faccount");
   });
 
   it("an expired session that Proxy re-sent is denied and deleted", async () => {
@@ -232,11 +237,17 @@ describe("Proxy renewal grants nothing", () => {
     expect(db.sessions.has("s-1")).toBe(false);
   });
 
+  it("sends an expired session to sign-in with the session-expired banner and the safe returnTo (SM-AC2)", async () => {
+    db.sessions.get("s-1")!.expiresAt = NOW;
+    const error = await caught(request(SIGNED_IN, () => requirePrincipal({ returnTo: "/account?tab=a" })));
+    expect(error.url).toBe("/sign-in?error=session_expired&returnTo=%2Faccount%3Ftab%3Da");
+  });
+
   it("a revoked (signed-out) session that Proxy re-sent is denied", async () => {
     db.sessions.delete("s-1");
     expect(renewed(TOKEN)).toHaveLength(1);
     await expect(request(SIGNED_IN, getPrincipal)).resolves.toBeNull();
     const error = await caught(request(SIGNED_IN, () => requireRole("operator", { returnTo: "/backend" })));
-    expect(error.url).toBe("/sign-in?returnTo=%2Fbackend");
+    expect(error.url).toBe("/sign-in?error=session_expired&returnTo=%2Fbackend");
   });
 });

@@ -5,10 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Principal } from "@devmentor/core";
 import { apiCall } from "@devmentor/ui/api/apiCall";
 
-import { AccountNameForm } from "@/app/(app)/account/account-name-form";
+import { AccountNameForm, SESSION_EXPIRED_SIGN_IN } from "@/app/(app)/account/account-name-form";
 import { ForgetWelcome } from "@/app/(app)/account/forget-welcome";
 import AccountPage, { metadata } from "@/app/(app)/account/page";
 import SignedInLayout from "@/app/(app)/layout";
+import { navigateFully } from "@/app/full-navigation";
 import { getPrincipal, requirePrincipal } from "@/server/auth/page-guards";
 import type { AccountDto } from "@/server/services/auth/user.service";
 
@@ -17,6 +18,7 @@ vi.mock("@/server/auth/page-guards", () => ({ getPrincipal: vi.fn(), requirePrin
 vi.mock("@/server/container", () => ({ createRequestScope: () => ({ cradle: { userService: { getAccount } } }) }));
 vi.mock("next/navigation", () => ({ usePathname: () => "/account", useRouter: () => ({ refresh }) }));
 vi.mock("@devmentor/ui/api/apiCall", () => ({ apiCall: vi.fn() }));
+vi.mock("@/app/full-navigation", () => ({ navigateFully: vi.fn() }));
 
 const ada: Principal = { userId: "user-1", sessionId: "session-1", displayName: "Ada Lovelace", roles: ["mentee"] };
 const account: AccountDto = {
@@ -33,6 +35,7 @@ beforeEach(() => {
   vi.mocked(requirePrincipal).mockResolvedValue(ada);
   getAccount.mockReset().mockResolvedValue(account);
   refresh.mockReset();
+  vi.mocked(navigateFully).mockReset();
 });
 
 afterEach(() => window.history.replaceState(null, "", "/"));
@@ -141,9 +144,21 @@ describe("AccountNameForm", () => {
     vi.mocked(apiCall).mockReturnValueOnce(new Promise((resolve) => { fail = resolve; }));
     save("Ada B");
     await waitFor(() => expect(screen.queryByText("Name saved")).not.toBeInTheDocument());
-    await act(async () => fail({ ok: false, error: { code: "unauthorized", message: "Sign in to continue" } }));
+    await act(async () => fail({ ok: false, error: { code: "internal_error", message: "Something went wrong" } }));
     expect(screen.getByText("Could not save")).toBeVisible();
-    expect(screen.getByText("Sign in to continue")).toBeVisible();
+    expect(screen.getByText("Something went wrong")).toBeVisible();
     expect(refresh).toHaveBeenCalledOnce();
+    expect(navigateFully).not.toHaveBeenCalled();
+  });
+
+  it("on 401 discards the unsaved name and fully navigates to sign-in with the session-expired banner (SM-AC2)", async () => {
+    vi.mocked(apiCall).mockResolvedValue({ ok: false, error: { code: "unauthorized", message: "Authentication required" } });
+    render(<AccountNameForm displayName="Ada Lovelace" />);
+    save("Ada King");
+    await waitFor(() => expect(navigateFully).toHaveBeenCalledWith("/sign-in?error=session_expired&returnTo=%2Faccount"));
+    expect(SESSION_EXPIRED_SIGN_IN).toBe("/sign-in?error=session_expired&returnTo=%2Faccount");
+    expect(screen.queryByText("Could not save")).not.toBeInTheDocument();
+    expect(screen.queryByText("Name saved")).not.toBeInTheDocument();
+    expect(refresh).not.toHaveBeenCalled();
   });
 });

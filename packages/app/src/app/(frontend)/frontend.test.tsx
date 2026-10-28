@@ -77,6 +77,12 @@ describe("/sign-in", () => {
     expect(screen.getByRole("status")).toHaveTextContent("GitHub sign-in was cancelled.Try again");
   });
 
+  it("shows the session-expired banner and keeps the safe returnTo (SM-AC2)", async () => {
+    render(await signInPage({ error: "session_expired", returnTo: "/account" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Your session expired.Sign in again.");
+    expect(screen.getByRole("link", { name: "Sign in with GitHub" })).toHaveAttribute("href", "/api/auth/github?returnTo=%2Faccount");
+  });
+
   it.each([
     ["github_failed", "GitHub sign-in failed."],
     ["github_no_verified_email", "Your GitHub account has no verified email."],

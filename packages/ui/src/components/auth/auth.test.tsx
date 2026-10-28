@@ -7,7 +7,7 @@ import type { ApiResult } from "../../api/types";
 import { AccountSummary } from "./AccountSummary";
 import { ConfirmEmailPanel } from "./ConfirmEmailPanel";
 import { InvitationPanel } from "./InvitationPanel";
-import { GITHUB_ERRORS, SignInOptions } from "./SignInOptions";
+import { GITHUB_ERRORS, SIGN_IN_ERRORS, SignInOptions } from "./SignInOptions";
 import { SiteHeader } from "./SiteHeader";
 
 const credentials = z.object({ email: z.email("Enter a valid email address"), password: z.string().min(1, "Enter your password") });
@@ -24,10 +24,13 @@ describe("SignInOptions", () => {
     const { rerender } = render(<SignInOptions githubHref="/api/auth/github" />);
     expect(screen.getByRole("link", { name: "Sign in with GitHub" })).toHaveAttribute("href", "/api/auth/github");
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
-    for (const [code, entry] of Object.entries(GITHUB_ERRORS)) {
+    expect(Object.keys(SIGN_IN_ERRORS)).toEqual([...Object.keys(GITHUB_ERRORS), "session_expired"]);
+    for (const [code, entry] of Object.entries(SIGN_IN_ERRORS)) {
       rerender(<SignInOptions githubHref="/api/auth/github" error={code} />);
       expect(screen.getByRole(entry.variant === "error" ? "alert" : "status")).toHaveTextContent(entry.title);
     }
+    rerender(<SignInOptions githubHref="/api/auth/github" error="session_expired" />);
+    expect(screen.getByRole("status")).toHaveTextContent("Your session expired.Sign in again.");
     rerender(<SignInOptions githubHref="/api/auth/github" error="something_else" />);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });

@@ -1,7 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { parseArgs, type ParseArgsOptionsConfig } from "node:util";
 
-import { AppError, summarizeError, ValidationError, type AppContainer, type Cradle } from "@devmentor/core";
+import { isAppError, summarizeError, type AppContainer, type Cradle } from "@devmentor/core";
 import nextEnv from "@next/env";
 
 import { roleGrantCommand } from "@/server/cli/commands/role-grant.command";
@@ -107,7 +107,7 @@ export async function main(argv: readonly string[], env: CliEnv, deps: CliDeps):
   try {
     flags = command.parse(values);
   } catch (error) {
-    if (!(error instanceof ValidationError)) throw error;
+    if (!isAppError(error) || error.code !== "validation_error") throw error;
     out.error(error.message);
     return EXIT.failed;
   }
@@ -129,7 +129,7 @@ export async function main(argv: readonly string[], env: CliEnv, deps: CliDeps):
     await command.run(createRequestScope().cradle, flags, out);
     return EXIT.ok;
   } catch (error) {
-    if (error instanceof AppError) {
+    if (isAppError(error)) {
       out.error(error.message);
       return EXIT.failed;
     }

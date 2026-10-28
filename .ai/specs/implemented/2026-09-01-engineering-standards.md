@@ -622,7 +622,7 @@ the code disagree, the code and `AGENTS.md` win. Deviations:
 From the accounts spec (`.ai/specs/2026-10-17-accounts-and-roles.md`, AD2).
 Where the sections above disagree with these bullets, these bullets win.
 
-- DB sessions replace "JWT HS256 24h", for the reason given in D14.
+- DB sessions replace "JWT HS256 24h", for the reason given in AD2 of the accounts spec (roles are read live from the DB on every request, so no role change waits for a token to expire).
 - No session signing secret is needed.
 - The "JWT secret env" note is superseded.
 - `requireSession(req)` in every route is replaced by PD3's required `access`

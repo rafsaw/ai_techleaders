@@ -115,6 +115,13 @@ describe("operator CLI main", () => {
     await expect(main(GRANT, {}, { ...t.deps, commands: [broken] })).rejects.toThrow("boom");
   });
 
+  it("rethrows a non-validation AppError from parse (a bug, not refused input)", async () => {
+    const t = setup();
+    const broken = { ...roleGrantCommand, parse: () => { throw new NotFoundError("nope"); } };
+    await expect(main(GRANT, {}, { ...t.deps, commands: [broken] })).rejects.toThrow("nope");
+    expect(t.deps.loadEnv).not.toHaveBeenCalled();
+  });
+
   it("fails with exit 1 when DATABASE_URL is missing or invalid", async () => {
     const t = setup();
     await expect(main(GRANT, {}, t.deps)).resolves.toBe(EXIT.failed);

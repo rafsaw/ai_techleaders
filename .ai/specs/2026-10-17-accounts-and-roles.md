@@ -4,7 +4,7 @@
 - Companion spec: [`2026-10-17-platform-primitives.md`](./2026-10-17-platform-primitives.md), cited below as "platform P*n*/F*n*". Each phase here builds the primitives it first needs.
 - Design authority: `.ai/specs/product-brief.md` (D13, D14, N03; the D12 boundary)
 - Research: one shared pass for both specs. It lives in the platform spec, section "Research".
-- Status: **draft for review** (PO revisions, design review and platform grilling 2026-10-18)
+- Status: **Phase 1 implemented** (2026-10-27, branch `feat/e01-accounts-and-roles`; run log `.ai/runs/2026-10-27-e01-phase1-github-sign-in.md`). Phases 2 and 3 not started. Earlier: draft for review (PO revisions, design review and platform grilling 2026-10-18)
 - Prototype: `prototypes/konta-i-role/` (clickable E01 prototype)
 - Screen map: `lekcja-07/mapa-ekranow.md` (approved 2026-10-24; screen ids s01–s14, cited below as `[s01]` …). Acceptance criteria and decisions taken from the map are in "Acceptance criteria (screen map)".
 
@@ -671,7 +671,7 @@ Each step leaves the app working and is verified by the tests it names. A step t
       - fix §1 and §2, which name `ui/src/backend/api/types.ts` as the client twin and CSRF declaration (now `ui/src/api/types.ts`)
       - §1's route list gains the auth routes
     - **The engineering-standards update (AD2):** add `Corrections (2026-10-17)` to `.ai/specs/implemented/2026-09-01-engineering-standards.md`:
-      - DB sessions replace "JWT HS256 24h", for the reason given in D14
+      - DB sessions replace "JWT HS256 24h", for the reason given in AD2 (corrected 2026-10-27: this previously said D14, which is the mentor-invitation decision)
       - no session signing secret is needed
       - the "JWT secret env" note is superseded
       - `requireSession(req)` in every route is replaced by PD3's required `access` option
@@ -680,6 +680,23 @@ Each step leaves the app working and is verified by the tests it names. A step t
       - local common-password blocklist and code-only rollback with retained additive schema
     - `README.md`: GitHub OAuth App setup, operator grant/revoke (live on the next request), and code-only rollback.
     - The run log.
+
+#### Implementation notes (Phase 1)
+
+Implemented 2026-10-27 on `feat/e01-accounts-and-roles`, one commit per step (1.1–1.11) plus the gate. Deviations from the plan above and choices the plan left open:
+
+- **`/error` lives in its own `(error)` route group** with its own layout and identity-free header, so no identity-reading layout wraps it (Step 1.4).
+- **`returnTo` is normalized**, not only accepted or rejected: `parseReturnTo` returns the path the browser would request (dot segments resolved, characters percent-encoded), unsafe values fall back to `/`, and `/sign-in` takes the first of repeated `returnTo` values (Steps 1.2, 1.9).
+- **Session resolution is several queries, not one statement:** look up the session by token hash, a conditional monotonic `UPDATE` for the hourly-throttled touch (never shortens, never extends an expired row, never recreates a deleted one), then read the roles. Expired rows are deleted on lookup. No user-row lock, as planned (Step 1.6).
+- **The `(app)` layout does not redirect.** It cannot know the requested path and would render before the page and drop `returnTo`; each leaf's `requirePrincipal` redirects with its own `returnTo` (Step 1.9). The `/backend` layout only 404s a signed-in non-operator for the same reason.
+- **Existing design-system components were reused** (`SiteHeader`, `SignInOptions`, `AccountSummary`, `Notice`) instead of new colocated markup; the UI/UX note "Phase 1 uses colocated Tailwind markup" is superseded by those components (Step 1.9).
+- **SM-AC7:** for a new account with a safe `returnTo`, `welcome=1` is appended to that `returnTo`. Only `/account` renders the notice in Phase 1; the invitation page renders it in Phase 3. `/account` then drops the flag from the address so a reload does not show it again.
+- **The OAuth state binding is checked before the denial** is handled, so a forged `error=access_denied` without the matching state is `github_failed` (Step 1.8).
+- **`isAppError()` replaces `instanceof AppError`:** Next.js can load `@devmentor/core` once per bundle, so errors carry a `Symbol.for` brand (found in Step 1.10; the operator CLI was switched at the gate).
+- **Guarded `/backend` pages use operator-only metadata** (`generateMetadata = operatorTitle(…)`), because static metadata is still sent with a 404 (Step 1.10).
+- **The integration readiness probe** is `GET /` with a well-formed unknown session cookie, so a DB or migration failure fails it instead of passing a static page (Step 1.10).
+- **Operator CLI exit codes:** 0 success, 1 a refused or failed operation (including `--role mentor`), 2 a usage error (unknown command, bad flags) (Step 1.7).
+- **SM-AC2 (added at the gate):** a page guard that finds a presented but rejected session redirects to `/sign-in?error=session_expired&returnTo=…`; `/account` does the same full navigation when `PATCH /api/account` answers 401, discarding the unsaved name. It reuses the existing `error` parameter, so no new URL parameter is introduced. An unknown or forged cookie is indistinguishable from a deleted session and also shows the banner.
 
 ### Phase 2 — #35 email and password with confirmation
 

@@ -28,6 +28,17 @@ export const GITHUB_ERRORS: Record<GithubErrorCode, { variant: "info" | "error";
   github_email_taken: { variant: "error", title: "An account with this email is linked to a different GitHub account." },
 };
 
+export type SignInErrorCode = GithubErrorCode | "session_expired";
+
+/**
+ * Every `?error=` banner on /sign-in: the GitHub outcomes plus `session_expired`, which the page
+ * guards and the account form send when a presented database session was rejected (SM-AC2).
+ */
+export const SIGN_IN_ERRORS: Record<SignInErrorCode, { variant: "info" | "error"; title: string; body?: string }> = {
+  ...GITHUB_ERRORS,
+  session_expired: { variant: "info", title: "Your session expired.", body: "Sign in again." },
+};
+
 export const N03_TITLE = "Password reset is not available yet.";
 export const N03_BODY =
   "Save your password in a password manager, or use GitHub sign-in. If you forget an email-only account's password, you cannot recover access in version 1.0.";
@@ -53,7 +64,7 @@ export interface SignInOptionsProps {
 }
 
 function ErrorBanner({ code }: { code?: string }) {
-  const entry = code && code in GITHUB_ERRORS ? GITHUB_ERRORS[code as GithubErrorCode] : undefined;
+  const entry = code && code in SIGN_IN_ERRORS ? SIGN_IN_ERRORS[code as SignInErrorCode] : undefined;
   if (!entry) return null;
   return (
     <Notice variant={entry.variant} title={entry.title}>

@@ -22,34 +22,53 @@ import { createRequestScope } from "@/server/container";
 // - Pages cannot set cookies; the Proxy (`src/proxy.ts`) renews the browser
 //   cookie. Renewal grants nothing: validity is always decided here, in the DB.
 
+interface SessionLookup {
+  principal: Principal | null;
+  /** A session cookie for this origin was presented, whether or not it was still valid. */
+  presented: boolean;
+}
+
 /**
- * The signed-in principal for this request, or null. Without a session
- * cookie it touches neither config nor the database. Reading request headers
- * makes the page render dynamically, at request time.
+ * Resolves this request's session once per render. Without a session cookie
+ * it touches neither config nor the database. Reading request headers makes
+ * the page render dynamically, at request time.
  */
-export const getPrincipal = cache(async (): Promise<Principal | null> => {
+const lookUpSession = cache(async (): Promise<SessionLookup> => {
   const requestHeaders = await headers();
-  if (!presentsSessionCookie(requestHeaders)) return null;
+  if (!presentsSessionCookie(requestHeaders)) return { principal: null, presented: false };
   const { cradle } = createRequestScope();
   const token = readCookie(requestHeaders, sessionCookie(cradle.config.app().url).name);
   // A cookie under the other scheme's name was never issued for this origin.
-  if (token === undefined) return null;
-  return cradle.authSessionService.resolveToken(token);
+  if (token === undefined) return { principal: null, presented: false };
+  return { principal: await cradle.authSessionService.resolveToken(token), presented: true };
 });
+
+/** The signed-in principal for this request, or null. */
+export async function getPrincipal(): Promise<Principal | null> {
+  return (await lookUpSession()).principal;
+}
 
 export interface GuardOptions {
   /** The page path to come back to after sign-in; unsafe values become `/`. */
   returnTo: string;
 }
 
-function signInPath(returnTo: string): string {
-  return `/sign-in?returnTo=${encodeURIComponent(returnToSchema.parse(returnTo))}`;
+/**
+ * Sign-in with `returnTo`. When the request presented a session the database
+ * rejected (expired or deleted), `error=session_expired` makes the sign-in
+ * page say so (SM-AC2).
+ */
+export function signInPath(returnTo: string, sessionExpired = false): string {
+  const params = new URLSearchParams();
+  if (sessionExpired) params.set("error", "session_expired");
+  params.set("returnTo", returnToSchema.parse(returnTo));
+  return `/sign-in?${params.toString()}`;
 }
 
 /** The signed-in principal; signed out, redirects to sign-in with `returnTo`. */
 export async function requirePrincipal({ returnTo }: GuardOptions): Promise<Principal> {
-  const principal = await getPrincipal();
-  if (!principal) redirect(signInPath(returnTo));
+  const { principal, presented } = await lookUpSession();
+  if (!principal) redirect(signInPath(returnTo, presented));
   return principal;
 }
 

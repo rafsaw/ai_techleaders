@@ -209,8 +209,11 @@ the `returnTo` schema) goes in `validators/`.
   most one DB write per session per hour.
 - **Page guards:** every leaf page calls `getPrincipal()` or a guard with its
   own `returnTo` (layouts are reused on client navigation, so they are not
-  enough). Signed out redirects to `/sign-in?returnTo=…`; a missing role
-  calls `notFound()`. Pages that read identity render at request time.
+  enough). Signed out redirects to `/sign-in?returnTo=…` (plus
+  `error=session_expired` when a presented session was rejected, SM-AC2;
+  a client that gets 401 from an API does the same full navigation); a
+  missing role calls `notFound()`. Pages that read identity render at
+  request time.
 - **Backend gate:** each `/backend` page calls
   `requireRole("operator", { returnTo })`. The layout only 404s a signed-in
   non-operator (it cannot know the path for `returnTo`). Guarded pages use

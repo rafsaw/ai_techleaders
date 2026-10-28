@@ -24,7 +24,7 @@ const meta = {
   tags: ["!autodocs"],
   args: { githubHref: "/api/auth/github", email },
   argTypes: {
-    error: { control: "select", options: [undefined, "github_cancelled", "github_failed", "github_no_verified_email", "github_email_taken"] },
+    error: { control: "select", options: [undefined, "github_cancelled", "github_failed", "github_no_verified_email", "github_email_taken", "session_expired"] },
     email: { control: false },
   },
 } satisfies Meta<typeof SignInOptions>;
@@ -50,6 +50,14 @@ export const Playground: Story = {
 
 /** Partial: Phase 1 ships GitHub only; the email form and the sign-up link are absent. */
 export const GithubOnly: Story = { args: { email: undefined } };
+
+/** Info: a presented session was rejected (SM-AC2); the page keeps the safe returnTo. Phase 1 (GitHub only). */
+export const SessionExpired: Story = {
+  args: { error: "session_expired", email: undefined },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole("status")).toHaveTextContent("Your session expired.Sign in again.");
+  },
+};
 
 /** Error: the four GitHub banners from ?error= (P-N1). Cancel is info, failures are errors. */
 export const GithubCancelled: Story = { args: { error: "github_cancelled" } };
