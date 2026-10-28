@@ -32,6 +32,12 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - [x] R4 Explicit `returnTo=/` honoured; welcome notice on any `returnTo` destination (option A, approved 2026-10-28)
 - [x] R.G Full gate + run log (final after R4)
 
+### Phase 1 — re-review fixes (Codex re-review of R4, 2026-10-28)
+
+- [~] R5 `/account` ForgetWelcome drops only `welcome`, keeping other query params and the hash
+- [ ] R6 `returnTo` near the 512-char limit keeps its safe destination after `welcome=1` is appended
+- [ ] R2.G Full gate + run log
+
 ## Phase 2 — #35 email and password with confirmation
 
 - [ ] 2.1 Single-use token records (P9)
