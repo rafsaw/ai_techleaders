@@ -271,11 +271,12 @@ npm run operator -- role revoke --email you@example.com --role operator
 - Exit codes: `0` success, `1` refused or failed (e.g. no account with that
   email), `2` usage error. `npm run operator -- help` lists the commands.
 
-### Mentor invitations
+### Mentor invitations (operator runbook)
 
 The `mentor` role comes only from an email-bound invitation, managed from the
-same CLI (there is no admin page). The invitation page and acceptance ship
-with E01 Phase 3; the operator runbook follows with it.
+same CLI (there is no admin page and no open mentor registration). The
+invitee opens the emailed link at `/invite/<token>` and accepts it while
+signed in to the DevMentor account with that **verified** email address.
 
 ```bash
 npm run operator -- invite create --email ada@example.com
@@ -283,14 +284,106 @@ npm run operator -- invite resend --email ada@example.com
 npm run operator -- invite revoke --email ada@example.com
 ```
 
-- `create` emails a link valid for exactly 14 days to that address only. A
-  still-valid open invitation is a conflict ("Use invite resend or revoke").
-- `resend` gives the open invitation a new link and a new 14-day expiry; the
-  previous link stops working. `revoke` closes it; it is idempotent and never
-  removes a mentor role already granted.
-- Output is the invitation id, email, expiry and delivery status, never the
-  link. A failed email exits `1` and tells you to run `invite resend`.
-  `--note` and `--expires-in-days` are refused.
+Like `role`, every command uses the database in `DATABASE_URL`, prints
+`Database: <host>` first, refuses to run with `NODE_ENV=production` unless
+you add `--yes`, and exits `0` on success, `1` when refused or failed, `2` on
+a usage error (an unknown flag). `--email` is the only flag: it is trimmed
+and lowercased, and the output shows the normalized address, so check it.
+`--note` and `--expires-in-days` are refused (exit `1`); invitations carry no
+note and always expire **14 days** after `create` or `resend`.
+
+**1. Before `create`, confirm the engineer's sign-in address.** Only an
+account with exactly that verified email can accept, and the address of an
+existing account never changes. Ask which address they sign in with:
+
+- They already have an account: the email shown on their `/account` page.
+- They will use GitHub: their GitHub **primary** email (DevMentor reads only
+  the verified primary address).
+- Otherwise the address they will register and confirm with email and
+  password.
+
+Inviting another address forces them to create a second account with it. A
+misaddressed invitation invites whoever owns that address: revoke it.
+
+**2. Create.** On success (exit `0`):
+
+```text
+Invitation created: id <uuid>, email ada@example.com, expires <ISO time, UTC>.
+Delivery: email accepted by the mail server.
+```
+
+"Accepted by the mail server" is SMTP acceptance, not proof that the email
+reached the inbox. If the address already has a still-valid open invitation,
+nothing is created and the command exits `1` with
+`ada@example.com already has an open invitation. Use invite resend or revoke.`
+An expired open invitation is closed automatically and a new one created.
+
+**3. Resend** gives the open invitation (still valid or expired) a new link
+and a new 14-day expiry; the previous link stops working at once. Output as
+for create, with `Invitation resent: …`. With no open invitation (never
+invited, revoked or already accepted) it exits `1` with
+`ada@example.com has no open invitation to resend. Use invite create.`
+
+**4. Revoke** makes the open invitation's link stop working (exit `0`):
+`Invitation revoked: id <uuid>, email ada@example.com. Its link no longer works.`
+It is idempotent: with no open invitation it prints
+`ada@example.com has no open invitation; nothing changed.` (exit `0`). If
+the latest invitation was accepted, it adds
+` The latest invitation (id <uuid>) was accepted on <ISO time>; revoking does not remove the mentor role.`
+
+**Delivery failure.** The invitation is committed before the email is sent,
+so a failed send (SMTP down, or `APP_URL`/`SMTP_URL`/`MAIL_FROM` missing)
+keeps it saved. The command prints the `Invitation created|resent: …` line,
+then on stderr, and exits `1`:
+
+```text
+Delivery: failed, the invitation email was not sent. The invitation is saved. Send a new link with: npm run operator -- invite resend --email ada@example.com
+```
+
+After a failed `resend` the message also says
+`Its previous link no longer works.`: the link was rotated even though the
+email was not sent. Fix mail, then run the `invite resend` it prints. Nothing
+retries in the background.
+
+**What the invitee sees.** Signed out: sign in or create an account with the
+invited address (the invitation path survives GitHub, email sign-in and
+email confirmation). Signed in with another or unconfirmed address: no
+Accept button, the invited address is not shown, and the page offers Sign
+out and says "Or ask the DevMentor team to re-invite <their current
+email>". If they would rather keep that account, revoke the old invitation
+and `create` one for that address (this keeps one account). Already a mentor: "You already have the
+mentor role.", and the invitation stays open until you revoke it. Matching
+verified account: the page names the account that receives the role, and
+**Accept invitation** adds `mentor` to its existing roles, live on its next
+request without signing in again. A used, revoked, rotated or expired link
+says "This invitation is not valid. Ask the DevMentor team for a new email."
+
+**After acceptance.** The invitation is used and cannot be accepted again or
+resent. Revoking it does not remove the mentor role. There is no command to
+remove `mentor` in 1.0: `role revoke --role mentor` is refused, and removal
+stays a manual operator action outside this CLI.
+
+**Secret-free output.** The CLI never prints the token or the invitation
+link, in stdout, stderr or logs; a failed send is logged with the invitation
+id and a sanitized error only. Only the token's hash is stored. The raw link
+exists only in the email. Before sending production invitations, make sure
+the hosting and reverse-proxy access logs omit or redact `/invite/` path
+segments (and `token=` query values).
+
+**Rollback** is code only, as for every accounts change (see
+[Rollback](#rollback)): keep the `mentor_invitations` table, the
+`user_roles.invitation_id` column and every granted role. Code from before
+the invitations release ignores them and keeps every mentor role; it has no
+`invite` commands and no `/invite` page, so open links answer 404 until the
+newer code is back, and then work again until they expire. Never run
+`db:migrate:down` for this: its `down()` drops all invitation history.
+
+**Why email-bound.** Issue #46 first described a create-only bearer link,
+printed by the CLI, with an optional note and expiry and no revoke. The
+product owner replaced that on 2026-10-18 (accounts spec AD5): invitations
+are bound to a verified email, printed nowhere, expire after a fixed 14
+days, and can be revoked and resent, so a forwarded link alone cannot make
+an unrelated account a mentor.
 
 ### Email sign-up locally
 
@@ -499,7 +592,7 @@ All scripts run from the repository root.
 | `npm run db:migration:list`   | List executed migrations                      |
 | `npm run db:seed`             | Insert the sample user (idempotent)           |
 | `npm run ui:add -- <name>`    | Add a shadcn/ui component to `@devmentor/ui`  |
-| `npm run operator -- <command>` | Operator CLI: `role grant` / `role revoke` (see [Operator role](#operator-role)), `invite create` / `resend` / `revoke` (see [Mentor invitations](#mentor-invitations)) |
+| `npm run operator -- <command>` | Operator CLI: `role grant` / `role revoke` (see [Operator role](#operator-role)), `invite create` / `resend` / `revoke` (see [Mentor invitations](#mentor-invitations-operator-runbook)) |
 
 ## Tests and continuous integration
 
@@ -550,10 +643,11 @@ in the repository's GitHub branch protection/ruleset settings.
 Rollback is **code only**: deploy the previous code and keep the database as
 it is. Schema changes for accounts are additive (new nullable `users`
 columns including `password_hash`, the `user_roles`, `auth_sessions`,
-`email_confirmation_tokens` and `rate_limit_buckets` tables and their
-indexes), so older code keeps working with them. Do not run `npm run db:migrate:down` as
-a rollback: its `down()` drops roles, sessions, passwords and confirmation links and is meant only for
-disposable databases. Note that code from before the operator gate leaves
+`email_confirmation_tokens`, `rate_limit_buckets` and `mentor_invitations`
+tables, the nullable `user_roles.invitation_id` and their indexes), so older
+code keeps working with them. Do not run `npm run db:migrate:down` as
+a rollback: its `down()` drops roles, sessions, passwords, confirmation links
+and invitation history and is meant only for disposable databases. Note that code from before the operator gate leaves
 `/backend` and `/api/users` open to everyone, as they were then.
 
 ## Project process

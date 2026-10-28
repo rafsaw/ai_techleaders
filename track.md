@@ -65,5 +65,5 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - [x] 3.2 Invitation create/revoke/resend service + CLI + email template
 - [x] 3.3 Inspect/accept, invitation page, `RoleService.grantMentorFromInvitation`, API route
 - [x] 3.4 Integration on PostgreSQL + Mailpit, including the four race tests
-- [ ] 3.5 Documentation (operator runbook), move spec to `implemented/`
+- [x] 3.5 Documentation (operator runbook), move spec to `implemented/` (spec move to implemented/ deferred until Phase 3 approval)
 - [ ] 3.G Phase 3 full gate + run log → **manual test pause**

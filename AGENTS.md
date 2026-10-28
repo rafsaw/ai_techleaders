@@ -180,7 +180,7 @@ use `node:crypto`. `@devmentor/core/validators/*` must stay isomorphic,
 because client components import it. Anything a client needs (role names,
 the `returnTo` schema) goes in `validators/`.
 
-## Auth and sessions (accounts Phases 1–2)
+## Auth and sessions (accounts Phases 1–3)
 
 - **Homes:**
   - config: `packages/app/src/server/config.ts` (`createAppConfig()`, cradle
@@ -234,9 +234,6 @@ the `returnTo` schema) goes in `validators/`.
 - **Operator role:** granted and revoked only with `npm run operator`
   (`role grant|revoke --email <email> --role operator`); `mentor` is
   refused. Production requires `--yes`.
-- **Mentor invitations (Phase 3):** `invite create|revoke|resend --email`
-  through `MentorInvitationService`; output never contains the token or
-  link, and a failed email exits 1 asking for `invite resend`.
 
 ### Email accounts, mail and rate limits (Phase 2)
 
@@ -299,6 +296,41 @@ the `returnTo` schema) goes in `validators/`.
   Responses never reveal whether an email has an account.
 - **N03:** there is no password reset or manual recovery in 1.0. Don't add a
   reset route, link or CLI command without a spec.
+
+### Mentor invitations (Phase 3)
+
+- **Homes:** `MentorInvitation` (`db/src/entities/auth/`, table
+  `mentor_invitations`, P9 token columns plus `email`, `revoked_at`,
+  `accepted_by_user_id`; one open row per email by a partial unique index);
+  `MentorInvitationService` (`server/services/auth/mentor-invitation.service.ts`,
+  cradle `mentorInvitationService`: `create`/`revoke`/`resend`/`inspect`/
+  `accept`); the db-free `mentor-invitation.policy.ts`
+  (`INVITATION_LIFETIME_DAYS = 14`, safe for CLI modules to import);
+  the template `notifications/templates/mentor-invitation.ts`; the commands
+  `cli/commands/invite-{create,revoke,resend}.command.ts` with
+  `invite-flags.ts`; the page `app/(frontend)/invite/[token]/` and
+  `POST /api/auth/invitations/accept` (`access: "user"`,
+  `invitationAcceptSchema`). The operator runbook is the README section
+  "Mentor invitations (operator runbook)".
+- **Only path to `mentor`:** `RoleService.grantMentorFromInvitation`, called
+  inside `accept`'s transaction (user `FOR UPDATE`, then the invitation by
+  hash, then the checks, then `consumeSingleUseToken`). Generic `grant`
+  takes only `mentee | operator`, and `role grant|revoke --role mentor` is
+  refused. Never add another route, field or command that grants `mentor`.
+- **Email-bound (AD5):** only the account whose verified email equals the
+  invitation's may accept; the page never shows the invited address to
+  another account. The GET page only inspects; resend rotates the hash in
+  place, revoke closes the row; neither touches a role already granted.
+- **Secret-free:** CLI output and logs carry the id, email, expiry and
+  delivery status, never the token or link. `/invite/:token`, and the
+  sign-in/sign-up pages when `returnTo` is an invitation, send the
+  token-page headers and metadata (`app/token-page.ts`). A failed send
+  keeps the invitation and exits 1 asking for `invite resend`.
+- **Staged for E02:** `INVITATION_ACCEPTED_DESTINATION`
+  (`(frontend)/auth-links.ts`, now `/?invitation=accepted`) becomes
+  `/mentor` in E02 Phase 1, and `SiteHeader` shows **Mentor setup** only
+  when the app passes `mentorSetupHref`, which `AppSiteHeader` does from E02
+  Phase 1. Don't link to `/mentor` before it exists.
 
 ## Dependency injection (Awilix)
 
