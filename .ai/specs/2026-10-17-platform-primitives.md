@@ -456,6 +456,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
 - **Contract:**
   ```ts
   useSchemaForm({ schema, fields, initialValues, onSubmit, onSuccess, onCancel, resetOnSuccess = true })
+  // onSubmit(values, { signal }): signal aborts on unmount (added in accounts Phase 2; one-argument callbacks still work)
     → { values, setValue, fieldErrors, formError, isSubmitting, handleSubmit, handleKeyDown }
   ```
 - **Behavior:**
@@ -472,6 +473,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   - `forms/SchemaForm.tsx`
   - `forms/TextField.tsx`
   - `forms/SubmitButton.tsx`
+  - `forms/PasswordField.tsx` (Phase 2)
   - `feedback/Notice.tsx` (`info | success | error`, `role="status"`/`"alert"`)
   - `actions/LinkButton.tsx`
 - **Exports:** `./frontend/*`. Plain Tailwind utilities only.
