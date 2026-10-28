@@ -1,24 +1,20 @@
 import "server-only";
 
 import {
+  aliasTo,
   asClass,
   asFunction,
-  asValue,
   createAppContainer,
   Lifetime,
   registerCore,
   type AppContainer,
-  type PrincipalResolver,
 } from "@devmentor/core";
 import { registerDb } from "@devmentor/db";
 
 import { createAppConfig } from "@/server/config";
+import { AuthSessionService } from "@/server/services/auth/auth-session.service";
+import { RoleService } from "@/server/services/auth/role.service";
 import { UserService } from "@/server/services/auth/user.service";
-
-// Placeholder until sessions exist: nobody is signed in, so every request
-// resolves to no principal and nothing touches the database. Accounts spec
-// Phase 1 step 6 registers `AuthSessionService` under this key instead.
-const noSessionResolver: PrincipalResolver = { resolve: async () => null };
 
 // The composition root: the only place where dependencies are registered.
 // Every service is listed explicitly (no folder scanning) and typed in cradle.ts.
@@ -28,7 +24,10 @@ function buildContainer(): AppContainer {
   registerDb(container);
   container.register({
     config: asFunction(() => createAppConfig(), { lifetime: Lifetime.SINGLETON }),
-    principalResolver: asValue(noSessionResolver),
+    authSessionService: asClass(AuthSessionService),
+    // Every request resolves its session through AuthSessionService.
+    principalResolver: aliasTo("authSessionService"),
+    roleService: asClass(RoleService),
     userService: asClass(UserService),
   });
   return container;

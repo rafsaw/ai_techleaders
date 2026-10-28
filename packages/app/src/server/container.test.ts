@@ -11,8 +11,10 @@ describe("composition root", () => {
     vi.resetModules();
     const { container, createRequestScope } = await import("@/server/container");
     const { UserService } = await import("@/server/services/auth/user.service");
+    const { RoleService } = await import("@/server/services/auth/role.service");
+    const { AuthSessionService } = await import("@/server/services/auth/auth-session.service");
     expect(cache.__devmentorContainer).toBe(container);
-    expect(Object.keys(container.registrations)).toEqual(expect.arrayContaining(["logger", "clock", "config", "principalResolver", "orm", "em", "userService"]));
+    expect(Object.keys(container.registrations)).toEqual(expect.arrayContaining(["logger", "clock", "config", "principalResolver", "orm", "em", "userService", "roleService", "authSessionService"]));
     const em = { fake: true };
     container.register({ em: asValue(em) });
     const first = createRequestScope();
@@ -20,8 +22,13 @@ describe("composition root", () => {
     expect(first.cradle.userService).toBeInstanceOf(UserService);
     expect(first.cradle.config).toBe(container.cradle.config);
     expect(typeof first.cradle.config.app).toBe("function");
-    // Until sessions exist (accounts step 1.6) nobody resolves as signed in.
-    const req = new Request("http://localhost/", { headers: { cookie: "devmentor_session=abc" } });
+    expect(first.cradle.roleService).toBeInstanceOf(RoleService);
+    expect(first.cradle.authSessionService).toBeInstanceOf(AuthSessionService);
+    // The resolver is the session service; services are transient.
+    expect(first.cradle.principalResolver).toBeInstanceOf(AuthSessionService);
+    expect(first.cradle.userService).not.toBe(first.cradle.userService);
+    // No session cookie: signed out without touching config or the database.
+    const req = new Request("http://localhost/");
     await expect(first.cradle.principalResolver.resolve(req, new ResponseCookies())).resolves.toBeNull();
     vi.resetModules();
     expect((await import("@/server/container")).container).toBe(container);

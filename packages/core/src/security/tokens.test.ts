@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import { generateToken, hashToken, TOKEN_BYTES } from "./tokens";
+import { generateToken, hashToken, isWellFormedToken, TOKEN_BYTES } from "./tokens";
 
 describe("generateToken", () => {
   it("returns 32 random bytes as unpadded base64url", () => {
@@ -37,5 +37,24 @@ describe("hashToken", () => {
     expect(hashToken(token)).toMatch(/^[0-9a-f]{64}$/);
     expect(hashToken(token)).not.toContain(token);
     expect(hashToken(token)).not.toBe(hashToken(generateToken()));
+  });
+});
+
+describe("isWellFormedToken", () => {
+  it("accepts generated tokens", () => {
+    expect(isWellFormedToken(generateToken())).toBe(true);
+    expect(isWellFormedToken("A".repeat(42) + "_")).toBe(true);
+  });
+
+  it.each([
+    ["empty", ""],
+    ["too short", "a".repeat(42)],
+    ["too long", "a".repeat(44)],
+    ["padding", "a".repeat(42) + "="],
+    ["standard base64", "a".repeat(42) + "+"],
+    ["a trailing newline", generateToken() + "\n"],
+    ["a 64-char hash", hashToken("abc")],
+  ])("rejects %s", (_label, value) => {
+    expect(isWellFormedToken(value)).toBe(false);
   });
 });

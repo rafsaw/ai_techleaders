@@ -1,4 +1,5 @@
 import {
+  aliasTo,
   asClass,
   asFunction,
   asValue,
@@ -38,4 +39,4 @@ export function createAppContainer(): AppContainer {
   });
 }
 
-export { asClass, asFunction, asValue, Lifetime };
+export { aliasTo, asClass, asFunction, asValue, Lifetime };
