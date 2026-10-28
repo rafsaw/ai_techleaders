@@ -14,6 +14,8 @@ const UserSchema = defineEntity({
     githubId: p.string().length(32).nullable().unique(),
     /** Set for GitHub sign-ins (verified primary email) and on email confirmation. */
     emailConfirmedAt: p.datetime().nullable(),
+    /** bcrypt hash (always 60 characters); null for GitHub-only accounts. Never leaves the server in a DTO. */
+    passwordHash: p.string().length(60).nullable(),
   },
 });
 

@@ -3,9 +3,9 @@ import { EntitySchema, types } from "@mikro-orm/core";
 import type { EntityManager } from "@mikro-orm/postgresql";
 import { describe, expect, it, vi } from "vitest";
 
-import { AuthSession, entities, RateLimitBucket, User, UserRole } from "./index";
+import { AuthSession, EmailConfirmationToken, entities, RateLimitBucket, User, UserRole } from "./index";
 
-function meta(entity: typeof User | typeof UserRole | typeof AuthSession | typeof RateLimitBucket) {
+function meta(entity: (typeof entities)[number]) {
   const schema = EntitySchema.REGISTRY.get(entity);
   expect(schema).toBeDefined();
   return schema!.meta;
@@ -13,7 +13,7 @@ function meta(entity: typeof User | typeof UserRole | typeof AuthSession | typeo
 
 describe("entity definitions", () => {
   it("lists every entity", () => {
-    expect(entities).toEqual([User, UserRole, AuthSession, RateLimitBucket]);
+    expect(entities).toEqual([User, UserRole, AuthSession, EmailConfirmationToken, RateLimitBucket]);
   });
 
   it("registers User with its table, primary key, unique email and nullable GitHub columns", () => {
@@ -23,6 +23,7 @@ describe("entity definitions", () => {
     expect(properties.email?.unique).toBe(true);
     expect(properties.githubId).toMatchObject({ unique: true, nullable: true, length: 32 });
     expect(properties.emailConfirmedAt?.nullable).toBe(true);
+    expect(properties.passwordHash).toMatchObject({ nullable: true, length: 60 });
   });
 
   it("registers UserRole with a cascading user reference, the role enum and a unique (user, role)", () => {
@@ -41,6 +42,19 @@ describe("entity definitions", () => {
     expect((m.properties.user!.entity as () => unknown)()).toBe(User);
     expect(m.properties.tokenHash).toMatchObject({ unique: true, columnType: "char(64)" });
     expect(m.properties.expiresAt?.nullable).toBeFalsy();
+  });
+
+  it("registers EmailConfirmationToken with the single-use token columns, an indexed cascading user and the sent-to email", () => {
+    const m = meta(EmailConfirmationToken);
+    expect(m.tableName).toBe("email_confirmation_tokens");
+    expect(m.properties.id?.primary).toBe(true);
+    expect(m.properties.tokenHash).toMatchObject({ unique: true, columnType: "char(64)" });
+    expect(m.properties.expiresAt?.nullable).toBeFalsy();
+    expect(m.properties.consumedAt?.nullable).toBe(true);
+    expect(m.properties.user).toMatchObject({ kind: "m:1", deleteRule: "cascade", index: true });
+    expect((m.properties.user!.entity as () => unknown)()).toBe(User);
+    expect(m.properties.email).toMatchObject({ length: 254 });
+    expect(m.properties.email?.nullable).toBeFalsy();
   });
 
   it("registers RateLimitBucket with a unique char(64) key hash, a count and an indexed window end", () => {

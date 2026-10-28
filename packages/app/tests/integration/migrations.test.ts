@@ -1,28 +1,24 @@
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 
-import pg from "pg";
-import { afterAll, beforeAll, describe, expect, inject, it } from "vitest";
+import { describe, expect, inject, it } from "vitest";
 
-import { runNpm } from "./npm";
+import { useScratchDatabase } from "./scratch-database";
 
 /**
- * Round trip of the accounts Phase 1 migration (E01 step 1.5) through the real
- * MikroORM CLI: baseline only -> Phase 1 up -> Phase 1 down -> Phase 1 up.
- *
- * It runs in its own database inside the integration PostgreSQL container, not
- * in the app's database: `down()` drops tables the running app and the other
+ * Round trips of the accounts migrations through the real MikroORM CLI, each in
+ * its own scratch database inside the integration PostgreSQL container (see
+ * `useScratchDatabase`): `down()` drops tables the running app and the other
  * scenarios need, while a sibling database is fully isolated (its own schema
- * and `mikro_orm_migrations` table), runs on the exact same server version,
- * costs no second container start, and disappears with the container even if
- * the `DROP DATABASE` below never runs.
+ * and `mikro_orm_migrations` table).
  *
  * Every step names its migration (`--to` / `--only`), so later migrations are
- * never applied here and this file keeps testing exactly this pair. A future
- * migration gets its own round trip in the same style.
+ * never applied by a block and each one keeps testing exactly its migration.
+ * A future migration gets its own round trip in the same style.
  */
 const BASELINE = "Migration20261013225312";
 const ACCOUNTS = "Migration20261028002328";
+const ACCOUNTS_PHASE_2 = "Migration20261028165323";
 
 const PRE_EXISTING_USERS = [
   { id: randomUUID(), email: "grace@example.com", name: "Grace Hopper", createdAt: "2026-01-02 03:04:05.123456+00" },
@@ -30,81 +26,65 @@ const PRE_EXISTING_USERS = [
   { id: randomUUID(), email: "margaret@example.com", name: "Margaret Hamilton", createdAt: "2026-03-04 05:06:07+00" },
 ];
 
+/** Schema and data probes over one scratch database. */
+function probes(query: ReturnType<typeof useScratchDatabase>["query"]) {
+  return {
+    async executedMigrations(): Promise<string[]> {
+      const rows = await query<{ name: string }>(`select name from mikro_orm_migrations order by id`);
+      return rows.map(({ name }) => name.replace(/\.[jt]s$/, ""));
+    },
+    async tables(): Promise<string[]> {
+      const rows = await query<{ table_name: string }>(
+        `select table_name from information_schema.tables where table_schema = 'public' and table_name <> 'mikro_orm_migrations' order by table_name`);
+      return rows.map(({ table_name }) => table_name);
+    },
+    columns(table: string) {
+      return query<{ column_name: string; data_type: string; character_maximum_length: number | null; is_nullable: string }>(
+        `select column_name, data_type, character_maximum_length, is_nullable from information_schema.columns
+          where table_schema = 'public' and table_name = $1 order by ordinal_position`, [table]);
+    },
+    constraints(table: string) {
+      return query<{ name: string; definition: string }>(
+        `select conname as name, pg_get_constraintdef(oid) as definition from pg_constraint
+          where conrelid = $1::regclass order by conname`, [table]);
+    },
+    /** Non-constraint indexes of a table (primary keys and unique constraints are in `constraints`). */
+    async indexes(table: string): Promise<string[]> {
+      const rows = await query<{ indexdef: string }>(
+        `select indexdef from pg_indexes i where schemaname = 'public' and tablename = $1
+            and not exists (select 1 from pg_constraint c where c.conname = i.indexname) order by indexname`, [table]);
+      return rows.map(({ indexdef }) => indexdef);
+    },
+    /** Exact user rows; timestamps as text so microseconds are compared too. */
+    users() {
+      return query<{ id: string; email: string; name: string; created_at: string; updated_at: string }>(
+        `select id, email, name, created_at::text, updated_at::text from users order by email`);
+    },
+    async rolesByUser(): Promise<Record<string, string[]>> {
+      const rows = await query<{ user_id: string; roles: string[] }>(
+        `select user_id, array_agg(role order by role) as roles from user_roles group by user_id`);
+      return Object.fromEntries(rows.map(({ user_id, roles }) => [user_id, roles]));
+    },
+  };
+}
+
+const timestamps = [
+  { column_name: "created_at", data_type: "timestamp with time zone", character_maximum_length: null, is_nullable: "NO" },
+  { column_name: "updated_at", data_type: "timestamp with time zone", character_maximum_length: null, is_nullable: "NO" },
+];
+const idColumn = { column_name: "id", data_type: "uuid", character_maximum_length: null, is_nullable: "NO" };
+const userIdColumn = { column_name: "user_id", data_type: "uuid", character_maximum_length: null, is_nullable: "NO" };
+
 describe("accounts migration round trip on PostgreSQL (E01 Phase 1)", () => {
-  const adminURL = inject("databaseURL");
   const logPath = join(inject("integrationArtifactsDirectory"), "migrations-round-trip.log");
-  const database = `migrations_${randomUUID().replaceAll("-", "")}`;
-  const databaseURL = Object.assign(new URL(adminURL), { pathname: `/${database}` }).toString();
-  let client: pg.Client | undefined;
-
-  async function withAdmin(text: string): Promise<void> {
-    const admin = new pg.Client({ connectionString: adminURL });
-    await admin.connect();
-    try {
-      await admin.query(text);
-    } finally {
-      await admin.end();
-    }
-  }
-
-  async function query<T extends pg.QueryResultRow>(text: string, values: unknown[] = []): Promise<T[]> {
-    return (await client!.query<T>(text, values)).rows;
-  }
-
-  /** `npm run db:migrate[:down] -- <flags>`: the repo's own commands, against this database only. */
-  async function migrate(direction: "up" | "down", flags: string[]): Promise<void> {
-    await runNpm([direction === "up" ? "db:migrate" : "db:migrate:down", "--", "--", ...flags], databaseURL, logPath);
-  }
-
-  async function executedMigrations(): Promise<string[]> {
-    const rows = await query<{ name: string }>(`select name from mikro_orm_migrations order by id`);
-    return rows.map(({ name }) => name.replace(/\.[jt]s$/, ""));
-  }
-
-  async function tables(): Promise<string[]> {
-    const rows = await query<{ table_name: string }>(
-      `select table_name from information_schema.tables where table_schema = 'public' and table_name <> 'mikro_orm_migrations' order by table_name`);
-    return rows.map(({ table_name }) => table_name);
-  }
-
-  async function columns(table: string) {
-    return query<{ column_name: string; data_type: string; character_maximum_length: number | null; is_nullable: string }>(
-      `select column_name, data_type, character_maximum_length, is_nullable from information_schema.columns
-        where table_schema = 'public' and table_name = $1 order by ordinal_position`, [table]);
-  }
-
-  async function constraints(table: string) {
-    return query<{ name: string; definition: string }>(
-      `select conname as name, pg_get_constraintdef(oid) as definition from pg_constraint
-        where conrelid = $1::regclass order by conname`, [table]);
-  }
-
-  /** Exact user rows; timestamps as text so microseconds are compared too. */
-  async function users() {
-    return query<{ id: string; email: string; name: string; created_at: string; updated_at: string }>(
-      `select id, email, name, created_at::text, updated_at::text from users order by email`);
-  }
-
-  async function rolesByUser(): Promise<Record<string, string[]>> {
-    const rows = await query<{ user_id: string; roles: string[] }>(
-      `select user_id, array_agg(role order by role) as roles from user_roles group by user_id`);
-    return Object.fromEntries(rows.map(({ user_id, roles }) => [user_id, roles]));
-  }
+  const scratch = useScratchDatabase("migrations");
+  const { query } = scratch;
+  const { executedMigrations, tables, columns, constraints, users, rolesByUser } = probes(query);
+  const migrate = (direction: "up" | "down", flags: string[]) => scratch.migrate(direction, flags, logPath);
 
   let baselineUsers: Awaited<ReturnType<typeof users>>;
   let baselineUserColumns: Awaited<ReturnType<typeof columns>>;
   let baselineUserConstraints: Awaited<ReturnType<typeof constraints>>;
-
-  beforeAll(async () => {
-    await withAdmin(`create database "${database}"`);
-    client = new pg.Client({ connectionString: databaseURL });
-    await client.connect();
-  });
-
-  afterAll(async () => {
-    await client?.end();
-    await withAdmin(`drop database if exists "${database}" with (force)`);
-  });
 
   it("applies only the baseline migration and keeps pre-existing users", async () => {
     await migrate("up", ["--to", BASELINE]);
@@ -132,18 +112,12 @@ describe("accounts migration round trip on PostgreSQL (E01 Phase 1)", () => {
       { column_name: "github_id", data_type: "character varying", character_maximum_length: 32, is_nullable: "YES" },
       { column_name: "email_confirmed_at", data_type: "timestamp with time zone", character_maximum_length: null, is_nullable: "YES" },
     ]);
-    const timestamps = [
-      { column_name: "created_at", data_type: "timestamp with time zone", character_maximum_length: null, is_nullable: "NO" },
-      { column_name: "updated_at", data_type: "timestamp with time zone", character_maximum_length: null, is_nullable: "NO" },
-    ];
-    const id = { column_name: "id", data_type: "uuid", character_maximum_length: null, is_nullable: "NO" };
-    const userId = { column_name: "user_id", data_type: "uuid", character_maximum_length: null, is_nullable: "NO" };
     expect(await columns("user_roles")).toEqual([
-      id, ...timestamps, userId,
+      idColumn, ...timestamps, userIdColumn,
       { column_name: "role", data_type: "text", character_maximum_length: null, is_nullable: "NO" },
     ]);
     expect(await columns("auth_sessions")).toEqual([
-      id, ...timestamps, userId,
+      idColumn, ...timestamps, userIdColumn,
       { column_name: "token_hash", data_type: "character", character_maximum_length: 64, is_nullable: "NO" },
       { column_name: "expires_at", data_type: "timestamp with time zone", character_maximum_length: null, is_nullable: "NO" },
     ]);
@@ -228,5 +202,163 @@ describe("accounts migration round trip on PostgreSQL (E01 Phase 1)", () => {
     expect(await users()).toEqual(baselineUsers);
     expect(await query(`select count(*)::int as unset from users where github_id is null and email_confirmed_at is null`))
       .toEqual([{ unset: PRE_EXISTING_USERS.length }]);
+  });
+});
+
+describe("accounts migration round trip on PostgreSQL (E01 Phase 2)", () => {
+  const logPath = join(inject("integrationArtifactsDirectory"), "migrations-round-trip-phase2.log");
+  const scratch = useScratchDatabase("migrations_p2");
+  const { query } = scratch;
+  const { executedMigrations, tables, columns, constraints, indexes, rolesByUser } = probes(query);
+  const migrate = (direction: "up" | "down", flags: string[]) => scratch.migrate(direction, flags, logPath);
+  const PHASE_1_TABLES = ["auth_sessions", "user_roles", "users"];
+  const PHASE_2_TABLES = ["auth_sessions", "email_confirmation_tokens", "rate_limit_buckets", "user_roles", "users"];
+
+  /** Every Phase 1 user column, as text, so the whole row is compared. */
+  const phase1Users = () => query(
+    `select id, email, name, github_id, email_confirmed_at::text, created_at::text, updated_at::text from users order by email`);
+  const sessions = () => query(
+    `select id, user_id, token_hash, expires_at::text, created_at::text, updated_at::text from auth_sessions order by token_hash`);
+
+  let phase1UserRows: Awaited<ReturnType<typeof phase1Users>>;
+  let phase1Roles: Record<string, string[]>;
+  let phase1Sessions: Awaited<ReturnType<typeof sessions>>;
+  let phase1UserColumns: Awaited<ReturnType<typeof columns>>;
+  let phase1UserConstraints: Awaited<ReturnType<typeof constraints>>;
+
+  it("starts from Phase 1 with users, roles and sessions", async () => {
+    await migrate("up", ["--to", ACCOUNTS]);
+    expect(await executedMigrations()).toEqual([BASELINE, ACCOUNTS]);
+
+    const [grace, linus] = PRE_EXISTING_USERS;
+    for (const user of PRE_EXISTING_USERS) {
+      await query(`insert into users (id, created_at, updated_at, email, name) values ($1, $2, $2, $3, $4)`,
+        [user.id, user.createdAt, user.email, user.name]);
+      await query(`insert into user_roles values (gen_random_uuid(), $2, $2, $1, 'mentee')`, [user.id, user.createdAt]);
+    }
+    await query(`update users set github_id = '1001', email_confirmed_at = '2026-04-05 06:07:08.9+00' where id = $1`, [grace!.id]);
+    await query(`insert into user_roles values (gen_random_uuid(), now(), now(), $1, 'operator')`, [grace!.id]);
+    await query(`insert into auth_sessions values (gen_random_uuid(), now(), now(), $1, $2, '2026-12-01 00:00:00+00'),
+      (gen_random_uuid(), now(), now(), $3, $4, '2026-12-02 00:00:00+00')`, [grace!.id, "a".repeat(64), linus!.id, "b".repeat(64)]);
+
+    phase1UserRows = await phase1Users();
+    phase1Roles = await rolesByUser();
+    phase1Sessions = await sessions();
+    phase1UserColumns = await columns("users");
+    phase1UserConstraints = await constraints("users");
+    expect(phase1UserRows).toHaveLength(PRE_EXISTING_USERS.length);
+    expect(phase1Sessions).toHaveLength(2);
+  });
+
+  it("migrates up to Phase 2 with password_hash, email_confirmation_tokens and rate_limit_buckets", async () => {
+    await migrate("up", ["--to", ACCOUNTS_PHASE_2]);
+
+    expect(await executedMigrations()).toEqual([BASELINE, ACCOUNTS, ACCOUNTS_PHASE_2]);
+    expect(await tables()).toEqual(PHASE_2_TABLES);
+    expect(await columns("users")).toEqual([
+      ...phase1UserColumns,
+      { column_name: "password_hash", data_type: "character varying", character_maximum_length: 60, is_nullable: "YES" },
+    ]);
+    expect(await constraints("users")).toEqual(phase1UserConstraints);
+
+    expect(await columns("email_confirmation_tokens")).toEqual([
+      idColumn, ...timestamps,
+      { column_name: "token_hash", data_type: "character", character_maximum_length: 64, is_nullable: "NO" },
+      { column_name: "expires_at", data_type: "timestamp with time zone", character_maximum_length: null, is_nullable: "NO" },
+      { column_name: "consumed_at", data_type: "timestamp with time zone", character_maximum_length: null, is_nullable: "YES" },
+      userIdColumn,
+      { column_name: "email", data_type: "character varying", character_maximum_length: 254, is_nullable: "NO" },
+    ]);
+    expect(await constraints("email_confirmation_tokens")).toEqual([
+      { name: "email_confirmation_tokens_pkey", definition: "PRIMARY KEY (id)" },
+      { name: "email_confirmation_tokens_token_hash_unique", definition: "UNIQUE (token_hash)" },
+      { name: "email_confirmation_tokens_user_id_foreign", definition: "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE" },
+    ]);
+    expect(await indexes("email_confirmation_tokens")).toEqual([
+      "CREATE INDEX email_confirmation_tokens_user_id_index ON public.email_confirmation_tokens USING btree (user_id)",
+    ]);
+
+    expect(await columns("rate_limit_buckets")).toEqual([
+      idColumn, ...timestamps,
+      { column_name: "key_hash", data_type: "character", character_maximum_length: 64, is_nullable: "NO" },
+      { column_name: "count", data_type: "integer", character_maximum_length: null, is_nullable: "NO" },
+      { column_name: "window_ends_at", data_type: "timestamp with time zone", character_maximum_length: null, is_nullable: "NO" },
+    ]);
+    expect(await constraints("rate_limit_buckets")).toEqual([
+      { name: "rate_limit_buckets_key_hash_unique", definition: "UNIQUE (key_hash)" },
+      { name: "rate_limit_buckets_pkey", definition: "PRIMARY KEY (id)" },
+    ]);
+    expect(await indexes("rate_limit_buckets")).toEqual([
+      "CREATE INDEX rate_limit_buckets_window_ends_at_index ON public.rate_limit_buckets USING btree (window_ends_at)",
+    ]);
+  });
+
+  it("keeps every Phase 1 user, role and session, with no password set", async () => {
+    expect(await phase1Users()).toEqual(phase1UserRows);
+    expect(await rolesByUser()).toEqual(phase1Roles);
+    expect(await sessions()).toEqual(phase1Sessions);
+    expect(await query(`select count(*)::int as unset from users where password_hash is null`))
+      .toEqual([{ unset: PRE_EXISTING_USERS.length }]);
+  });
+
+  it("enforces the Phase 2 constraints", async () => {
+    const [grace, linus] = PRE_EXISTING_USERS;
+    const tokenHash = "c".repeat(64);
+    const insertToken = (userId: string, hash: string) => query(
+      `insert into email_confirmation_tokens (id, created_at, updated_at, token_hash, expires_at, user_id, email)
+        values (gen_random_uuid(), now(), now(), $2, now() + interval '24 hours', $1, 'someone@example.com')`, [userId, hash]);
+    await insertToken(grace!.id, tokenHash);
+    await expect(insertToken(linus!.id, tokenHash))
+      .rejects.toMatchObject({ code: "23505", constraint: "email_confirmation_tokens_token_hash_unique" });
+    await expect(insertToken(randomUUID(), "d".repeat(64)))
+      .rejects.toMatchObject({ code: "23503", constraint: "email_confirmation_tokens_user_id_foreign" });
+    await expect(query(`update users set password_hash = $2 where id = $1`, [grace!.id, "x".repeat(61)]))
+      .rejects.toMatchObject({ code: "22001" });
+
+    const insertBucket = (hash: string) => query(
+      `insert into rate_limit_buckets values (gen_random_uuid(), now(), now(), $1, 1, now() + interval '1 minute')`, [hash]);
+    await insertBucket("e".repeat(64));
+    await expect(insertBucket("e".repeat(64)))
+      .rejects.toMatchObject({ code: "23505", constraint: "rate_limit_buckets_key_hash_unique" });
+    // The limiter's `on conflict ("key_hash")` resolves against that unique constraint.
+    expect(await query(`insert into rate_limit_buckets values (gen_random_uuid(), now(), now(), $1, 1, now())
+      on conflict ("key_hash") do update set "count" = "rate_limit_buckets"."count" + 1 returning "count"`, ["e".repeat(64)]))
+      .toEqual([{ count: 2 }]);
+
+    // Deleting a user cascades to its confirmation links.
+    const doomed = randomUUID();
+    await query(`insert into users (id, created_at, updated_at, email, name) values ($1, now(), now(), 'doomed@example.com', 'Doomed')`, [doomed]);
+    await insertToken(doomed, "f".repeat(64));
+    await query(`delete from users where id = $1`, [doomed]);
+    expect(await query(`select count(*)::int as left from email_confirmation_tokens where user_id = $1`, [doomed])).toEqual([{ left: 0 }]);
+  });
+
+  it("reverts Phase 2 with down() and preserves the Phase 1 schema and data", async () => {
+    const [grace] = PRE_EXISTING_USERS;
+    await query(`update users set password_hash = $2 where id = $1`, [grace!.id, "$2b$12$".padEnd(60, "x")]);
+
+    await migrate("down", ["--only", ACCOUNTS_PHASE_2]);
+
+    expect(await executedMigrations()).toEqual([BASELINE, ACCOUNTS]);
+    expect(await tables()).toEqual(PHASE_1_TABLES);
+    expect(await columns("users")).toEqual(phase1UserColumns);
+    expect(await constraints("users")).toEqual(phase1UserConstraints);
+    expect(await phase1Users()).toEqual(phase1UserRows);
+    expect(await rolesByUser()).toEqual(phase1Roles);
+    expect(await sessions()).toEqual(phase1Sessions);
+  });
+
+  it("migrates up to Phase 2 again after down() with empty new tables", async () => {
+    await migrate("up", ["--to", ACCOUNTS_PHASE_2]);
+
+    expect(await executedMigrations()).toEqual([BASELINE, ACCOUNTS, ACCOUNTS_PHASE_2]);
+    expect(await tables()).toEqual(PHASE_2_TABLES);
+    expect(await query(`select (select count(*)::int from email_confirmation_tokens) as tokens,
+      (select count(*)::int from rate_limit_buckets) as buckets,
+      (select count(*)::int from users where password_hash is not null) as passwords`))
+      .toEqual([{ tokens: 0, buckets: 0, passwords: 0 }]);
+    expect(await phase1Users()).toEqual(phase1UserRows);
+    expect(await rolesByUser()).toEqual(phase1Roles);
+    expect(await sessions()).toEqual(phase1Sessions);
   });
 });

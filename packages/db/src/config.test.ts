@@ -17,7 +17,7 @@ describe("database configuration", () => {
     const config = await loadConfig();
     expect(config.pool).toEqual({ min: 0, max: 10 });
     expect(config.debug).toBe(false);
-    expect((config.entities as { name: string }[]).map((entity) => entity.name)).toEqual(["User", "UserRole", "AuthSession", "RateLimitBucket"]);
+    expect((config.entities as { name: string }[]).map((entity) => entity.name)).toEqual(["User", "UserRole", "AuthSession", "EmailConfirmationToken", "RateLimitBucket"]);
     expect(config.extensions).toEqual([Migrator, SeedManager]);
     expect(config.migrations).toEqual({ path: "src/migrations", snapshot: false,
       transactional: true, allOrNothing: true });

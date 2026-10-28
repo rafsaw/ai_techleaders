@@ -70,6 +70,21 @@ describe("user service", () => {
     expect(roleService.rolesOf).toHaveBeenCalledWith("user-id");
   });
 
+  it("never puts the password hash into a user or account DTO", async () => {
+    const { em, service } = setup();
+    const withPassword = Object.assign(new User(), { ...user, passwordHash: "$2b$12$".padEnd(60, "x") });
+    em.find.mockResolvedValueOnce([withPassword]);
+    em.create.mockImplementationOnce(() => withPassword);
+    em.findOne.mockResolvedValue(withPassword);
+    const results = [...await service.list(), await service.create({ email: "ada@example.com", name: "Ada" }),
+      await service.findByEmail("ada@example.com"), await service.getAccount("user-id"),
+      await service.updateDisplayName("user-id", "Ada")];
+    for (const result of results) {
+      expect(result).not.toHaveProperty("passwordHash");
+      expect(JSON.stringify(result)).not.toContain("$2b$12$");
+    }
+  });
+
   it("reports GitHub as a sign-in method once the account is linked", async () => {
     const { em, service } = setup();
     em.findOne.mockResolvedValueOnce(Object.assign(new User(), { ...user, githubId: "583231" }));

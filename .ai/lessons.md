@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-28 — Pointing `@devmentor/db` at a scratch database in tests
+
+**Context:** E01 step 2.4, real-PostgreSQL tests of the rate limiter and P9 consume. The limiter's cleanup deletes every expired bucket in the table, and migration `down()` drops tables, so neither may run in the app's integration database.
+**Lesson:** give such tests their own database in the integration container (`useScratchDatabase` in `tests/integration/scratch-database.ts`). `packages/db/src/config.ts` reads `DATABASE_URL` when the module is first evaluated, so to get an ORM for that database `vi.stubEnv` it around a *dynamic* `import("@devmentor/db")` and call `registerDb` on a fresh container (`dbContainer`); a static import would bind the app's URL. Dispose the container to close the pool.
+**Applies to:** `packages/app/tests/integration/`, any test needing a real ORM against a non-default database.
+
 ### 2026-10-28 — `em.execute` inlines `?` params and returns timestamptz as text
 
 **Context:** E01 step 2.3 (P11 Postgres rate limiter, raw `DELETE` + `INSERT … ON CONFLICT … RETURNING`). Checked against a real PostgreSQL 17 before the migration existed.
