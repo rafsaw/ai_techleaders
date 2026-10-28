@@ -6,6 +6,7 @@ export * from "./http/cookies";
 export * from "./http/errors";
 export * from "./http/logging";
 export * from "./http/makeCrudRoute";
+export * from "./http/navigationHandler";
 export * from "./http/validation";
 export * from "./logger";
 export * from "./security/tokens";

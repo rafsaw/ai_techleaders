@@ -150,6 +150,24 @@ describe("production application with ephemeral PostgreSQL", () => {
     expect(await browser.snapshot()).toContain("1 registered users");
   });
 
+  it("renders the identity-free /error screen with a generic message and a way home", async () => {
+    await browser.command("open", `${baseURL}/error?code=internal_error`);
+    await browser.waitForText("Something went wrong");
+    expect((await browser.command("get", "title")).title).toBe("Something went wrong · DevMentor");
+    expect(await browser.heading("Something went wrong")).toBe("Something went wrong");
+    const page = await browser.snapshot();
+    expect(page).toMatch(/^\s*- banner(?:\s|$)/m);
+    expect(page).toMatch(/^\s*- main(?:\s|$)/m);
+    expect(page).toContain("We couldn't complete your request. Please try again in a moment.");
+    expect(page).not.toContain("internal_error");
+    expect(page).not.toMatch(/Sign in|Sign out|Backend/);
+    expect(await browser.visible("link", "DevMentor")).toBe(true);
+
+    await browser.click("link", "Go to the home page");
+    await browser.waitForText("A project for tech leaders");
+    expect((await browser.command("get", "url")).url).toBe(`${baseURL}/`);
+  });
+
   // Keep last: it adds the sample user to the container shared by every
   // integration file (one globalSetup), and earlier cases assert the empty
   // state and exact user counts. A new integration file must not assume an
