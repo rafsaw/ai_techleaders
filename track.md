@@ -55,6 +55,10 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - [x] R8 `clientIp` canonicalizes IPv6 (incl. IPv4-mapped) before rate-limit keys
 - [x] R3.G Full Phase 2 gate + run log
 
+### Phase 2 — manual-test fix (2026-10-28)
+
+- [x] M1 Double click on Create account sent two confirmation emails: `SchemaForm` stays locked after success until it navigates away (frontend only)
+
 ## Phase 3 — #46 invitation management, then #36 acceptance
 
 - [ ] 3.1 Schema: `mentor_invitations` (email-bound, hashed token, expiry, revoke), `user_roles.invitation_id`, migration
