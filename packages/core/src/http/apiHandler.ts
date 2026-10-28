@@ -2,7 +2,7 @@ import type { AppContainer, Cradle } from "../di/container";
 import type { Logger } from "../logger";
 import { authorize, type Access, type PrincipalFor } from "./auth";
 import { ResponseCookies } from "./cookies";
-import { AppError, ForbiddenError, ValidationError, type FieldErrors } from "./errors";
+import { ForbiddenError, isAppError, type FieldErrors, type ValidationError } from "./errors";
 import { summarizeError } from "./logging";
 
 // The JSON envelope every API route returns. `@devmentor/ui` declares the
@@ -83,8 +83,9 @@ function toErrorResponse(
   route: string,
   cookies: ResponseCookies,
 ): Response {
-  if (error instanceof AppError) {
-    const fieldErrors = error instanceof ValidationError ? error.fieldErrors : undefined;
+  if (isAppError(error)) {
+    // Not `instanceof ValidationError`: the error may come from another copy of core.
+    const fieldErrors = "fieldErrors" in error ? (error as ValidationError).fieldErrors : undefined;
     return respond(failure(error.code, error.message, fieldErrors), error.status, cookies);
   }
 

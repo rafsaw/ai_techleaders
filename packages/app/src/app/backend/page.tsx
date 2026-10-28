@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import { connection } from "next/server";
 
 import { Badge } from "@devmentor/ui/components/badge";
@@ -10,9 +9,11 @@ import {
   CardTitle,
 } from "@devmentor/ui/components/card";
 
+import { operatorTitle } from "@/app/backend/operator-title";
+import { requireRole } from "@/server/auth/page-guards";
 import { createRequestScope } from "@/server/container";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const generateMetadata = operatorTitle("Dashboard");
 
 type DatabaseStatus = { ok: true; users: number } | { ok: false; error: string };
 
@@ -28,6 +29,8 @@ async function getDatabaseStatus(): Promise<DatabaseStatus> {
 }
 
 export default async function BackendDashboard() {
+  // Operators only (accounts AD4); the guard also renders at request time.
+  await requireRole("operator", { returnTo: "/backend" });
   const db = await getDatabaseStatus();
 
   return (

@@ -125,6 +125,16 @@ describe("navigationHandler: errors", () => {
     expect(errorPath("a b&c")).toBe("/error?code=a%20b%26c");
   });
 
+  it("treats an AppError from another copy of core as expected", async () => {
+    vi.resetModules();
+    const copy = await import("./errors");
+    const { navigationHandler, logger } = setup();
+    const response = await navigationHandler(async () => { throw new copy.NotFoundError(); },
+      { access: "public" })(request(), ctx);
+    expect(response.headers.get("location")).toBe("https://devmentor.example/error?code=not_found");
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
   it("sends an AppError to the onError target through the internal validator", async () => {
     const { navigationHandler } = setup();
     const onError = vi.fn(() => "/sign-in?error=github_failed&returnTo=%2Faccount");

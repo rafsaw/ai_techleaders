@@ -12,39 +12,45 @@ import { repositoryRoot } from "./context";
 import { setGitHubStubBarrier, setGitHubStubUser, STUB_DECISION_PARAM } from "./github-stub";
 
 /**
- * Runs `npm run db:seed` against the test container. Settles on "close" (stdio
- * drained) so the log is never ended under a late write; on timeout it kills the
- * process group and waits for it to close before rejecting.
+ * Runs a root npm script against the test container and returns its stdout.
+ * `DATABASE_URL` always comes from the container: an explicit env var wins
+ * over `.env*` files, which the operator CLI loads like Next.js does. Settles
+ * on "close" (stdio drained) so the log is never ended under a late write; on
+ * timeout it kills the process group and waits for it to close before rejecting.
  */
-async function runSeed(databaseURL: string, logPath: string): Promise<void> {
+async function runNpm(args: string[], databaseURL: string, logPath: string): Promise<string> {
   const log = createWriteStream(logPath, { flags: "a" });
-  const seed = spawn("npm", ["run", "db:seed"], {
+  const child = spawn("npm", ["run", ...args], {
     cwd: repositoryRoot,
     env: { ...process.env, NODE_ENV: "production", DATABASE_URL: databaseURL, DB_DEBUG: "false" },
     detached: process.platform !== "win32",
     stdio: ["ignore", "pipe", "pipe"],
   });
-  seed.stdout.pipe(log, { end: false });
-  seed.stderr.pipe(log, { end: false });
+  let stdout = "";
+  child.stdout.on("data", (chunk: Buffer) => { stdout += chunk.toString(); });
+  child.stdout.pipe(log, { end: false });
+  child.stderr.pipe(log, { end: false });
+  const name = args.filter((arg) => arg !== "--").join(" ");
   try {
     await new Promise<void>((resolve, reject) => {
       let timedOut = false;
       const timeout = setTimeout(() => {
         timedOut = true;
-        if (process.platform !== "win32" && seed.pid) process.kill(-seed.pid, "SIGKILL");
-        else seed.kill("SIGKILL");
+        if (process.platform !== "win32" && child.pid) process.kill(-child.pid, "SIGKILL");
+        else child.kill("SIGKILL");
       }, 30_000);
-      seed.once("error", (error) => { clearTimeout(timeout); reject(error); });
-      seed.once("close", (code, signal) => {
+      child.once("error", (error) => { clearTimeout(timeout); reject(error); });
+      child.once("close", (code, signal) => {
         clearTimeout(timeout);
-        if (timedOut) reject(new Error(`db:seed did not finish in 30 seconds; see ${logPath}`));
+        if (timedOut) reject(new Error(`npm run ${name} did not finish in 30 seconds; see ${logPath}`));
         else if (code === 0) resolve();
-        else reject(new Error(`db:seed failed (${code ?? signal}); see ${logPath}`));
+        else reject(new Error(`npm run ${name} failed (${code ?? signal}); see ${logPath}`));
       });
     });
   } finally {
     log.end();
   }
+  return stdout;
 }
 
 describe("production application with ephemeral PostgreSQL", () => {
@@ -66,25 +72,140 @@ describe("production application with ephemeral PostgreSQL", () => {
     await browser.command("close");
   });
 
-  it("renders the homepage with its title, visible content, and admin navigation", async () => {
+  const githubStubURL = inject("githubStubURL");
+
+  async function query<T extends pg.QueryResultRow>(text: string, values: unknown[] = []): Promise<T[]> {
+    const client = new pg.Client({ connectionString: databaseURL });
+    await client.connect();
+    try {
+      return (await client.query<T>(text, values)).rows;
+    } finally {
+      await client.end();
+    }
+  }
+
+  /** The accessibility snapshot above the page's main landmark (the header). */
+  async function headerLinks(): Promise<string> {
+    return (await browser.snapshot()).split(/^\s*- main/m)[0]!;
+  }
+
+  async function sessionCookie() {
+    return (await browser.cookies()).find((cookie) => cookie.name === "devmentor_session");
+  }
+
+  /** Signs in from a signed-out `/` through the GitHub stub's Authorize/Cancel screen. */
+  async function signInWithGitHub(decision: "Authorize" | "Cancel") {
+    await browser.command("open", `${baseURL}/`);
+    await browser.click("link", "Sign in");
+    await browser.waitForText("Sign in with GitHub");
+    expect(await browser.url()).toBe(`${baseURL}/sign-in`);
+    await browser.click("link", "Sign in with GitHub");
+    await browser.waitForText("Authorize DevMentor");
+    await browser.click("link", decision);
+  }
+
+  /** A request carrying the browser session's cookie, outside the browser. */
+  async function fetchAsBrowser(path: string, init: RequestInit = {}): Promise<Response> {
+    const cookie = await sessionCookie();
+    if (!cookie) throw new Error("The browser session has no session cookie");
+    return fetch(`${baseURL}${path}`, { ...init, redirect: "manual", headers: { ...init.headers, cookie: `${cookie.name}=${cookie.value}` } });
+  }
+
+  /** `npm run operator -- role <action>` against the test database (the real CLI). */
+  async function operatorRole(action: "grant" | "revoke", email: string): Promise<string> {
+    return runNpm(["operator", "--", "role", action, "--email", email, "--role", "operator", "--yes"],
+      databaseURL, join(artifactsDirectory, "operator.log"));
+  }
+
+  // The admin cases run as an operator: a GitHub sign-in creates the account
+  // (a mentee), `role grant` makes it an operator, and the same session opens
+  // the backend on its next request. The account counts as a registered user.
+  const operatorGitHubId = 4_000_000 + Math.floor(Math.random() * 1_000_000);
+  const operatorEmail = `operator-${randomUUID()}@example.com`;
+
+  it("renders the homepage with its title and visible content, and the header's sign-in state", async () => {
+    await browser.command("cookies", "clear");
     await browser.command("open", baseURL);
     expect((await browser.command("get", "title")).title).toBe("DevMentor");
     expect(await browser.heading("DevMentor")).toBe("DevMentor");
     expect(await browser.visible("heading", "DevMentor")).toBe(true);
-    expect(await browser.visible("link", "Open backend")).toBe(true);
+    expect(await browser.visible("link", "Sign in")).toBe(true);
     const homepage = await browser.snapshot();
     expect(homepage).toMatch(/AI Techleaders/i);
     expect(homepage).toMatch(/^\s*- main(?:\s|$)/m);
     expect(homepage).toContain("A project for tech leaders who use AI");
+    // The backend is operator-only: the home page no longer links to it.
+    expect(homepage).not.toMatch(/Open backend|Backend/);
+  });
 
-    await browser.click("link", "Open backend");
-    await browser.waitForText("0 registered users");
-    expect((await browser.command("get", "url")).url).toBe(`${baseURL}/backend`);
+  it("keeps a signed-out visitor out of the backend: sign-in with returnTo, 401 from the API", async () => {
+    await browser.command("open", `${baseURL}/backend`);
+    await browser.waitForText("Sign in with GitHub");
+    expect(await browser.url()).toBe(`${baseURL}/sign-in?returnTo=%2Fbackend`);
+    expect(await browser.snapshot()).not.toContain("registered users");
+
+    await browser.command("open", `${baseURL}/backend/users`);
+    await browser.waitForText("Sign in with GitHub");
+    expect(await browser.url()).toBe(`${baseURL}/sign-in?returnTo=%2Fbackend%2Fusers`);
+
+    const api = await fetch(`${baseURL}/api/users`);
+    expect(api.status).toBe(401);
+    expect(await api.json()).toMatchObject({ ok: false, error: { code: "unauthorized" } });
+
+    // A forged, well-formed cookie is renewed by the Proxy but grants nothing.
+    const forged = "A".repeat(43);
+    const page = await fetch(`${baseURL}/backend`, { redirect: "manual", headers: { cookie: `devmentor_session=${forged}` } });
+    expect(page.status).toBe(307);
+    expect(page.headers.get("location")).toMatch(/\/sign-in\?returnTo=%2Fbackend$/);
+    expect(page.headers.getSetCookie().some((value) => value.startsWith(`devmentor_session=${forged};`))).toBe(true);
+    expect((await fetch(`${baseURL}/api/users`, { headers: { cookie: `devmentor_session=${forged}` } })).status).toBe(401);
+  });
+
+  it("answers a signed-in mentee with 404 on /backend and 403 on /api/users", async () => {
+    await setGitHubStubUser(githubStubURL, {
+      id: operatorGitHubId, login: `operator-${operatorGitHubId}`, name: "Olivia Operator",
+      emails: [{ email: operatorEmail, primary: true, verified: true }],
+    });
+    await signInWithGitHub("Authorize");
+    await browser.waitForText("This is the name others see. You can change it.");
+    expect(await browser.snapshot()).toContain("mentee");
+    expect(await headerLinks()).not.toContain("Backend");
+
+    await browser.command("open", `${baseURL}/backend`);
+    await browser.waitForText("Page not found");
+    expect((await browser.command("get", "title")).title).toBe("Page not found · DevMentor");
+    const notFound = await browser.snapshot();
+    expect(notFound).not.toMatch(/Dashboard|registered users|View site/);
+    expect(await browser.visible("link", "Go to the home page")).toBe(true);
+    await browser.capture("backend-mentee-404");
+
+    expect((await fetchAsBrowser("/backend")).status).toBe(404);
+    expect((await fetchAsBrowser("/backend/users")).status).toBe(404);
+    const api = await fetchAsBrowser("/api/users");
+    expect(api.status).toBe(403);
+    expect(await api.json()).toMatchObject({ ok: false, error: { code: "forbidden" } });
+  });
+
+  it("opens the backend to the same session after npm run operator -- role grant", async () => {
+    const output = await operatorRole("grant", operatorEmail);
+    expect(output).toContain(`Database: ${new URL(databaseURL).host}`);
+    expect(output).toContain(`Granted operator to ${operatorEmail}.`);
+    // Idempotent: a second grant changes nothing.
+    expect(await operatorRole("grant", operatorEmail)).toContain(`${operatorEmail} already holds operator; nothing changed.`);
+
+    // The same session, on its next request: the header offers Backend.
+    await browser.command("open", baseURL);
+    await browser.waitForText("A project for tech leaders");
+    expect(await browser.visible("link", "Backend")).toBe(true);
+    await browser.click("link", "Backend");
+    await browser.waitForText("1 registered users");
+    expect(await browser.url()).toBe(`${baseURL}/backend`);
+    expect((await fetchAsBrowser("/api/users")).status).toBe(200);
   });
 
   it("renders the admin page directly with its title, navigation, and connected database", async () => {
     await browser.command("open", `${baseURL}/backend`);
-    await browser.waitForText("0 registered users");
+    await browser.waitForText("1 registered users");
     expect((await browser.command("get", "title")).title).toBe("Dashboard · DevMentor");
     expect(await browser.heading("Dashboard")).toBe("Dashboard");
     expect(await browser.visible("heading", "Dashboard")).toBe(true);
@@ -96,9 +217,9 @@ describe("production application with ephemeral PostgreSQL", () => {
     expect(dashboard).toMatch(/^\s*- main(?:\s|$)/m);
     expect(dashboard).toContain("PostgreSQL via MikroORM");
     expect(dashboard).toContain("Connected");
-    expect(dashboard).toContain("0 registered users");
+    expect(dashboard).toContain("1 registered users");
     expect(dashboard).not.toContain("Unavailable");
-    await browser.capture("admin-empty");
+    await browser.capture("admin-operator-only");
 
     await browser.click("link", "View site");
     await browser.waitForText("A project for tech leaders");
@@ -108,10 +229,11 @@ describe("production application with ephemeral PostgreSQL", () => {
 
   it("validates input, creates a user, persists it on reload, and rejects duplicate email", async () => {
     await browser.command("open", `${baseURL}/backend/users`);
-    await browser.waitForText("No users yet");
+    // The operator's own account is the only user so far.
+    await browser.waitForText(operatorEmail);
     expect((await browser.command("get", "title")).title).toBe("Users · DevMentor");
     expect(await browser.heading("Users")).toBe("Users");
-    expect(await browser.snapshot()).toContain("Create the first one with the form.");
+    expect(await browser.snapshot()).toContain('cell "Olivia Operator"');
 
     await browser.click("button", "Create user");
     await browser.waitForText("Name is required");
@@ -128,7 +250,6 @@ describe("production application with ephemeral PostgreSQL", () => {
     const created = await browser.snapshot();
     expect(created).toContain('cell "Integration User"');
     expect(created).toContain(`cell "${email}"`);
-    expect(created).not.toContain("No users yet");
     expect(created).not.toContain("Name is required");
     await browser.capture("users-created");
 
@@ -149,7 +270,7 @@ describe("production application with ephemeral PostgreSQL", () => {
 
     await browser.command("open", `${baseURL}/backend`);
     expect(await browser.heading("Dashboard")).toBe("Dashboard");
-    expect(await browser.snapshot()).toContain("1 registered users");
+    expect(await browser.snapshot()).toContain("2 registered users");
   });
 
   it("renders the identity-free /error screen with a generic message and a way home", async () => {
@@ -162,7 +283,8 @@ describe("production application with ephemeral PostgreSQL", () => {
     expect(page).toMatch(/^\s*- main(?:\s|$)/m);
     expect(page).toContain("We couldn't complete your request. Please try again in a moment.");
     expect(page).not.toContain("internal_error");
-    expect(page).not.toMatch(/Sign in|Sign out|Backend/);
+    // Identity-free even for a signed-in operator.
+    expect(page).not.toMatch(/Sign in|Sign out|Backend|Olivia Operator/);
     expect(await browser.visible("link", "DevMentor")).toBe(true);
 
     await browser.click("link", "Go to the home page");
@@ -170,14 +292,13 @@ describe("production application with ephemeral PostgreSQL", () => {
     expect((await browser.command("get", "url")).url).toBe(`${baseURL}/`);
   });
 
-  // Keep after the empty-state cases: it adds the sample user to the container shared by every
-  // integration file (one globalSetup), and earlier cases assert the empty
-  // state and exact user counts. A new integration file must not assume an
-  // empty users table once this case has run.
+  // Keep after the exact-count cases: it adds the sample user to the container shared by every
+  // integration file (one globalSetup), and earlier cases assert exact user
+  // counts. A new integration file must not assume an empty users table.
   it("seeds the sample user idempotently with npm run db:seed", async () => {
     const seedLog = join(artifactsDirectory, "seed.log");
-    await runSeed(databaseURL, seedLog);
-    await runSeed(databaseURL, seedLog);
+    await runNpm(["db:seed"], databaseURL, seedLog);
+    await runNpm(["db:seed"], databaseURL, seedLog);
 
     await browser.command("open", `${baseURL}/backend/users`);
     await browser.waitForText("ada@devmentor.dev");
@@ -188,14 +309,42 @@ describe("production application with ephemeral PostgreSQL", () => {
 
     await browser.command("open", `${baseURL}/backend`);
     expect(await browser.heading("Dashboard")).toBe("Dashboard");
-    expect(await browser.snapshot()).toContain("2 registered users");
+    expect(await browser.snapshot()).toContain("3 registered users");
   });
+
+  it("closes the backend to the same session after role revoke, which stays signed in", async () => {
+    const output = await operatorRole("revoke", operatorEmail);
+    expect(output).toContain(`Revoked operator from ${operatorEmail}.`);
+
+    // Next request: 404 page, 403 API; the session itself is untouched.
+    await browser.command("open", `${baseURL}/backend`);
+    await browser.waitForText("Page not found");
+    expect(await browser.snapshot()).not.toContain("registered users");
+    expect((await fetchAsBrowser("/backend")).status).toBe(404);
+    const api = await fetchAsBrowser("/api/users");
+    expect(api.status).toBe(403);
+    expect(await api.json()).toMatchObject({ ok: false, error: { code: "forbidden" } });
+
+    await browser.command("open", baseURL);
+    await browser.waitForText("A project for tech leaders");
+    expect(await browser.visible("link", "Olivia Operator")).toBe(true);
+    expect(await browser.visible("button", "Sign out")).toBe(true);
+    expect(await headerLinks()).not.toContain("Backend");
+    const [operator] = await query<{ id: string }>("select id from users where email = $1", [operatorEmail]);
+    expect(await query("select role from user_roles where user_id = $1", [operator!.id])).toEqual([{ role: "mentee" }]);
+    expect(await query("select id from auth_sessions where user_id = $1", [operator!.id])).toHaveLength(1);
+    await browser.capture("backend-revoked-signed-in");
+
+    // Leave the shared browser session signed out.
+    await browser.click("button", "Sign out");
+    await browser.command("wait", "--url", `${baseURL}/`);
+    await browser.waitForText("Sign in");
+  });
+
   // GitHub sign-in backend (accounts Phase 1 step 8), driven over HTTP
   // against the local GitHub stub. These cases add users, so they run after
   // every case that asserts exact user counts.
   describe("GitHub sign-in through the stub", () => {
-    const githubStubURL = inject("githubStubURL");
-
     /** Follows start → stub authorize (answered without a click) and returns the callback request. */
     async function beginSignIn(decision: "approve" | "deny", returnTo?: string) {
       const query = returnTo === undefined ? "" : `?returnTo=${encodeURIComponent(returnTo)}`;
@@ -275,27 +424,8 @@ describe("production application with ephemeral PostgreSQL", () => {
   // stub's Authorize/Cancel screen. The steps share one browser session and
   // run in order: signed out → signed in → signed out → signed in again.
   describe("accounts UI: GitHub sign-in, account and sign-out", () => {
-    const githubStubURL = inject("githubStubURL");
     const githubId = 3_000_000 + Math.floor(Math.random() * 1_000_000);
     const email = `grace-${randomUUID()}@example.com`;
-
-    async function query<T extends pg.QueryResultRow>(text: string, values: unknown[] = []): Promise<T[]> {
-      const client = new pg.Client({ connectionString: databaseURL });
-      await client.connect();
-      try {
-        return (await client.query<T>(text, values)).rows;
-      } finally {
-        await client.end();
-      }
-    }
-
-    async function headerLinks(): Promise<string> {
-      return (await browser.snapshot()).split(/^\s*- main/m)[0]!;
-    }
-
-    async function sessionCookie() {
-      return (await browser.cookies()).find((cookie) => cookie.name === "devmentor_session");
-    }
 
     /** Polls until the session's DB expiry is at least `minimumMs` from now. */
     async function expectExpiryAdvanced(userId: string, minimumMs: number): Promise<void> {
@@ -315,16 +445,6 @@ describe("production application with ephemeral PostgreSQL", () => {
     }
 
     const DAY_MS = 24 * 60 * 60 * 1000;
-
-    async function signInWithGitHub(decision: "Authorize" | "Cancel") {
-      await browser.command("open", `${baseURL}/`);
-      await browser.click("link", "Sign in");
-      await browser.waitForText("Sign in with GitHub");
-      expect(await browser.url()).toBe(`${baseURL}/sign-in`);
-      await browser.click("link", "Sign in with GitHub");
-      await browser.waitForText("Authorize DevMentor");
-      await browser.click("link", decision);
-    }
 
     it("keeps a signed-out visitor out of /account with returnTo", async () => {
       await browser.command("cookies", "clear");

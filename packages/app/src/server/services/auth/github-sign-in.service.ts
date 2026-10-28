@@ -59,13 +59,22 @@ export class GitHubSignInError extends AppError {
 }
 
 /**
+ * Recognized by its code, not `instanceof`: the callback route may load a
+ * different copy of this module than the container that threw (see
+ * `isAppError` in core).
+ */
+function isGitHubSignInError(error: AppError): error is GitHubSignInError {
+  return Object.hasOwn(MESSAGES, error.code);
+}
+
+/**
  * The sign-in page for a failed callback: `/sign-in?error=<code>` plus the
  * validated `returnTo` when the attempt had one. Any other error is reported
  * as `github_failed`.
  */
 export function signInErrorPath(error: AppError): string {
   const query = new URLSearchParams();
-  if (error instanceof GitHubSignInError) {
+  if (isGitHubSignInError(error)) {
     query.set("error", error.code);
     if (error.returnTo) query.set("returnTo", error.returnTo);
   } else {

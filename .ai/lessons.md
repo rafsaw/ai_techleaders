@@ -401,3 +401,15 @@ explicitly instead of disabling rules.
 **Context:** local `npm run build` compiled, then exited 1 with `SecurityFatalError: Your version of Next.js is affected by a known security vulnerability`, while CI's Build job on the same lockfile (next 16.4.0, Node 22.23.3) passed.
 **Lesson:** Next 16.4.0 defaults `experimental.agentUpgrade` to `'security'`. During `next build` it queries the npm advisory API; when it detects a coding agent (e.g. `CLAUDECODE` env var) and the installed version is affected, it stops the command once (retry allowed for 5 minutes via a receipt in `.next/cache`). In CI no agent is detected, so the check returns early and the build passes silently. CI green does not mean the version is unaffected: `npm audit` reports next `16.0.0–16.4.0` critical (GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r, GHSA-673q-mjm6-r5xr). Do not disable the check; decide on the upgrade separately.
 **Applies to:** `packages/app` build, `npm run build` run by agents, Next.js version policy.
+
+### 2026-10-27 — `instanceof AppError` fails when a page built the container
+
+**Context:** E01 step 1.10 moved the integration readiness probe from `/api/users` to the home page. Afterwards a duplicate email on `POST /api/users` answered 500 ("Unhandled API error", code `conflict`) and a cancelled GitHub sign-in went to `/error`. Next.js loads workspace packages once per bundle (pages vs route handlers), but the container is cached on `globalThis`: the first request's bundle builds it, so services throw errors from that bundle's copy of `@devmentor/core`, and the route's `instanceof AppError` / `instanceof GitHubSignInError` is false. The old probe hid it by always building the container in the route bundle first. Reproduced with `next start` and `next dev`.
+**Lesson:** Never use `instanceof` on an error class from a workspace package across the container boundary. Use `isAppError()` (a `Symbol.for` brand) from `@devmentor/core`; recognize subclasses by their properties or code (`fieldErrors`, `isGitHubSignInError`). Test with `vi.resetModules()` + a dynamic import to get a real second copy. Keep the readiness probe on a page, so integration runs exercise page-first ordering.
+**Applies to:** `core/src/http/{errors,apiHandler,navigationHandler}.ts`, any `onError`/error mapping in routes, new error subclasses.
+
+### 2026-10-27 — Static page `metadata` leaks through a 404 from a layout guard
+
+**Context:** `/backend` answers a non-operator with `notFound()` from the layout. The SSR `<title>` was the 404's, but the RSC payload still carried the page's static `metadata` ("Dashboard"), and the browser showed it after hydration. If `generateMetadata` throws `notFound()`, Next sends no metadata at all.
+**Lesson:** On guarded pages, export `generateMetadata` that returns the page's title only when the role is held and the not-found metadata otherwise (`app/backend/operator-title.ts`). `getPrincipal` is `cache()`d, so this costs no extra lookup.
+**Applies to:** every page under a role-gated layout.

@@ -14,7 +14,9 @@ import { GET, POST } from "@/app/api/users/route";
 afterEach(() => vi.restoreAllMocks());
 
 describe("users API route", () => {
-  it("wires scoped GET and POST to userService and shared validation", async () => {
+  it("wires scoped GET and POST to userService and shared validation for an operator", async () => {
+    const operator: Principal = { userId: "u", sessionId: "s", displayName: "Ada", roles: ["mentee", "operator"] };
+    container.register({ principalResolver: asValue({ resolve: vi.fn().mockResolvedValue(operator) }) });
     const service = { list: vi.fn().mockResolvedValue([{ id: "existing" }]),
       create: vi.fn().mockResolvedValue({ id: "created" }) };
     container.register({ userService: asValue(service) });
@@ -32,16 +34,29 @@ describe("users API route", () => {
     }), ctx);
     expect(invalid.status).toBe(400);
     expect(service.create).toHaveBeenCalledOnce();
+    container.register({ principalResolver: asValue({ resolve: async () => null }) });
   });
 
-  it("stays public until the operator gate: a signed-in caller is not required", async () => {
-    // Step 1.10 switches this route to `access: { role: "operator" }`.
-    const principal: Principal = { userId: "u", sessionId: "s", displayName: "Ada", roles: ["mentee"] };
-    container.register({ userService: asValue({ list: vi.fn().mockResolvedValue([]) }),
-      principalResolver: asValue({ resolve: vi.fn().mockResolvedValue(principal) }) });
-    const response = await GET(new Request("http://localhost/api/users"), { params: Promise.resolve({}) });
-    expect(response.status).toBe(200);
-    container.register({ principalResolver: asValue({ resolve: async () => null }) });
-    expect((await GET(new Request("http://localhost/api/users"), { params: Promise.resolve({}) })).status).toBe(200);
+  it("requires the operator role: 401 signed out, 403 without the role (AD4)", async () => {
+    const list = vi.fn().mockResolvedValue([]);
+    const create = vi.fn();
+    const mentee: Principal = { userId: "u", sessionId: "s", displayName: "Ada", roles: ["mentee"] };
+    const ctx = { params: Promise.resolve({}) };
+    const post = () => POST(new Request("http://localhost/api/users", { method: "POST",
+      headers: { "x-devmentor-csrf": "1" }, body: JSON.stringify({ name: "Ada", email: "ada@example.com" }) }), ctx);
+    container.register({ userService: asValue({ list, create }) });
+
+    const signedOut = await GET(new Request("http://localhost/api/users"), ctx);
+    expect(signedOut.status).toBe(401);
+    expect(await signedOut.json()).toMatchObject({ ok: false, error: { code: "unauthorized" } });
+    expect((await post()).status).toBe(401);
+
+    container.register({ principalResolver: asValue({ resolve: vi.fn().mockResolvedValue(mentee) }) });
+    const forbidden = await GET(new Request("http://localhost/api/users"), ctx);
+    expect(forbidden.status).toBe(403);
+    expect(await forbidden.json()).toMatchObject({ ok: false, error: { code: "forbidden" } });
+    expect((await post()).status).toBe(403);
+    expect(list).not.toHaveBeenCalled();
+    expect(create).not.toHaveBeenCalled();
   });
 });

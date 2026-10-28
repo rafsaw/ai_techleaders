@@ -1,9 +1,8 @@
-import Link from "next/link";
-
 import { getPrincipal } from "@/server/auth/page-guards";
 
 // Frontend (public) pages: styled with plain Tailwind utilities. Like every
 // public leaf, it reads the principal so a signed-in visit records activity.
+// The header carries the sign-in state (and **Backend** for operators).
 export default async function Home() {
   await getPrincipal();
   return (
@@ -17,14 +16,6 @@ export default async function Home() {
       <p className="max-w-xl text-lg text-pretty text-muted-foreground">
         A project for tech leaders who use AI in their teams&apos; daily work.
       </p>
-      <div>
-        <Link
-          href="/backend"
-          className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          Open backend
-        </Link>
-      </div>
     </main>
   );
 }

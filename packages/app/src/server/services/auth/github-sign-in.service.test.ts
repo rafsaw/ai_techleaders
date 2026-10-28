@@ -397,4 +397,13 @@ describe("GitHub sign-in helpers", () => {
     expect(signInErrorPath(new GitHubSignInError("github_failed", null))).toBe("/sign-in?error=github_failed");
     expect(signInErrorPath(new NotFoundError())).toBe("/sign-in?error=github_failed");
   });
+
+  it("recognizes a sign-in error thrown by another copy of the module by its code", async () => {
+    // The callback route and the container may load different module copies.
+    vi.resetModules();
+    const copy = await import("@/server/services/auth/github-sign-in.service");
+    expect(copy.GitHubSignInError).not.toBe(GitHubSignInError);
+    expect(signInErrorPath(new copy.GitHubSignInError("github_cancelled", "/account")))
+      .toBe("/sign-in?error=github_cancelled&returnTo=%2Faccount");
+  });
 });

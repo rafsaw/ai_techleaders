@@ -1,5 +1,5 @@
 import { spawn, execFile, type ChildProcess } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { createWriteStream } from "node:fs";
 import { appendFile, access, mkdir } from "node:fs/promises";
 import { createServer } from "node:net";
@@ -51,11 +51,16 @@ async function waitForApplication(baseURL: string, server: ChildProcess, serverL
       throw new Error(`Production server exited before becoming ready (${server.exitCode ?? server.signalCode})`);
     }
     try {
-      // A healthy home page alone would miss database/migration failures.
-      const response = await fetch(`${baseURL}/api/users`, { signal: AbortSignal.timeout(2_000) });
-      const body: unknown = await response.json();
-      if (response.ok && body && typeof body === "object" && "ok" in body && body.ok === true && "data" in body && Array.isArray(body.data)) return;
-      lastError = new Error(`GET /api/users returned ${response.status}: ${JSON.stringify(body)}`);
+      // The public home page, with a well-formed but unknown session cookie:
+      // it makes the page look the token up, so a database or migration
+      // failure answers 500 instead of passing as a healthy static page.
+      const response = await fetch(baseURL, {
+        headers: { cookie: `devmentor_session=${randomBytes(32).toString("base64url")}` },
+        signal: AbortSignal.timeout(2_000),
+      });
+      const body = await response.text();
+      if (response.ok && body.includes("DevMentor")) return;
+      lastError = new Error(`GET / returned ${response.status}: ${body.slice(0, 500)}`);
     } catch (error) {
       lastError = error;
     }

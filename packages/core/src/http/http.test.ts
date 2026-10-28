@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import {
   AppError, asValue, ConflictError, createApiHandler, createAppContainer,
-  createMakeCrudRoute, CSRF_HEADER, ForbiddenError, NotFoundError, parseInput,
+  createMakeCrudRoute, CSRF_HEADER, ForbiddenError, isAppError, NotFoundError, parseInput,
   readJsonBody, UnauthorizedError, ValidationError,
 } from "../index";
 
@@ -39,6 +39,27 @@ describe("domain errors", () => {
       message: "Invalid input", code: "validation_error", status: 400, fieldErrors: { name: ["required"] },
     });
     expect(new ValidationError({}, "custom", { cause })).toMatchObject({ message: "custom", cause });
+  });
+});
+
+/** A fresh copy of the errors module, as another Next.js bundle would load it. */
+async function foreignErrors() {
+  vi.resetModules();
+  const copy = await import("./errors");
+  expect(copy.AppError).not.toBe(AppError);
+  return copy;
+}
+
+describe("AppError across module copies", () => {
+  it("is recognized by its brand, not by class identity", async () => {
+    const copy = await foreignErrors();
+    const foreign = new copy.ConflictError("Taken");
+    expect(foreign instanceof AppError).toBe(false);
+    expect(isAppError(foreign)).toBe(true);
+    expect(isAppError(new ConflictError())).toBe(true);
+    for (const value of [new Error("Conflict"), { code: "conflict", status: 409 }, "conflict", null, undefined]) {
+      expect(isAppError(value)).toBe(false);
+    }
   });
 });
 
@@ -119,6 +140,20 @@ describe("API envelope", () => {
       code: error.code, message: error.message,
       ...(error instanceof ValidationError ? { fieldErrors: error.fieldErrors } : {}),
     } });
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it("maps a domain error thrown by another copy of core, keeping field errors", async () => {
+    const copy = await foreignErrors();
+    const { apiHandler, logger } = setup();
+    const conflict = await apiHandler(async () => { throw new copy.ConflictError("Taken"); }, { access: "public" })(request(), ctx);
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toEqual({ ok: false, error: { code: "conflict", message: "Taken" } });
+    const invalid = await apiHandler(async () => { throw new copy.ValidationError({ email: ["taken"] }); },
+      { access: "public" })(request(), ctx);
+    expect(invalid.status).toBe(400);
+    expect(await invalid.json()).toEqual({ ok: false,
+      error: { code: "validation_error", message: "Invalid input", fieldErrors: { email: ["taken"] } } });
     expect(logger.error).not.toHaveBeenCalled();
   });
 

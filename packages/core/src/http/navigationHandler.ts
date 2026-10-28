@@ -3,7 +3,7 @@ import { RETURN_TO_FALLBACK, parseReturnTo } from "../validators/auth/return-to.
 import type { ApiHandlerArgs, RouteHandler } from "./apiHandler";
 import { authorize, type Access } from "./auth";
 import { ResponseCookies } from "./cookies";
-import { AppError } from "./errors";
+import { isAppError, type AppError } from "./errors";
 import { summarizeError } from "./logging";
 
 /** Where a navigation goes: an internal page path, or an allowlisted external URL. */
@@ -125,7 +125,7 @@ export function createNavigationHandler(
 
       const recover = (error: unknown): string => {
         try {
-          if (error instanceof AppError) return internal(onError(error));
+          if (isAppError(error)) return internal(onError(error));
           logError("Unhandled navigation error", error);
           return internal(INTERNAL_ERROR_PATH);
         } catch (fallbackError) {
