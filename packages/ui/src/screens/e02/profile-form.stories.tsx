@@ -34,7 +34,7 @@ const ada = {
 /** /mentor/profile (E02 Flow 2, signed-in): CrudForm with select and textarea fields; Save goes to /mentor. */
 function ProfileScreen({ editing }: { editing: boolean }) {
   return (
-    <Screen account={ADA_MENTOR} title={editing ? "Edit profile" : "Create your profile"} width="text">
+    <Screen account={ADA_MENTOR} mentorSetupHref="/mentor" title={editing ? "Edit profile" : "Create your profile"} width="text">
       <CrudForm
         schema={mentorProfileSchema}
         fields={fields}

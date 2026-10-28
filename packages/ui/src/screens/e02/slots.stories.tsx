@@ -111,7 +111,7 @@ interface Args {
 function SlotsScreen({ slots, loading, error }: Args) {
   const [rows, setRows] = useState(slots);
   return (
-    <Screen account={ADA_MENTOR} title="Slots" width="text">
+    <Screen account={ADA_MENTOR} mentorSetupHref="/mentor" title="Slots" width="text">
       <SlotForm onPublished={(slot) => setRows((current) => [...current, slot])} />
       <SlotList count={rows.length} loading={loading} error={error} onRetry={() => {}}>
         {rows.map((row) => (

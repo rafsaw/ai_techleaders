@@ -338,9 +338,10 @@ describe("SiteHeader", () => {
       .mockResolvedValueOnce(fail("internal_error", "Something went wrong"))
       .mockResolvedValueOnce({ ok: true, data: { redirectTo: "/" } });
     const { rerender } = render(
-      <SiteHeader account={{ displayName: "Ada Nowak", roles: ["mentee", "mentor", "operator"] }} signOut={signOut} onSignedOut={onSignedOut} linkComponent={Link} />
+      <SiteHeader account={{ displayName: "Ada Nowak", roles: ["mentee", "mentor", "operator"] }} signOut={signOut} onSignedOut={onSignedOut} mentorSetupHref="/mentor" linkComponent={Link} />
     );
     expect(screen.getByRole("link", { name: "Mentor setup" })).toHaveAttribute("data-next-link");
+    expect(screen.getByRole("link", { name: "Mentor setup" })).toHaveAttribute("href", "/mentor");
     expect(screen.getByRole("link", { name: "Backend" })).toHaveAttribute("href", "/backend");
     expect(screen.getByRole("link", { name: "Ada Nowak" })).toHaveAttribute("href", "/account");
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
@@ -350,11 +351,17 @@ describe("SiteHeader", () => {
     await waitFor(() => expect(onSignedOut).toHaveBeenCalledWith("/"));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 
-    rerender(<SiteHeader account={{ displayName: "Ada Nowak", roles: ["mentee"] }} />);
+    rerender(<SiteHeader account={{ displayName: "Ada Nowak", roles: ["mentee"] }} mentorSetupHref="/mentor" />);
     expect(screen.queryByRole("link", { name: "Mentor setup" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Backend" })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
     expect(screen.getByRole("button", { name: "Sign out" })).toBeEnabled();
+  });
+
+  it("omits Mentor setup for a mentor when the app gives no mentorSetupHref (E01: the page ships in E02)", () => {
+    render(<SiteHeader account={{ displayName: "Ada Nowak", roles: ["mentee", "mentor", "operator"] }} />);
+    expect(screen.queryByRole("link", { name: "Mentor setup" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Backend" })).toBeInTheDocument();
   });
 });
 

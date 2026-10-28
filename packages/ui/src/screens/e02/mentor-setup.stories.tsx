@@ -34,7 +34,7 @@ interface Args {
 /** /mentor (E02 Flow 1, signed-in): banner after Stripe, status line, checklist. */
 function MentorSetupScreen({ banner, line, profile, payout, slots }: Args) {
   return (
-    <Screen account={ADA_MENTOR} title="Mentor setup" width="text">
+    <Screen account={ADA_MENTOR} mentorSetupHref="/mentor" title="Mentor setup" width="text">
       {banner ? <StripeBanner banner={banner} /> : null}
       <BookableStatusLine state={line} copy={fn(async () => {})} />
       <SetupChecklist

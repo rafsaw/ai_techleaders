@@ -48,6 +48,13 @@ describe("AppSiteHeader", () => {
     expect(screen.getByRole("link", { name: "Backend" })).toHaveAttribute("href", "/backend");
   });
 
+  it("never links a mentor to Mentor setup while E01 runs standalone (the page ships in E02 Phase 1)", () => {
+    render(<AppSiteHeader account={{ displayName: "Ada", roles: ["mentee", "mentor"] }} />);
+    expect(screen.getByRole("link", { name: "Ada" })).toHaveAttribute("href", "/account");
+    expect(screen.queryByRole("link", { name: "Mentor setup" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("link").map((link) => link.getAttribute("href"))).not.toContain("/mentor");
+  });
+
   it("signs out through the API and then navigates fully to the answered destination", async () => {
     vi.mocked(apiCall).mockResolvedValue({ ok: true, data: { redirectTo: "/" } });
     render(<AppSiteHeader account={ada} />);

@@ -7,7 +7,8 @@ import { LinkButton, linkButtonVariants } from "@devmentor/ui/frontend/actions/L
 import { cn } from "@devmentor/ui/lib/utils";
 
 // The header of both areas (E01 UI/UX, E02 Phase 1): signed out, Sign in; signed in, the display
-// name linking to /account, Mentor setup for mentors, Backend for operators, and Sign out.
+// name linking to /account, Mentor setup for mentors (only when the app passes `mentorSetupHref`,
+// from E02 Phase 1), Backend for operators, and Sign out.
 // Tailwind only (F3), so public pages can use it. /error keeps its own identity-free header.
 // Docs: site-header.mdx.
 
@@ -19,13 +20,18 @@ export interface SiteHeaderProps {
   /** POST /api/auth/sign-out; on success the page navigates to `redirectTo`. */
   signOut?: () => Promise<ApiResult<{ redirectTo: string }>>;
   onSignedOut?: (redirectTo: string) => void;
+  /**
+   * Where **Mentor setup** goes. The link renders only for mentors and only when this is given:
+   * E01 omits it because the mentor area ships in E02 Phase 1 (E01 never links to an unshipped page).
+   */
+  mentorSetupHref?: string;
   /** Next's `Link` in the app (ui cannot import next); a plain `<a>` by default. */
   linkComponent?: ComponentType<{ href: string; className?: string; title?: string; children: ReactNode }> | "a";
 }
 
 const navLink = "rounded-control text-label text-foreground underline-offset-4 outline-none hover:underline focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-ring";
 
-export function SiteHeader({ account, signInHref = "/sign-in", signOut, onSignedOut, linkComponent: Link = "a" }: SiteHeaderProps) {
+export function SiteHeader({ account, signInHref = "/sign-in", signOut, onSignedOut, mentorSetupHref, linkComponent: Link = "a" }: SiteHeaderProps) {
   const [pending, setPending] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -49,8 +55,8 @@ export function SiteHeader({ account, signInHref = "/sign-in", signOut, onSigned
           {account ? (
             <>
               <ul className="flex flex-wrap items-center gap-x-between-groups gap-y-in-group">
-                {account.roles.includes("mentor") ? (
-                  <li><Link href="/mentor" className={navLink}>Mentor setup</Link></li>
+                {mentorSetupHref && account.roles.includes("mentor") ? (
+                  <li><Link href={mentorSetupHref} className={navLink}>Mentor setup</Link></li>
                 ) : null}
                 {account.roles.includes("operator") ? (
                   <li><Link href="/backend" className={navLink}>Backend</Link></li>

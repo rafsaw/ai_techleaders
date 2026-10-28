@@ -16,11 +16,14 @@ const signOut = fn(async (): Promise<ApiResult<{ redirectTo: string }>> => ({ ok
 
 export function Screen({
   account,
+  mentorSetupHref,
   title,
   width = "content",
   children,
 }: {
   account: SiteHeaderProps["account"];
+  /** E02 screens pass `/mentor`; E01 screens omit it (the mentor area ships in E02 Phase 1). */
+  mentorSetupHref?: string;
   /** The page's h1; omit when a component renders it (MentorProfileHeader). */
   title?: string;
   /** `text` for single-column forms and messages, `content` for wider pages. */
@@ -29,7 +32,7 @@ export function Screen({
 }) {
   return (
     <div className="min-h-dvh bg-background text-foreground">
-      <SiteHeader account={account} signOut={signOut} onSignedOut={fn()} />
+      <SiteHeader account={account} mentorSetupHref={mentorSetupHref} signOut={signOut} onSignedOut={fn()} />
       <main className="mx-auto w-full max-w-content px-page-gutter py-section">
         <div className={cn("flex flex-col gap-component", width === "text" && "max-w-text")}>
           {title ? <h1 className="text-page-title">{title}</h1> : null}
