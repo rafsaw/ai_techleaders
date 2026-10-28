@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
-import { parseReturnTo, RETURN_TO_FALLBACK, RETURN_TO_MAX_LENGTH, returnToSchema } from "./return-to.schema";
+import {
+  INTERNAL_REDIRECT_MAX_LENGTH, parseInternalRedirect, parseReturnTo, RETURN_TO_FALLBACK, RETURN_TO_MAX_LENGTH,
+  returnToSchema,
+} from "./return-to.schema";
 
-const hostile: Array<[label: string, value: unknown]> = [
+const unsafe: Array<[label: string, value: unknown]> = [
   // Missing or wrong type
   ["undefined", undefined],
   ["null", null],
@@ -80,10 +83,14 @@ const hostile: Array<[label: string, value: unknown]> = [
   ["/_next via dot segments past the root", "/../../_next/static"],
   ["/api via a double slash after dots", "/x/..//api"],
   ["a protocol-relative result after dot segments", "/x/..//evil.example/"],
-  // Length
+];
+
+const tooLong: Array<[label: string, value: string]> = [
   ["a path longer than 512 characters", `/${"a".repeat(RETURN_TO_MAX_LENGTH)}`],
   ["a path that grows past 512 characters once encoded", `/${"é".repeat(100)}`],
 ];
+
+const hostile = [...unsafe, ...tooLong];
 
 const allowed: Array<[label: string, value: string, expected: string]> = [
   ["the root", "/", "/"],
@@ -126,6 +133,41 @@ describe("parseReturnTo", () => {
       expect(path.startsWith("/") && !path.startsWith("//")).toBe(true);
       expect(new URL(path, "https://app.example").origin).toBe("https://app.example");
     }
+  });
+});
+
+// R6: server-built redirect targets (an added welcome flag, a re-encoded returnTo in an error
+// page's query) may exceed 512 characters; every other rule stays the same.
+describe("parseInternalRedirect", () => {
+  it.each(unsafe)("rejects %s, like parseReturnTo", (_label, value) => {
+    expect(parseInternalRedirect(value)).toBeNull();
+  });
+
+  it.each(allowed)("accepts %s, like parseReturnTo", (_label, value, expected) => {
+    expect(parseInternalRedirect(value)).toBe(expected);
+  });
+
+  it.each(tooLong)("accepts %s, which parseReturnTo rejects", (_label, value) => {
+    expect(parseReturnTo(value)).toBeNull();
+    expect(parseInternalRedirect(value)).toBe(new URL(value, "https://x.invalid").pathname);
+  });
+
+  it("accepts a 512-character returnTo plus the welcome flag", () => {
+    const path = `/${"a".repeat(RETURN_TO_MAX_LENGTH - 1)}?welcome=1`;
+    expect(parseReturnTo(path)).toBeNull();
+    expect(parseInternalRedirect(path)).toBe(path);
+  });
+
+  it("accepts exactly 2048 characters and rejects one more, also after encoding", () => {
+    const longest = `/${"a".repeat(INTERNAL_REDIRECT_MAX_LENGTH - 1)}`;
+    expect(parseInternalRedirect(longest)).toBe(longest);
+    expect(parseInternalRedirect(`${longest}a`)).toBeNull();
+    expect(parseInternalRedirect(`/${"é".repeat(400)}`)).toBeNull();
+  });
+
+  it("still rejects a long reserved or protocol-relative target", () => {
+    expect(parseInternalRedirect(`/api/${"a".repeat(1000)}`)).toBeNull();
+    expect(parseInternalRedirect(`//evil.example/${"a".repeat(1000)}`)).toBeNull();
   });
 });
 

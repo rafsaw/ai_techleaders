@@ -55,6 +55,20 @@ describe("navigationHandler: internal redirects", () => {
     expect(response.headers.get("location")).toBe("https://devmentor.example/");
   });
 
+  it("keeps a server-built target longer than 512 characters, such as a returnTo plus welcome=1 (R6)", async () => {
+    const { navigationHandler } = setup();
+    const redirectTo = `/${"a".repeat(511)}?welcome=1`;
+    const response = await navigationHandler(redirect({ redirectTo }), { access: "public" })(request(), ctx);
+    expect(response.headers.get("location")).toBe(`https://devmentor.example${redirectTo}`);
+  });
+
+  it("falls back to / for a target longer than 2048 characters", async () => {
+    const { navigationHandler } = setup();
+    const response = await navigationHandler(redirect({ redirectTo: `/${"a".repeat(2048)}` }),
+      { access: "public" })(request(), ctx);
+    expect(response.headers.get("location")).toBe("https://devmentor.example/");
+  });
+
   it("passes a fresh scope, awaited params, the request URL and cookies to the handler", async () => {
     const { navigationHandler, container } = setup();
     const scopes = vi.spyOn(container, "createScope");

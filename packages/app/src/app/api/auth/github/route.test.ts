@@ -19,15 +19,18 @@ import { GET as start } from "./route";
 const ctx = { params: Promise.resolve({}) };
 const APP = "https://devmentor.example";
 
+const identity = { id: 1, login: "ada", name: "Ada", emails: [{ email: "ada@example.com", primary: true, verified: true }] };
+
 function register(env: Record<string, string> = {}, authorize = "https://github.com/login/oauth/authorize") {
   container.register({
     config: asValue(createAppConfig({ APP_URL: APP, GITHUB_CLIENT_ID: "id", GITHUB_CLIENT_SECRET: "secret", ...env })),
-    em: asValue({}),
+    // The account resolution transaction: always a newly created account.
+    em: asValue({ transactional: async () => ({ userId: "u1", created: true }) }),
     authSessionService: asValue({ start: vi.fn() }),
     githubOAuth: asValue({
       authorizationUrl: (state: string) => new URL(`${authorize}?state=${state}`),
-      exchangeCode: vi.fn(),
-      fetchIdentity: vi.fn(),
+      exchangeCode: vi.fn(async () => "token"),
+      fetchIdentity: vi.fn(async () => identity),
     }),
     githubSignInService: asClass(GitHubSignInService),
   } as never);
@@ -84,5 +87,48 @@ describe("GET /api/auth/github/callback", () => {
     const response = await callback(new Request(`${APP}/api/auth/github/callback?code=c&state=s`), ctx);
     expect(response.headers.get("location")).toBe(`${APP}/sign-in?error=github_failed`);
     expect(response.headers.getSetCookie().some((value) => value.startsWith(`${OAUTH_COOKIE}=;`))).toBe(true);
+  });
+
+  /** Begins with `returnTo`, then answers the callback with `query` (plus the attempt's state). */
+  async function signIn(returnTo: string, query = "code=c") {
+    register();
+    const begun = await start(new Request(`${APP}/api/auth/github?returnTo=${encodeURIComponent(returnTo)}`), ctx);
+    const state = new URL(begun.headers.get("location")!).searchParams.get("state")!;
+    return callback(new Request(`${APP}/api/auth/github/callback?${query}&state=${state}`, {
+      headers: { cookie: oauthCookie(begun) },
+    }), ctx);
+  }
+
+  // R6: a returnTo the validator accepts (≤ 512) must not be lost once the server adds to it.
+  const longPath = (length: number) => `/${"a".repeat(length - 1)}`;
+  const longQuery = (length: number) => `/mentors?q=${"b".repeat(length - 11)}`;
+
+  it.each([503, 507, 511, 512])("keeps a new account's %i-character returnTo and adds the welcome flag", async (length) => {
+    expect(longPath(length)).toHaveLength(length);
+    const response = await signIn(longPath(length));
+    expect(response.headers.get("location")).toBe(`${APP}${longPath(length)}?welcome=1`);
+  });
+
+  it.each([503, 512])("keeps a new account's %i-character returnTo with a query and appends &welcome=1", async (length) => {
+    expect(longQuery(length)).toHaveLength(length);
+    const response = await signIn(longQuery(length));
+    expect(response.headers.get("location")).toBe(`${APP}${longQuery(length)}&welcome=1`);
+  });
+
+  it("keeps a 512-character returnTo whose query grows most when re-encoded", async () => {
+    const returnTo = `/mentors?q=${",".repeat(501)}`;
+    expect(returnTo).toHaveLength(512);
+    const response = await signIn(returnTo);
+    expect(new URL(response.headers.get("location")!).searchParams.get("q")).toBe(",".repeat(501));
+    expect(new URL(response.headers.get("location")!).searchParams.get("welcome")).toBe("1");
+  });
+
+  it("keeps a 512-character returnTo on the sign-in error page after a cancellation", async () => {
+    const returnTo = `/mentors?q=${",".repeat(501)}`;
+    const response = await signIn(returnTo, "error=access_denied");
+    const location = new URL(response.headers.get("location")!);
+    expect(location.pathname).toBe("/sign-in");
+    expect(location.searchParams.get("error")).toBe("github_cancelled");
+    expect(location.searchParams.get("returnTo")).toBe(returnTo);
   });
 });

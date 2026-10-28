@@ -1,5 +1,5 @@
 import type { AppContainer, Cradle } from "../di/container";
-import { RETURN_TO_FALLBACK, parseReturnTo } from "../validators/auth/return-to.schema";
+import { RETURN_TO_FALLBACK, parseInternalRedirect } from "../validators/auth/return-to.schema";
 import type { ApiHandlerArgs, RouteHandler } from "./apiHandler";
 import { authorize, type Access } from "./auth";
 import { ResponseCookies } from "./cookies";
@@ -78,7 +78,8 @@ function seeOther(location: string, cookies: ResponseCookies): Response {
  * 5. the handler, whose result becomes the redirect;
  * 6. `Set-Cookie` on every redirect, success or failure.
  *
- * Internal destinations pass the `returnTo` validator (platform P6) and are
+ * Internal destinations pass the `returnTo` rules (platform P6, with the longer
+ * `INTERNAL_REDIRECT_MAX_LENGTH` bound for server-built targets) and are
  * resolved against `appUrl`; external ones must match `externalOrigins`. An
  * `AppError` goes to `onError`; anything else is logged under the static route
  * template and goes to `/error?code=internal_error`. A single-use token in a
@@ -107,7 +108,7 @@ export function createNavigationHandler(
         });
 
       const internal = (path: string) =>
-        new URL(parseReturnTo(path) ?? RETURN_TO_FALLBACK, appUrl(cradle)).href;
+        new URL(parseInternalRedirect(path) ?? RETURN_TO_FALLBACK, appUrl(cradle)).href;
 
       const navigate = async (): Promise<string> => {
         const resolved = await cradle.principalResolver.resolve(req, cookies);

@@ -290,7 +290,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   returnToSchema  // same-origin relative page path only; ≤ 512 chars;
                   // unsafe or reserved destinations become "/" (rules below)
   ```
-- **Validation:** require a leading `/`, reject protocol-relative paths, schemes, backslashes and control characters, then parse against a trusted base and verify the resulting origin. The isomorphic schema needs no server config: it may use a fixed base for validation; P7 resolves the accepted path against `config.app().url`. Check the normalized, safely decoded pathname too, so dot segments and encoded forms cannot bypass the rules; reject malformed or ambiguous encodings. Reject `/api`, `/_next` and their descendants, including encoded/normalized equivalents. `/apiary` remains valid, and `/api/` inside a query value is not a pathname exclusion. Invalid destinations always fall back to `/`. The same validator applies to every internal success and error redirect.
+- **Validation:** require a leading `/`, reject protocol-relative paths, schemes, backslashes and control characters, then parse against a trusted base and verify the resulting origin. The isomorphic schema needs no server config: it may use a fixed base for validation; P7 resolves the accepted path against `config.app().url`. Check the normalized, safely decoded pathname too, so dot segments and encoded forms cannot bypass the rules; reject malformed or ambiguous encodings. Reject `/api`, `/_next` and their descendants, including encoded/normalized equivalents. `/apiary` remains valid, and `/api/` inside a query value is not a pathname exclusion. Invalid destinations always fall back to `/`. The same validator applies to every internal success and error redirect. *(E01 Phase 1 re-review R6:)* the 512-character limit applies to user-supplied input; a redirect target the server builds from an accepted `returnTo` (a new account's added `welcome=1`, or the `returnTo` re-encoded into `/sign-in?error=…&returnTo=…`) is checked by `parseInternalRedirect` with the same rules and a 2048-character bound, so a safe destination is never lost to `/`.
 - **Carried through:**
   - the sign-in and sign-up pages' query string
   - the OAuth state cookie (E01-S01)
@@ -309,7 +309,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   )  // GET only
   ```
 - **Behavior:**
-  - **Internal success:** `303` to `redirectTo`. The target is resolved against `config.app().url` and never against the `Host` header. It must pass `returnToSchema`.
+  - **Internal success:** `303` to `redirectTo`. The target is resolved against `config.app().url` and never against the `Host` header. It must pass the P6 rules (`parseInternalRedirect`: P6 with a 2048-character bound for server-built targets).
   - **External success:** `303` to `externalUrl`, only when its origin is in `externalOrigins` (e.g. `config.github().oauthUrl`, later the Stripe Connect origin). Any other origin is a bug: it is logged and redirected to `/error`.
   - **`AppError`:** redirect to `onError(error)`. The default is `/error?code=<code>`. Validate this destination through P6 and resolve against `config.app().url`, exactly as for internal success; invalid error destinations fall back to `/`.
   - **Anything else:** logged with a static route template and safe error summary, never raw URL/path/query values, then redirect to `/error?code=internal_error`.

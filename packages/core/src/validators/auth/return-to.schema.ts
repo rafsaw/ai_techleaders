@@ -2,7 +2,15 @@ import { z } from "zod";
 
 /** Where every rejected or missing destination goes. */
 export const RETURN_TO_FALLBACK = "/";
+/** Longest `returnTo` accepted from user input (query string, OAuth cookie, email link). */
 export const RETURN_TO_MAX_LENGTH = 512;
+/**
+ * Longest internal redirect target the server builds from an accepted `returnTo` (platform P7):
+ * room for an added flag (`welcome=1`) or for the `returnTo` re-encoded inside an error page's
+ * query (`/sign-in?error=…&returnTo=…`, at most three times longer). Only the length differs;
+ * every safety rule is the same as for `returnTo`.
+ */
+export const INTERNAL_REDIRECT_MAX_LENGTH = 2048;
 
 // A fixed base: validation needs no server config. P7 resolves the accepted
 // path against `config.app().url` when it redirects.
@@ -37,13 +45,9 @@ function decodeSegment(segment: string): string | null {
   return decoded;
 }
 
-/**
- * The normalized same-origin page path for `value`, or `null` when it is
- * missing, unsafe or reserved (platform P6). The result is what the browser
- * would request: dot segments resolved, characters percent-encoded.
- */
-export function parseReturnTo(value: unknown): string | null {
-  if (typeof value !== "string" || value.length > RETURN_TO_MAX_LENGTH) return null;
+/** The P6 rules with a length bound; see `parseReturnTo` and `parseInternalRedirect`. */
+function parsePagePath(value: unknown, maxLength: number): string | null {
+  if (typeof value !== "string" || value.length > maxLength) return null;
   if (!value.startsWith("/") || FORBIDDEN_CHARS.test(value)) return null;
 
   const url = new URL(value, BASE);
@@ -60,7 +64,26 @@ export function parseReturnTo(value: unknown): string | null {
   if (decode(url.search) === null || decode(url.hash) === null) return null;
 
   const path = `${url.pathname}${url.search}${url.hash}`;
-  return path.length > RETURN_TO_MAX_LENGTH ? null : path;
+  return path.length > maxLength ? null : path;
+}
+
+/**
+ * The normalized same-origin page path for `value`, or `null` when it is
+ * missing, unsafe, reserved or longer than 512 characters (platform P6). The
+ * result is what the browser would request: dot segments resolved, characters
+ * percent-encoded. Use it for every user-supplied destination.
+ */
+export function parseReturnTo(value: unknown): string | null {
+  return parsePagePath(value, RETURN_TO_MAX_LENGTH);
+}
+
+/**
+ * The same rules for a redirect target the server built from an accepted
+ * `returnTo` (platform P7), bounded by `INTERNAL_REDIRECT_MAX_LENGTH` so the
+ * added flag or encoding never turns a safe destination into `/`.
+ */
+export function parseInternalRedirect(value: unknown): string | null {
+  return parsePagePath(value, INTERNAL_REDIRECT_MAX_LENGTH);
 }
 
 /**
