@@ -497,6 +497,16 @@ A task is not complete until its run log exists in .ai/runs/ and its spec is upd
   - A scenario that creates users or limiter buckets deletes them in
     `afterAll` (`users` rows, `rate_limit_buckets`), because other scenarios
     count users and Vitest reruns failed files first.
+  - Invitation scenarios use `tests/integration/invitations.ts`:
+    `operator()` runs the real CLI with the app's `APP_URL`/`SMTP_URL`/
+    `MAIL_FROM` and returns the exit code and output (`runNpmResult`),
+    `expectSecretFree` checks CLI output, and races force their order with a
+    separate lock-holding `pg` client plus `waitForLockWaiters` (no sleeps).
+  - Evidence never holds a raw link token: `IntegrationBrowser` redacts
+    `/invite/<token>` and `token=` in what it writes, and
+    `expectEvidenceFreeOf(tokens)` checks the run's text artifacts. Several
+    same-named controls: `click(role, name, { nth })` (snapshot order;
+    agent-browser ref ids are not in document order).
   - Tests that need their own schema or table-wide cleanup use
     `tests/integration/scratch-database.ts` (`useScratchDatabase`,
     `dbContainer`), not the app's database.

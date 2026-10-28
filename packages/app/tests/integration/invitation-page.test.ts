@@ -3,8 +3,8 @@ import { randomBytes } from "node:crypto";
 import { describe, expect, inject, it } from "vitest";
 
 // Minimal server-rendering check of the invitation surfaces (E01 step 3.3).
-// The full Flow 3 scenarios (CLI → Mailpit → accept, mismatch, switch account,
-// revoke/resend) and the four race tests belong to step 3.4. Read-only: no rows.
+// The full Flow 3 scenarios are in invitation-flow.test.ts and the four race
+// tests in invitation-races.test.ts (step 3.4). Read-only: no rows.
 describe("invitation page and API (production build)", () => {
   const baseURL = inject("baseURL");
 

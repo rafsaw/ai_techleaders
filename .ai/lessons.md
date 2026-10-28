@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-28 — Force DB race orderings with a lock holder, and agent-browser ref ids are not document order
+
+**Context:** E01 step 3.4 needed four deterministic invitation races (accept vs revoke/resend, two accepts, two creates) and a browser click on the second of two same-named **Sign out** buttons.
+**Lesson:** For a race, hold the contested lock from a separate `pg` client (`begin; select … for update`, or an uncommitted insert to block a unique index), start the contenders one at a time, poll `pg_stat_activity` for `wait_event_type = 'Lock'` until each is blocked, then commit/rollback: PostgreSQL wakes row-lock waiters in arrival order, so the start order decides the winner without sleeps. In agent-browser, `refs` ids (`e1`, `e2`, …) are not numbered in document order (main-content controls can get lower ids than the header's), so pick among duplicates by the ref's position in the snapshot text. Also: agent-browser echoes opened URLs and the page origin in its JSON, so any log of its output leaks token-bearing paths unless redacted.
+**Applies to:** `packages/app/tests/integration/{invitations,browser}.ts`, future booking/payment race tests, any browser helper that disambiguates elements.
+
 ### 2026-10-28 — A Server Component that imports a value from a `"use client"` module gets a reference, not the value
 
 **Context:** E01 step 3.3. Home compared `params[INVITATION_ACCEPTED_FLAG]` with the flag name exported from the client component `invitation-accepted-notice.tsx`. Every unit test passed (Vitest has no RSC boundary), but in `next start` the notice never rendered: across the boundary the export is a client reference, so the lookup key was not `"invitation"`.
