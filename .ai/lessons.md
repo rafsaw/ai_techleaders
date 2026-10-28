@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-28 — Canonicalize an IP before using it as a key
+
+**Context:** E01 Phase 2 review fix R8. `clientIp` only lowercased IPv6, so `2001:db8::1`, `2001:0db8:0:0::1` and the IPv4-mapped `::ffff:192.0.2.1` / `::ffff:c000:201` / `192.0.2.1` each got their own rate-limit bucket, multiplying the per-IP allowance for anyone who controls the spelling.
+**Lesson:** any value used as a limiter, dedupe or cache key needs one spelling per identity. For IPs: validate with `isIP`, then `new URL("http://[" + ip + "]").hostname` gives RFC 5952-compatible IPv6 (no dependency), and unmap `::ffff:0:0/96` to IPv4. Test equivalence classes, not just one example per form.
+**Applies to:** `packages/core/src/http/client-ip.ts`, any future key built from addresses, emails or other user-spelled identifiers.
+
 ### 2026-10-28 — agent-browser `click` does not scroll; below the fold it hits `<html>`
 
 **Context:** E01 step 2.6. Every submit in the new password-UI scenario did nothing: no request, no validation message, no error. The form was hydrated and filled; the submit button sat at y = 592 in a 577 px viewport, and a capture-phase listener showed the click landing on `<html>`. `agent-browser click @ref` clicks at the element's coordinates without scrolling it into view (unlike Playwright's `click`). Earlier scenarios passed only because their buttons were above the fold.

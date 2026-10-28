@@ -373,7 +373,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
 - **Contract:**
   ```ts
   interface RateLimiter { hit(key: string, rule: { limit: number; windowMs: number }): Promise<{ allowed: boolean; retryAfterMs: number }> }
-  clientIp(req, { trustProxy }): string | null  // one validated address from the configured, overwriting edge; else null
+  clientIp(req, { trustProxy }): string | null  // one validated address from the configured, overwriting edge, in canonical form (RFC 5952 IPv6; IPv4-mapped → IPv4); else null
   TooManyRequestsError  // new AppError: code "rate_limited", 429; apiHandler adds Retry-After
   ```
 - **Unknown IP:** callers **skip** per-IP rules when `clientIp` is `null`. They never pool every visitor into one bucket, which would let one attacker lock everyone out. Per-account rules always apply. `TRUST_PROXY` defaults to `false` and is added in accounts Phase 2.

@@ -9,6 +9,7 @@ vi.mock("@/server/container", () => {
 
 import { container } from "@/server/container";
 import { createAppConfig } from "@/server/config";
+import { PASSWORD_RATE_LIMITS, rateLimitKey } from "@/server/services/auth/password-account.service";
 
 import { POST } from "./route";
 
@@ -50,6 +51,15 @@ describe("POST /api/auth/sign-in", () => {
     service.signIn.mockResolvedValue({ redirectTo: "/" });
     await post({ email: "a@example.com", password: "pw" }, { "x-devmentor-csrf": "1", "x-forwarded-for": "2001:DB8::1" });
     expect(service.signIn).toHaveBeenCalledWith(expect.anything(), "2001:db8::1", expect.anything());
+  });
+
+  it("passes one canonical IP for every spelling, so they share one rate-limit key", async () => {
+    configure(true);
+    service.signIn.mockResolvedValue({ redirectTo: "/" });
+    const spellings = ["2001:db8::1", "2001:0DB8:0000:0000:0000:0000:0000:0001", "::ffff:192.0.2.1", "::ffff:c000:201", "192.0.2.1"];
+    for (const ip of spellings) await post({ email: "a@example.com", password: "pw" }, { "x-devmentor-csrf": "1", "x-forwarded-for": ip });
+    const keys = service.signIn.mock.calls.map(([, ip]) => rateLimitKey(PASSWORD_RATE_LIMITS.signInPerIp, ip as string));
+    expect(keys).toEqual(["sign-in:ip:2001:db8::1", "sign-in:ip:2001:db8::1", "sign-in:ip:192.0.2.1", "sign-in:ip:192.0.2.1", "sign-in:ip:192.0.2.1"]);
   });
 
   it("answers 400 for a missing password", async () => {
