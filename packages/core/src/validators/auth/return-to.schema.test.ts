@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 
 import {
-  INTERNAL_REDIRECT_MAX_LENGTH, parseInternalRedirect, parseReturnTo, RETURN_TO_FALLBACK, RETURN_TO_MAX_LENGTH,
+  INTERNAL_REDIRECT_MAX_LENGTH, optionalReturnToSchema, parseInternalRedirect, parseReturnTo, RETURN_TO_FALLBACK, RETURN_TO_MAX_LENGTH,
   returnToSchema,
 } from "./return-to.schema";
 
@@ -191,5 +191,15 @@ describe("returnToSchema", () => {
 
   it("never fails validation", () => {
     expect(returnToSchema.safeParse(Symbol("x")).success).toBe(true);
+  });
+});
+
+describe("optionalReturnToSchema", () => {
+  it.each(hostile)("leaves out %s", (_label, value) => {
+    expect(optionalReturnToSchema.parse(value)).toBeUndefined();
+  });
+
+  it.each(allowed)("keeps %s", (_label, value, expected) => {
+    expect(optionalReturnToSchema.parse(value)).toBe(expected);
   });
 });

@@ -98,3 +98,13 @@ export const returnToSchema = z
   .transform((value) => parseReturnTo(value) ?? RETURN_TO_FALLBACK);
 
 export type ReturnTo = z.output<typeof returnToSchema>;
+
+/**
+ * Like `returnToSchema`, but a missing or unsafe destination becomes
+ * `undefined` instead of `/`, for flows that must tell "no destination" apart
+ * (a confirmation link carries `returnTo` only when one was given).
+ */
+export const optionalReturnToSchema = z
+  .unknown()
+  .optional()
+  .transform((value) => parseReturnTo(value) ?? undefined);
