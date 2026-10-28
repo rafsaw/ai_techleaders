@@ -15,7 +15,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - [x] 1.2 Tokens, cookies, `returnTo` and role schemas in core (P8, P3 types, P6)
 - [x] 1.3 Identity context on `apiHandler` / `makeCrudRoute` (required `access`, principal, cookies, `PrincipalResolver`)
 - [x] 1.4 Navigation handler (P7) + minimal identity-free `/error` page
-- [ ] 1.5 Schema: `user_roles`, `auth_sessions`, new `users` columns, migration, seeder grants `mentee`
+- [x] 1.5 Schema: `user_roles`, `auth_sessions`, new `users` columns, migration, seeder grants `mentee`
 - [ ] 1.6 `RoleService`, `AuthSessionService` (principalResolver), `UserService.getAccount`/`updateDisplayName`, `create` grants mentee
 - [ ] 1.7 Page guards, cookie-only Proxy (P4), operator CLI runner (P12) with role grant/revoke
 - [ ] 1.8 GitHub sign-in backend: port + arctic adapter, `GitHubSignInService`, navigation routes, integration GitHub stub, race test

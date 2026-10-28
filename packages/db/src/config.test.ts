@@ -17,7 +17,7 @@ describe("database configuration", () => {
     const config = await loadConfig();
     expect(config.pool).toEqual({ min: 0, max: 10 });
     expect(config.debug).toBe(false);
-    expect(config.entities).toHaveLength(1);
+    expect(config.entities).toHaveLength(3);
     expect(config.extensions).toEqual([Migrator, SeedManager]);
     expect(config.migrations).toEqual({ path: "src/migrations", snapshot: false,
       transactional: true, allOrNothing: true });
