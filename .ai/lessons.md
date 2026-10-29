@@ -27,6 +27,152 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-29 — Bound every outbound HTTP call with an `AbortSignal`, body included
+
+**Context:** R13 — the GitHub callback hung on a stalled provider: arctic's token request and our `/user` reads used `fetch` with no signal, and undici's defaults wait 300 s for headers and again for the body.
+**Lesson:** Pass `AbortSignal.timeout(ms)` to every outbound `fetch` and read the body under the same signal (an abort during `response.json()` rejects with `TimeoutError`). Parallel calls share one deadline (`AbortSignal.any`) and the first failure aborts the rest. A library that builds its own `Request` without a signal (arctic 3.x token request) cannot be bounded — racing its promise answers in time but leaks the request — so do that request with your own `fetch`. Test stalls with a fetch stub that only settles on abort, and in integration with a stub that holds the response open.
+**Applies to:** `packages/app/src/server/services/auth/adapters/arctic-github-oauth.ts`, any future port adapter (payments, notifications, video).
+
+### 2026-10-29 — Every client call to a signed-in API goes through `unlessSessionExpired`
+**Context:** review finding R12: Accept on `/invite/[token]` used a bare `apiCall`, so an expired session showed "Authentication required" on the page instead of fully navigating to sign-in with the session-expired banner (SM-AC2). `/account` and `/backend/users` already wrapped their calls.
+**Lesson:** Any client `submit`/fetch whose API is `access: "user"` or `{ role }` must return `unlessSessionExpired(await apiCall(...), <this page's returnTo>)` from `@/app/session-expiry`, with a unit test for the 401 navigation. `public`/`optional` APIs never answer 401 and need no wrapper (e.g. sign-out). When adding a form, check the route's `access` rule.
+**Applies to:** client components in `packages/app/src/app/**` that call `/api/*`.
+
+### 2026-10-29 — Next's repeated-slash/backslash 308 cannot be protected in-app
+
+**Context:** E01 Phase 3 review R11. `/sign-in//?returnTo=/invite/<token>`, `/invite//<token>` and `/sign-in\?…` got a bare 308 (token in `Location`, no token-page headers) even after R10, because Next answers them before the Proxy.
+**Lesson:** in Next 16, any path (before `?`) containing `//` or `\` gets an unconditional 308 to the normalized URL with empty headers (`resolve-routes.js`, twin in `base-server.js`), before `headers()`, `redirects()`, rewrites and the Proxy; no config turns it off. Don't try to fix it in the Proxy or with header rules (a Proxy test with `//` passes but never runs in production). It belongs to the hosting edge (normalize first, or add no-store/no-referrer/noindex to 3xx) and is a production release condition (accounts R11). To test raw paths, use `node:http` or `curl --path-as-is`: `fetch`/WHATWG URL turns `\` into `/` before sending.
+**Applies to:** `packages/app/src/proxy.ts`, `tests/integration/token-page-repeated-slash.test.ts`, hosting checklist in `README.md`, any header that must accompany a redirect.
+
+### 2026-10-28 — Next's built-in redirects drop every `headers()` rule
+
+**Context:** E01 Phase 3 review fix R10. `/invite/<token>/` and `/sign-in/?returnTo=/invite/<token>` got Next's automatic trailing-slash 308 with the token in `Location` and none of the token-page headers; adding header sources for the slash form changed nothing.
+**Lesson:** in Next 16, `resolve-routes` returns `resHeaders: null` for any config redirect (the internal trailing-slash one and `redirects()`), so `headers()` rules never reach a redirect response. Headers on a redirect need a Proxy-issued redirect (here `skipTrailingSlashRedirect: true` plus `trailingSlashRedirect` in `src/proxy.ts`, matcher `/:path+/`). Test security headers on redirects with `fetch(url, { redirect: "manual" })` against the production build, not just on the final page. When building a redirect URL in a Proxy, use `new URL(request.url)`: a cloned `NextURL` remembers the trailing slash it parsed and puts it back.
+**Applies to:** `packages/app/next.config.ts`, `packages/app/src/proxy.ts`, any header that must accompany a redirect.
+
+### 2026-10-28 — Never re-implement request parsing in `next.config` `has` matchers; protect by route
+
+**Context:** E01 Phase 3 review fix R9. The auth pages got the token-page headers only when `has: [{ type: "query", key: "returnTo", value: "/invite/.*" }]` matched, but the pages read the first `returnTo` and normalized it with `parseReturnTo`. Duplicates, dot segments and percent-encoding produced pages that carried an invitation token with no `Referrer-Policy`, `Cache-Control` or `X-Robots-Tag`.
+**Lesson:** a security header must not depend on a second parser of the same input. Give the protection to every route that *can* carry the secret, unconditionally (`TOKEN_PAGES` in `packages/app/src/app/token-page.ts`, static `metadata`), instead of deciding from the query in `next.config.ts` or in `generateMetadata`. When a header is conditional, test it with duplicate, dot-segment and percent-encoded values on the production build.
+**Applies to:** `next.config.ts` `headers()`, token pages, any page that forwards a `returnTo`.
+
+### 2026-10-28 — Force DB race orderings with a lock holder, and agent-browser ref ids are not document order
+
+**Context:** E01 step 3.4 needed four deterministic invitation races (accept vs revoke/resend, two accepts, two creates) and a browser click on the second of two same-named **Sign out** buttons.
+**Lesson:** For a race, hold the contested lock from a separate `pg` client (`begin; select … for update`, or an uncommitted insert to block a unique index), start the contenders one at a time, poll `pg_stat_activity` for `wait_event_type = 'Lock'` until each is blocked, then commit/rollback: PostgreSQL wakes row-lock waiters in arrival order, so the start order decides the winner without sleeps. In agent-browser, `refs` ids (`e1`, `e2`, …) are not numbered in document order (main-content controls can get lower ids than the header's), so pick among duplicates by the ref's position in the snapshot text. Also: agent-browser echoes opened URLs and the page origin in its JSON, so any log of its output leaks token-bearing paths unless redacted.
+**Applies to:** `packages/app/tests/integration/{invitations,browser}.ts`, future booking/payment race tests, any browser helper that disambiguates elements.
+
+### 2026-10-28 — A Server Component that imports a value from a `"use client"` module gets a reference, not the value
+
+**Context:** E01 step 3.3. Home compared `params[INVITATION_ACCEPTED_FLAG]` with the flag name exported from the client component `invitation-accepted-notice.tsx`. Every unit test passed (Vitest has no RSC boundary), but in `next start` the notice never rendered: across the boundary the export is a client reference, so the lookup key was not `"invitation"`.
+**Lesson:** a `"use client"` module may export components to the server, never plain values (strings, objects, functions to call). Put shared constants in an isomorphic module (here `(frontend)/auth-links.ts`) and import them from both sides. Smoke a server page against the production build (or an integration test) whenever it reads a constant shared with a client component.
+**Applies to:** `packages/app/src/app/**` Server Components importing from client modules.
+
+### 2026-10-28 — A CLI command that imports a service loads `@devmentor/db` before env
+
+**Context:** E01 step 3.2. All unit tests passed, but every real `npm run operator -- invite …` failed with "unexpected error" (MikroORM: "No database specified"). `invite-flags.ts` imported a constant from `mentor-invitation.service.ts`, which imports `@devmentor/db`; `run-cli.ts` imports every command statically, so the db config read an empty `DATABASE_URL` before `loadEnv` ran. The role commands never hit this because they import nothing from db.
+**Lesson:** modules reachable from `run-cli.ts` may import a service only as `import type`; put shared constants in a db-free module (`mentor-invitation.policy.ts`). `run-cli.test.ts` mocks `@devmentor/db` to throw on import, so a new value import fails the unit tests. Smoke-test a new operator command against the dev database once; a container-mocked unit test cannot catch import-time env reads.
+**Applies to:** `packages/app/src/server/cli/**`, any entry point that loads env after its static imports.
+
+### 2026-10-28 — An in-flight guard is not a double-submit guard when success navigates
+
+**Context:** Phase 2 manual test: a double click on Create account sent two confirmation emails. The ref guard blocked a second submit only while the request ran; it released on the answer, and the page (values kept) stayed up while `router.push` loaded, so the second click sent a valid re-registration.
+**Lesson:** A form that leaves the page on success must stay locked from success until it unmounts, with an escape hatch (back/forward-cache `pageshow`, a timeout) so a failed navigation does not strand it. Test it with a fast answer and a click after it, not only two clicks in one turn. In integration, a `MutationObserver` that clicks as soon as the button is re-enabled hits the window deterministically.
+**Applies to:** `ui/src/forms/useSchemaForm.ts` (`lockAfterSuccess`), `SchemaForm`, any future form whose `onSuccess` navigates.
+
+### 2026-10-28 — Token pages need headers *and* meta tags; `Cache-Control` in next.config sticks for dynamic pages
+
+**Context:** E01 Phase 2 review fix R7. `/confirm-email` had the referrer meta tag and header but no `noindex` and no `Cache-Control: private, no-store`, although the spec required all three.
+**Lesson:** for a page whose URL carries a token, spread `TOKEN_PAGE_METADATA` into its metadata and add its route to `headers()` in `next.config.ts` with `TOKEN_PAGE_HEADERS` (`packages/app/src/app/token-page.ts`); test with `unstable_getResponseFromNextConfig`. A `Cache-Control` set in `headers()` is kept on dynamic App Router pages in production (Next only adds its own when the response has none), but `next dev` overwrites it with `no-store`, so assert it against the production build.
+**Applies to:** `/confirm-email`, Phase 3 `/invite/[token]`, any future page with a secret in its address.
+
+### 2026-10-28 — Canonicalize an IP before using it as a key
+
+**Context:** E01 Phase 2 review fix R8. `clientIp` only lowercased IPv6, so `2001:db8::1`, `2001:0db8:0:0::1` and the IPv4-mapped `::ffff:192.0.2.1` / `::ffff:c000:201` / `192.0.2.1` each got their own rate-limit bucket, multiplying the per-IP allowance for anyone who controls the spelling.
+**Lesson:** any value used as a limiter, dedupe or cache key needs one spelling per identity. For IPs: validate with `isIP`, then `new URL("http://[" + ip + "]").hostname` gives RFC 5952-compatible IPv6 (no dependency), and unmap `::ffff:0:0/96` to IPv4. Test equivalence classes, not just one example per form.
+**Applies to:** `packages/core/src/http/client-ip.ts`, any future key built from addresses, emails or other user-spelled identifiers.
+
+### 2026-10-28 — agent-browser `click` does not scroll; below the fold it hits `<html>`
+
+**Context:** E01 step 2.6. Every submit in the new password-UI scenario did nothing: no request, no validation message, no error. The form was hydrated and filled; the submit button sat at y = 592 in a 577 px viewport, and a capture-phase listener showed the click landing on `<html>`. `agent-browser click @ref` clicks at the element's coordinates without scrolling it into view (unlike Playwright's `click`). Earlier scenarios passed only because their buttons were above the fold.
+**Lesson:** scroll before clicking (`scrollintoview @ref`, now inside `IntegrationBrowser.click`). When a click "does nothing" in agent-browser, record `click` targets with `document.addEventListener("click", …, true)` via `eval` before suspecting hydration. Also: never `pkill -f <pattern>` to stop a debug server (lesson 2026-10-21); kill its PID from `ss -ltnp`.
+**Applies to:** `packages/app/tests/integration/browser.ts`, any agent-browser interaction with tall pages.
+
+### 2026-10-28 — A form's in-flight guard must be a ref, and its request must die with it
+
+**Context:** E01 step 2.6, platform F2. `useSchemaForm` blocked double submits with `isSubmitting` state, which only takes effect after a re-render, so two submits in one turn (a double click, Enter plus click) both reached `onSubmit`. A form that unmounted mid-request (the confirm panel swapping to "link no longer valid", a navigation) still received the late result.
+**Lesson:** guard with a `useRef` set synchronously before the first `await`, and keep state only for rendering. Give each request an `AbortController`, pass `signal` to `onSubmit` (and on to `apiCall`), abort it in the unmount cleanup and drop the result when `signal.aborted`. Test the same-turn case inside one `act(() => { submit(); submit(); })`. Keep a published component's callback signature (`CrudForm.onSubmit(values)`) by wrapping instead of forwarding the new argument, so existing `toHaveBeenCalledWith` tests still hold.
+**Applies to:** `packages/ui/src/forms/useSchemaForm.ts`, any hand-written form or button that posts (e.g. `ResendConfirmation`).
+
+### 2026-10-28 — Vitest reruns failed integration files first; scenarios must not leak rows
+
+**Context:** E01 step 2.5. The new password API scenario created a user. It passed on the first run (it ran after `app.test.ts`), but after an unrelated failure Vitest ordered the previously failed file differently and `app.test.ts`, which asserts exact "N registered users" counts, failed.
+**Lesson:** Vitest's sequencer reorders test files between runs (failed and slow files first), even with `fileParallelism: false`, so integration files share one database in no fixed order. A scenario that writes rows other files count must delete them in `afterAll` (here `delete from users where email = …`, which cascades roles, sessions and links, plus `rate_limit_buckets`). Also remember the limiter in API scenarios: sign-in and confirm share rule 2 (5 per address per 15 min), so a long scenario against one address hits 429 by design.
+**Applies to:** `packages/app/tests/integration/*.test.ts`, especially scenarios that create accounts.
+
+### 2026-10-28 — Pointing `@devmentor/db` at a scratch database in tests
+
+**Context:** E01 step 2.4, real-PostgreSQL tests of the rate limiter and P9 consume. The limiter's cleanup deletes every expired bucket in the table, and migration `down()` drops tables, so neither may run in the app's integration database.
+**Lesson:** give such tests their own database in the integration container (`useScratchDatabase` in `tests/integration/scratch-database.ts`). `packages/db/src/config.ts` reads `DATABASE_URL` when the module is first evaluated, so to get an ORM for that database `vi.stubEnv` it around a *dynamic* `import("@devmentor/db")` and call `registerDb` on a fresh container (`dbContainer`); a static import would bind the app's URL. Dispose the container to close the pool.
+**Applies to:** `packages/app/tests/integration/`, any test needing a real ORM against a non-default database.
+
+### 2026-10-28 — `em.execute` inlines `?` params and returns timestamptz as text
+
+**Context:** E01 step 2.3 (P11 Postgres rate limiter, raw `DELETE` + `INSERT … ON CONFLICT … RETURNING`). Checked against a real PostgreSQL 17 before the migration existed.
+**Lesson:** In MikroORM v7, `em.execute(sql, [..])` with a string query formats `?` placeholders into the SQL text via `platform.formatQuery` (escaped literals, not bound parameters); `??` is an identifier and `\?` a literal `?`. Pass dates as ISO strings with an explicit `?::timestamptz` so the type never depends on literal inference. Raw result rows bypass entity hydration: `timestamptz` comes back as Postgres text (`2026-10-28 12:01:00+00`), not a `Date`, and `bigint` as a string, so return what you need as numbers (e.g. `(extract(epoch from col) * 1000)::bigint`) and convert with `Number()`.
+**Applies to:** `packages/db/src/rate-limiter.ts`, any raw SQL through `em.execute`.
+
+### 2026-10-28 — nodemailer 10: own types, and the second argument is message defaults
+
+**Context:** E01 step 2.2 (P10 SMTP adapter). `createTransport(smtpUrl, { connectionTimeout, … })` failed typecheck; the timeouts would otherwise have been silently ignored at runtime.
+**Lesson:** In nodemailer, `createTransport(transport, defaults)`'s second argument is *message* defaults (`from`, headers), not transport options. Pass a URL plus options as one object: `createTransport({ url, connectionTimeout, … })`. nodemailer 10 bundles its own `.d.ts`; don't add `@types/nodemailer` (written for older releases). `sendMail` resolves even when some recipients are refused; check `info.rejected`.
+**Applies to:** `packages/app/src/server/services/notifications/adapters/smtp-email-sender.ts`, any new mail transport.
+
+### 2026-10-28 — Don't re-validate a server-built redirect with the user-input length limit
+
+**Context:** Review R6 on E01 Phase 1. `returnTo` is accepted up to 512 characters, the callback appends `welcome=1` (or re-encodes it into `/sign-in?error=…&returnTo=…`), and `navigationHandler` re-checked the result with `parseReturnTo` (512), so a valid long destination silently became `/`.
+**Lesson:** a length limit on user input does not hold after the server adds to the value. Re-check server-built targets with the same safety rules but a bound that covers what the server may add (`parseInternalRedirect`, 2048). Test limits end to end at the boundary (exactly 512, 503–511), through every layer that re-validates, not only the validator alone.
+**Applies to:** `packages/core/src/validators/auth/return-to.schema.ts`, `packages/core/src/http/navigationHandler.ts`, any flow that decorates a validated `returnTo`.
+
+### 2026-10-28 — Latch a one-time notice: Next syncs `replaceState` into `useSearchParams`
+
+**Context:** Review R4 on E01 Phase 1. The welcome notice in the shared layouts reads `welcome=1` with `useSearchParams` and then drops the flag with `history.replaceState`, so a reload does not show it again. Next.js syncs `replaceState`/`pushState` with its router, so `useSearchParams` re-renders without the flag right away.
+**Lesson:** decide "show" once, in a `useState` initializer on the first render, and never derive it live from `useSearchParams`, or the notice disappears the moment the flag is removed. Remember the pathname it was shown on and clear the latch when `usePathname` changes, because a layout stays mounted across client navigations (otherwise navigating back shows it again). Wrap the `useSearchParams` component in `<Suspense>` as the Next 16 docs require. In unit tests, simulate Next's sync by changing the mocked search params and re-rendering.
+**Applies to:** `packages/app/src/app/welcome-notice.tsx`, any flash-once UI driven by a URL flag.
+
+### 2026-10-28 — `fetch` resolving is not the end of the transport: the body read can reject too
+
+**Context:** Review R1 on E01 Phase 1. `apiCall` caught a rejected `fetch()` but not a rejected `response.text()` (connection reset or abort after the headers). The promise rejected, and `SiteHeader` stayed on "Signing out…" because its pending state is reset only after `signOut()` resolves.
+**Lesson:** `fetch` resolves as soon as the headers arrive, so wrap the body read as well and map it to the same `network_error` failure. Callers rely on `apiCall` never rejecting for transport problems (they don't `try/finally`), so keep that guarantee in `apiCall` itself rather than hardening each caller. To test it, `vi.spyOn(response, "text").mockRejectedValue(...)` on a real `Response`.
+**Applies to:** `packages/ui/src/api/apiCall.ts` and any future client transport helper.
+
+### 2026-10-27 — A layout's redirect beats the page's, and agent-browser can't fake every failure
+
+**Context:** E01 step 1.9, the `(app)` layout and `/account`. With `requirePrincipal` in both, a
+signed-out visit to `/account` redirected to `/sign-in?returnTo=%2F`: the layout renders first and
+its redirect wins, and a layout does not know the requested path. In the integration tests,
+`agent-browser network route … --abort` did not stop a `fetch` POST (it reached the server), and
+`fill <field> ""` left a React-controlled input unchanged.
+**Lesson:** put redirecting guards (with `returnTo`) in pages, not layouts; a layout may read
+`getPrincipal()` for display only. To make a client request fail in agent-browser use
+`set offline on` / `off`; to submit an "empty" field, fill whitespace that the schema trims; to
+wait for a `history.replaceState` URL change use `wait --fn`, not `wait --url`.
+**Applies to:** `packages/app/src/app/(app)/layout.tsx`, future signed-in layouts,
+`packages/app/tests/integration/`.
+
+### 2026-10-27 — React `cache()` is a no-op in unit tests unless you load the server build
+
+**Context:** E01 step 1.7 page guards: `getPrincipal = cache(...)` must dedupe within one render
+and never across requests. Under Vitest, `react` resolves to the client build, whose `cache`
+just calls the function, so a dedupe test proves nothing.
+**Lesson:** to test per-render caching, `vi.mock("react")` with
+`react/cjs/react.react-server.development.js` (loaded via `createRequire` + absolute path, the
+subpath is not exported) and set its `__SERVER_INTERNALS_…`.`A` to a fake dispatcher whose
+`getCacheForType` keeps one Map per simulated request. See
+`packages/app/src/server/auth/page-guards.test.ts`. Also: Proxy (`src/proxy.ts`) runs in a
+server-only layer, so it may import `server-only` modules such as `@/server/config`.
+**Applies to:** tests of anything wrapped in React `cache()`, `src/proxy.ts`.
+
 ### 2026-10-21 — An error removed on blur can swallow the submit click
 
 **Context:** `CrudForm` started validating on blur. On `/backend/users`, after an empty submit the
@@ -374,3 +520,15 @@ explicitly instead of disabling rules.
 **Context:** local `npm run build` compiled, then exited 1 with `SecurityFatalError: Your version of Next.js is affected by a known security vulnerability`, while CI's Build job on the same lockfile (next 16.4.0, Node 22.23.3) passed.
 **Lesson:** Next 16.4.0 defaults `experimental.agentUpgrade` to `'security'`. During `next build` it queries the npm advisory API; when it detects a coding agent (e.g. `CLAUDECODE` env var) and the installed version is affected, it stops the command once (retry allowed for 5 minutes via a receipt in `.next/cache`). In CI no agent is detected, so the check returns early and the build passes silently. CI green does not mean the version is unaffected: `npm audit` reports next `16.0.0–16.4.0` critical (GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r, GHSA-673q-mjm6-r5xr). Do not disable the check; decide on the upgrade separately.
 **Applies to:** `packages/app` build, `npm run build` run by agents, Next.js version policy.
+
+### 2026-10-27 — `instanceof AppError` fails when a page built the container
+
+**Context:** E01 step 1.10 moved the integration readiness probe from `/api/users` to the home page. Afterwards a duplicate email on `POST /api/users` answered 500 ("Unhandled API error", code `conflict`) and a cancelled GitHub sign-in went to `/error`. Next.js loads workspace packages once per bundle (pages vs route handlers), but the container is cached on `globalThis`: the first request's bundle builds it, so services throw errors from that bundle's copy of `@devmentor/core`, and the route's `instanceof AppError` / `instanceof GitHubSignInError` is false. The old probe hid it by always building the container in the route bundle first. Reproduced with `next start` and `next dev`.
+**Lesson:** Never use `instanceof` on an error class from a workspace package across the container boundary. Use `isAppError()` (a `Symbol.for` brand) from `@devmentor/core`; recognize subclasses by their properties or code (`fieldErrors`, `isGitHubSignInError`). Test with `vi.resetModules()` + a dynamic import to get a real second copy. Keep the readiness probe on a page, so integration runs exercise page-first ordering.
+**Applies to:** `core/src/http/{errors,apiHandler,navigationHandler}.ts`, any `onError`/error mapping in routes, new error subclasses.
+
+### 2026-10-27 — Static page `metadata` leaks through a 404 from a layout guard
+
+**Context:** `/backend` answers a non-operator with `notFound()` from the layout. The SSR `<title>` was the 404's, but the RSC payload still carried the page's static `metadata` ("Dashboard"), and the browser showed it after hydration. If `generateMetadata` throws `notFound()`, Next sends no metadata at all.
+**Lesson:** On guarded pages, export `generateMetadata` that returns the page's title only when the role is held and the not-found metadata otherwise (`app/backend/operator-title.ts`). `getPrincipal` is `cache()`d, so this costs no extra lookup.
+**Applies to:** every page under a role-gated layout.

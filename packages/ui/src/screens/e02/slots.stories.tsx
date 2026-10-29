@@ -5,7 +5,7 @@ import { useId, useState } from "react";
 import { expect, fireEvent, userEvent, waitFor } from "storybook/test";
 import { z } from "zod";
 
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
+import { apiCall } from "@devmentor/ui/api/apiCall";
 import { Alert, AlertTitle } from "@devmentor/ui/components/alert";
 import { SlotList } from "@devmentor/ui/components/availability/SlotList";
 import { SlotRow } from "@devmentor/ui/components/availability/SlotRow";
@@ -111,7 +111,7 @@ interface Args {
 function SlotsScreen({ slots, loading, error }: Args) {
   const [rows, setRows] = useState(slots);
   return (
-    <Screen account={ADA_MENTOR} title="Slots" width="text">
+    <Screen account={ADA_MENTOR} mentorSetupHref="/mentor" title="Slots" width="text">
       <SlotForm onPublished={(slot) => setRows((current) => [...current, slot])} />
       <SlotList count={rows.length} loading={loading} error={error} onRetry={() => {}}>
         {rows.map((row) => (

@@ -1,40 +1,105 @@
 import "@testing-library/jest-dom/vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { Principal } from "@devmentor/core";
+
+import { apiCall } from "@devmentor/ui/api/apiCall";
+import type { ApiResult } from "@devmentor/ui/api/types";
 
 import Home from "@/app/(frontend)/page";
 import BackendLayout from "@/app/backend/layout";
-import Dashboard, { metadata as dashboardMetadata } from "@/app/backend/page";
-import UsersPage, { metadata as usersMetadata } from "@/app/backend/users/page";
+import Dashboard, { generateMetadata as dashboardMetadata } from "@/app/backend/page";
+import UsersPage, { generateMetadata as usersMetadata } from "@/app/backend/users/page";
 import { UsersPanel } from "@/app/backend/users/users-panel";
+import { navigateFully } from "@/app/full-navigation";
 import RootLayout, { metadata } from "@/app/layout";
+import NotFound, { metadata as notFoundMetadata } from "@/app/not-found";
+import { getPrincipal, requireRole } from "@/server/auth/page-guards";
 
 const { count, connection } = vi.hoisted(() => ({ count: vi.fn(), connection: vi.fn() }));
 vi.mock("next/server", () => ({ connection }));
 vi.mock("@/server/container", () => ({ createRequestScope: () => ({ cradle: { userService: { count } } }) }));
 vi.mock("next/font/google", () => ({ Geist: () => ({ variable: "geist-font" }) }));
-vi.mock("@devmentor/ui/backend/api/apiCall", () => ({ apiCall: vi.fn() }));
+vi.mock("@devmentor/ui/api/apiCall", () => ({ apiCall: vi.fn() }));
+vi.mock("@/server/auth/page-guards", () => ({ getPrincipal: vi.fn(), requireRole: vi.fn() }));
+vi.mock("@/app/full-navigation", () => ({ navigateFully: vi.fn() }));
+vi.mock("next/navigation", () => ({ notFound: vi.fn(() => { throw new Error("notFound"); }) }));
+
+const operator: Principal = { userId: "user-1", sessionId: "session-1", displayName: "Ada", roles: ["mentee", "operator"] };
+
+beforeEach(() => {
+  vi.mocked(getPrincipal).mockReset().mockResolvedValue(null);
+  vi.mocked(requireRole).mockReset().mockResolvedValue(operator);
+  vi.mocked(navigateFully).mockReset();
+});
 
 describe("page composition", () => {
-  it("declares distinct dashboard and users document titles", () => {
-    expect(dashboardMetadata.title).toBe("Dashboard");
-    expect(usersMetadata.title).toBe("Users");
+  it("gives operators distinct dashboard and users document titles", async () => {
+    vi.mocked(getPrincipal).mockResolvedValue(operator);
+    expect(await dashboardMetadata()).toEqual({ title: "Dashboard" });
+    expect(await usersMetadata()).toEqual({ title: "Users" });
   });
 
-  it("renders the public heading and admin link", () => {
-    render(<Home />);
+  it.each([null, { ...operator, roles: ["mentee"] } satisfies Principal])(
+    "gives anyone else the 404's title, so metadata does not reveal the area: %j", async (principal) => {
+      vi.mocked(getPrincipal).mockResolvedValue(principal);
+      expect(await dashboardMetadata()).toEqual({ title: "Page not found" });
+      expect(await usersMetadata()).toEqual({ title: "Page not found" });
+    });
+
+  it("renders the public heading without a backend link, reading the principal for activity", async () => {
+    render(await Home({ searchParams: Promise.resolve({}) }));
+    expect(getPrincipal).toHaveBeenCalled();
     expect(screen.getByRole("heading", { name: "DevMentor" })).toBeVisible();
-    expect(screen.getByRole("link", { name: "Open backend" })).toHaveAttribute("href", "/backend");
+    // The (frontend) header carries the sign-in state and Backend for operators.
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("provides backend navigation and preserves page content", () => {
-    render(<BackendLayout><h1>Page content</h1></BackendLayout>);
+  it("shows a new mentor the one-time accepted notice after an invitation (SM-AC8a) and drops the flag", async () => {
+    vi.mocked(getPrincipal).mockResolvedValue({ ...operator, roles: ["mentee", "mentor"] });
+    window.history.replaceState(null, "", "/?invitation=accepted");
+    render(await Home({ searchParams: Promise.resolve({ invitation: ["accepted", "x"] }) }));
+    expect(screen.getByRole("status")).toHaveTextContent("Invitation accepted. You're now a mentor.");
+    expect(window.location.search).toBe("");
+  });
+
+  it.each([
+    ["signed out", null, "accepted"],
+    ["an account without mentor", operator, "accepted"],
+    ["another flag value", { ...operator, roles: ["mentor"] } satisfies Principal, "yes"],
+  ])("shows no accepted notice to %s", async (_case, principal, value) => {
+    vi.mocked(getPrincipal).mockResolvedValue(principal);
+    render(await Home({ searchParams: Promise.resolve({ invitation: value }) }));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("provides backend navigation around the page for an operator", async () => {
+    vi.mocked(getPrincipal).mockResolvedValue(operator);
+    render(await BackendLayout({ children: <h1>Page content</h1> }));
     expect(screen.getByRole("heading", { name: "Page content" })).toBeVisible();
     expect(screen.getByRole("link", { name: "Users" })).toHaveAttribute("href", "/backend/users");
     expect(screen.getByRole("link", { name: "View site" })).toHaveAttribute("href", "/");
+  });
+
+  it("renders no backend chrome when signed out and leaves the redirect to the page guard", async () => {
+    render(<>{await BackendLayout({ children: <p>Page output</p> })}</>);
+    expect(screen.queryByRole("banner")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Users" })).not.toBeInTheDocument();
+    expect(screen.getByText("Page output")).toBeVisible();
+  });
+
+  it("answers 404 to a signed-in account without the operator role", async () => {
+    vi.mocked(getPrincipal).mockResolvedValue({ ...operator, roles: ["mentee"] });
+    await expect(BackendLayout({ children: <p>Page output</p> })).rejects.toThrow("notFound");
+  });
+
+  it("renders the neutral 404 with a way home", () => {
+    render(<NotFound />);
+    expect(notFoundMetadata.title).toBe("Page not found");
+    expect(screen.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "Go to the home page" })).toHaveAttribute("href", "/");
   });
 
   it("defines the root document language, font, metadata and body", () => {
@@ -48,14 +113,23 @@ describe("page composition", () => {
     expect(metadata.title).toEqual({ default: "DevMentor", template: "%s · DevMentor" });
   });
 
-  it("queries the database only after entering request-time rendering", async () => {
+  it("guards the dashboard, then queries the database only at request time", async () => {
     const order: string[] = [];
+    vi.mocked(requireRole).mockImplementation(async () => { order.push("guard"); return operator; });
     connection.mockImplementation(async () => { order.push("connection"); });
     count.mockImplementation(async () => { order.push("count"); return 7; });
     render(await Dashboard());
-    expect(order).toEqual(["connection", "count"]);
+    expect(requireRole).toHaveBeenCalledWith("operator", { returnTo: "/backend" });
+    expect(order).toEqual(["guard", "connection", "count"]);
     expect(screen.getByText("Connected")).toBeVisible();
     expect(screen.getByText("7 registered users")).toBeVisible();
+  });
+
+  it("does not query the database when the guard redirects or answers 404", async () => {
+    count.mockReset();
+    vi.mocked(requireRole).mockRejectedValue(new Error("redirect:/sign-in?returnTo=%2Fbackend"));
+    await expect(Dashboard()).rejects.toThrow("redirect:/sign-in?returnTo=%2Fbackend");
+    expect(count).not.toHaveBeenCalled();
   });
 
   it.each([new Error("Database offline"), "Database offline"])("renders database failure: %s", async (failure) => {
@@ -69,10 +143,17 @@ describe("page composition", () => {
 const user = { id: "user-1", name: "Ada", email: "ada@example.com", createdAt: "2026-10-14T12:00:00.000Z" };
 
 describe("users panel", () => {
+  it("does not render the users page when the guard redirects or answers 404", async () => {
+    vi.mocked(requireRole).mockRejectedValue(new Error("notFound"));
+    await expect(UsersPage()).rejects.toThrow("notFound");
+    expect(apiCall).not.toHaveBeenCalled();
+  });
+
   it("renders loading, the empty list, and the create form on the users page", async () => {
     let resolve!: (result: ApiResult<typeof user[]>) => void;
     vi.mocked(apiCall).mockImplementationOnce(() => new Promise((done) => { resolve = done; }));
-    render(<UsersPage />);
+    render(await UsersPage());
+    expect(requireRole).toHaveBeenCalledWith("operator", { returnTo: "/backend/users" });
     expect(screen.getByRole("heading", { name: "Users" })).toBeVisible();
     expect(screen.getByRole("status")).toHaveTextContent("Loading");
     await act(async () => { resolve({ ok: true, data: [] }); });
@@ -138,5 +219,46 @@ describe("users panel", () => {
     expect(screen.getByRole("cell", { name: "ada@example.com" })).toBeVisible();
     expect(screen.queryByText("No users yet")).not.toBeInTheDocument();
     expect(screen.queryByText("Stale failure")).not.toBeInTheDocument();
+  });
+
+  const expired = { ok: false, error: { code: "unauthorized", message: "Authentication required" } } satisfies ApiResult<never>;
+  const SIGN_IN = "/sign-in?error=session_expired&returnTo=%2Fbackend%2Fusers";
+
+  it("on a 401 list load fully navigates to sign-in with the session-expired banner (SM-AC2)", async () => {
+    vi.mocked(apiCall).mockResolvedValueOnce(expired);
+    render(<UsersPanel />);
+    await waitFor(() => expect(navigateFully).toHaveBeenCalledWith(SIGN_IN));
+    expect(navigateFully).toHaveBeenCalledOnce();
+    // The page stays as it was until the browser leaves; no error flashes.
+    expect(screen.getByRole("status")).toHaveTextContent("Loading");
+    expect(screen.queryByText("Authentication required")).not.toBeInTheDocument();
+  });
+
+  it("on a 401 create discards the input and fully navigates to sign-in (SM-AC2)", async () => {
+    vi.mocked(apiCall).mockResolvedValueOnce({ ok: true, data: [] });
+    vi.mocked(apiCall).mockResolvedValueOnce(expired);
+    render(<UsersPanel />);
+    await screen.findByText("No users yet");
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Ada" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create user" }));
+    await waitFor(() => expect(navigateFully).toHaveBeenCalledWith(SIGN_IN));
+    expect(navigateFully).toHaveBeenCalledOnce();
+    expect(screen.queryByText("Authentication required")).not.toBeInTheDocument();
+    // No reload follows: only the initial GET and the POST were sent.
+    expect(apiCall).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows a 403 (operator revoked) as an error without navigating, on load and on create", async () => {
+    const forbidden = { ok: false, error: { code: "forbidden", message: "You do not have access" } } satisfies ApiResult<never>;
+    vi.mocked(apiCall).mockResolvedValueOnce(forbidden);
+    vi.mocked(apiCall).mockResolvedValueOnce(forbidden);
+    render(<UsersPanel />);
+    expect(await screen.findAllByText("You do not have access")).toHaveLength(1);
+    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Ada" } });
+    fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ada@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Create user" }));
+    await waitFor(() => expect(screen.getAllByText("You do not have access")).toHaveLength(2));
+    expect(navigateFully).not.toHaveBeenCalled();
   });
 });

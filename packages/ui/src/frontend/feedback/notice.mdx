@@ -26,6 +26,7 @@ next.
 | *Check your inbox at ada@example.com* (24-hour expiry) | `success` | `/sign-up/check-email` | E01 UI/UX |
 | *GitHub sign-in failed. Try again or sign in with email.* | `error` | `/sign-in?error=github_failed` | E01 edge cases |
 | *GitHub sign-in was cancelled. Try again* | `info` | `/sign-in?error=github_cancelled` | E01 UI/UX |
+| *Your session expired. Sign in again.* | `info` | `/sign-in?error=session_expired` | E01 SM-AC2 |
 | A form failure without a field (*Email or password is incorrect*) | `error` | public forms, through `SchemaForm` | E01 sign-in |
 | *Not taking bookings yet* | `info` | `/mentors/[id]` | E02 MD4 (stage 3) |
 

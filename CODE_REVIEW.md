@@ -38,8 +38,9 @@ Review in this order, and don't let a later category hide an earlier one:
 - Services return plain DTOs, never entities. Client components import DTO types with `import type`.
 - Client code reaches `/api/*` only through `apiCall` / `apiCallOrThrow`. A raw `fetch('/api/…')` is a finding.
 - Loading, error and empty states render through `LoadingMessage`, `ErrorMessage` and `EmptyState`.
-- If the envelope types or `CSRF_HEADER` change in `core`, the twin declaration in `packages/ui/src/backend/api/types.ts` must change in the same PR (and the reverse).
-- Until the auth concept lands, routes are unauthenticated (`TODO(auth)` in `api/users/route.ts`). A new route that exposes user data or a write path is flagged so it isn't forgotten when `requireSession` arrives.
+- If the envelope types or `CSRF_HEADER` change in `core`, the twin declaration in `packages/ui/src/api/types.ts` must change in the same PR (and the reverse).
+- Every `apiHandler`, `makeCrudRoute` and `navigationHandler` call states its `access` rule (`"public" | "optional" | "user" | { role }`, platform PD3). A route that exposes user data or a write path under `public`/`optional` without a reason in the spec is a **blocker**. Authorization never happens in `src/proxy.ts`, which only renews cookies.
+- Errors are detected with `isAppError()`, never `instanceof AppError` (Next.js may load `@devmentor/core` once per bundle).
 
 ### Dependency injection
 

@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import type { ApiResult } from "../api/types";
+import type { ApiResult } from "../../api/types";
 import { CrudForm } from "./CrudForm";
 
 const schema = z.object({ name: z.string().min(1, "Name is required"), email: z.email("Email is invalid") });
@@ -187,5 +187,16 @@ describe("CrudForm", () => {
     fireEvent.blur(email);
     expect(email).not.toHaveAttribute("aria-invalid");
     expect(email).not.toHaveAttribute("aria-describedby");
+  });
+
+  it("keeps the saved values after success when resetOnSuccess is false (/account)", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(success);
+    const onSuccess = vi.fn();
+    render(<CrudForm schema={schema} fields={fields} initialValues={{ name: "Original" }} onSubmit={onSubmit} onSuccess={onSuccess} resetOnSuccess={false} />);
+    fill();
+    submit();
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledOnce());
+    expect(screen.getByLabelText("Name")).toHaveValue("Ada");
+    expect(screen.getByLabelText("Email")).toHaveValue("ada@example.com");
   });
 });

@@ -62,7 +62,7 @@ export const States: Story = {
           state: "With action focused",
           note: "frozen preview",
           children: (
-            <Notice variant="error" title="We couldn't send the email — try again">
+            <Notice variant="error" title="We couldn't send the email. Please try again later.">
               <LinkButton href="/sign-in" variant="link" data-preview-state="focus-visible">Sign in</LinkButton>
             </Notice>
           ),

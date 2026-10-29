@@ -616,3 +616,40 @@ the code disagree, the code and `AGENTS.md` win. Deviations:
     their first feature (per this spec's own rules).
   - Step 8 (`docs/product-scope.md`): that file is in the external training
     pack, not this repo.
+
+## Corrections (2026-10-17)
+
+From the accounts spec (`.ai/specs/implemented/2026-10-17-accounts-and-roles.md`, AD2).
+Where the sections above disagree with these bullets, these bullets win.
+
+- DB sessions replace "JWT HS256 24h", for the reason given in AD2 of the accounts spec (roles are read live from the DB on every request, so no role change waits for a token to expire).
+- No session signing secret is needed.
+- The "JWT secret env" note is superseded.
+- `requireSession(req)` in every route is replaced by PD3's required `access`
+  option.
+- Minimum password length 15 (AD6).
+- 30-day inactivity expiry (DB write at most hourly) and live role changes
+  with no fresh sign-in.
+- Local common-password blocklist and code-only rollback with retained
+  additive schema.
+
+## Corrections (2026-10-28)
+
+From accounts Phase 2 (`.ai/specs/implemented/2026-10-17-accounts-and-roles.md`) and
+platform P10/P11. Where the sections above disagree, these bullets win.
+
+- **Ports live with their callers, not always in `core`.** A port whose
+  adapter needs app services or vendor SDKs lives in
+  `app/src/server/services/<concept>/` (`notifications/email-sender.port.ts`,
+  `auth/password-hasher.port.ts`, adapters under `adapters/`). A port whose
+  adapter lives in `db` goes in `core` (`core/src/security/rate-limiter.ts`,
+  adapter `db/src/rate-limiter.ts`), because `db` cannot import `app`.
+- **Rate limiting** is not an in-memory per-IP+email counter. It is the
+  Postgres-backed `RateLimiter` (`rate_limit_buckets`) with four rules per IP
+  or per address. Per-IP rules apply only behind a trusted edge
+  (`TRUST_PROXY`).
+- **`apiCall`** lives in `ui/src/api/apiCall.ts` (`@devmentor/ui/api/apiCall`),
+  not `ui/src/backend/api/`.
+- **Env validation** uses lazily validated `defineConfigSection` sections
+  (`core/src/config/env.ts`, `app/src/server/config.ts`), not one zod env
+  schema at boot.

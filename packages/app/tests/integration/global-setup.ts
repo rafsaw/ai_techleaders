@@ -1,5 +1,5 @@
 import { spawn, execFile, type ChildProcess } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { createWriteStream } from "node:fs";
 import { appendFile, access, mkdir } from "node:fs/promises";
 import { createServer } from "node:net";
@@ -12,6 +12,8 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from "@testconta
 import type { TestProject } from "vitest/node";
 
 import { integrationResultsDirectory, browserExecutable, repositoryRoot } from "./context";
+import { startGitHubStub, type GitHubStub } from "./github-stub";
+import { INTEGRATION_MAIL_FROM, startMailpit, type StartedMailpit } from "./mailpit";
 
 const execute = promisify(execFile);
 
@@ -50,11 +52,16 @@ async function waitForApplication(baseURL: string, server: ChildProcess, serverL
       throw new Error(`Production server exited before becoming ready (${server.exitCode ?? server.signalCode})`);
     }
     try {
-      // A healthy home page alone would miss database/migration failures.
-      const response = await fetch(`${baseURL}/api/users`, { signal: AbortSignal.timeout(2_000) });
-      const body: unknown = await response.json();
-      if (response.ok && body && typeof body === "object" && "ok" in body && body.ok === true && "data" in body && Array.isArray(body.data)) return;
-      lastError = new Error(`GET /api/users returned ${response.status}: ${JSON.stringify(body)}`);
+      // The public home page, with a well-formed but unknown session cookie:
+      // it makes the page look the token up, so a database or migration
+      // failure answers 500 instead of passing as a healthy static page.
+      const response = await fetch(baseURL, {
+        headers: { cookie: `devmentor_session=${randomBytes(32).toString("base64url")}` },
+        signal: AbortSignal.timeout(2_000),
+      });
+      const body = await response.text();
+      if (response.ok && body.includes("DevMentor")) return;
+      lastError = new Error(`GET / returned ${response.status}: ${body.slice(0, 500)}`);
     } catch (error) {
       lastError = error;
     }
@@ -71,6 +78,8 @@ export default async function setup(project: TestProject) {
   let postgresStream: Readable | undefined;
   let server: ChildProcess | undefined;
   let migrations: ChildProcess | undefined;
+  let githubStub: GitHubStub | undefined;
+  let mailpit: StartedMailpit | undefined;
   let browserReady = false;
   let cleanupPromise: Promise<void> | undefined;
   const serverLog = createWriteStream(join(artifactsDirectory, "server.log"), { flags: "w" });
@@ -92,11 +101,13 @@ export default async function setup(project: TestProject) {
     }));
     if (migrations) await safely("migrations", () => stopServer(migrations!));
     if (server) await safely("server", () => stopServer(server!));
+    if (githubStub) await safely("github-stub", () => githubStub!.close());
     serverLog.end();
     migrationsLog.end();
     postgresStream?.destroy();
     postgresLog.end();
     if (postgres) await safely("postgres", () => postgres!.stop({ timeout: 10_000 }));
+    if (mailpit) await safely("mailpit", () => mailpit!.container.stop({ timeout: 10_000 }));
   };
   const cleanup = () => {
     cleanupPromise ??= releaseResources().finally(() => {
@@ -125,8 +136,13 @@ export default async function setup(project: TestProject) {
       .withPassword(randomUUID())
       .withStartupTimeout(120_000)
       .start();
+    // Never inherit SMTP_URL either: mail goes only to this new Mailpit.
+    mailpit = await startMailpit();
     postgresStream = await postgres.logs();
     postgresStream.pipe(postgresLog, { end: false });
+    const baseURL = `http://127.0.0.1:${await availablePort()}`;
+    const githubClient = { clientId: "integration-client", clientSecret: randomUUID() };
+    githubStub = await startGitHubStub(githubClient);
     const environment: NodeJS.ProcessEnv = {
       ...process.env,
       NODE_ENV: "production",
@@ -135,6 +151,14 @@ export default async function setup(project: TestProject) {
       DB_POOL_MAX: "2",
       DB_DEBUG: "false",
       NEXT_TELEMETRY_DISABLED: "1",
+      // The test server's own origin: redirects, cookies and the OAuth callback.
+      APP_URL: baseURL,
+      GITHUB_CLIENT_ID: githubClient.clientId,
+      GITHUB_CLIENT_SECRET: githubClient.clientSecret,
+      GITHUB_OAUTH_URL: githubStub.url,
+      GITHUB_API_URL: githubStub.url,
+      SMTP_URL: mailpit.smtpURL,
+      MAIL_FROM: INTEGRATION_MAIL_FROM,
     };
     migrations = spawn("npm", ["run", "db:migrate"], {
       cwd: repositoryRoot,
@@ -153,7 +177,6 @@ export default async function setup(project: TestProject) {
         else reject(new Error(`Migrations failed (${code ?? signal}); see ${artifactsDirectory}/migrations.log`));
       });
     });
-    const baseURL = `http://127.0.0.1:${await availablePort()}`;
     server = spawn("npm", ["run", "start", "-w", "@devmentor/app", "--", "--hostname", "127.0.0.1", "--port", new URL(baseURL).port], {
       cwd: repositoryRoot,
       env: environment,
@@ -168,6 +191,9 @@ export default async function setup(project: TestProject) {
     if (spawnError) throw spawnError;
     project.provide("baseURL", baseURL);
     project.provide("databaseURL", environment.DATABASE_URL!);
+    project.provide("githubStubURL", githubStub.url);
+    project.provide("smtpURL", mailpit.smtpURL);
+    project.provide("mailpitURL", mailpit.apiURL);
     project.provide("browserSession", browserSession);
     project.provide("integrationArtifactsDirectory", artifactsDirectory);
     browserReady = true;
@@ -175,6 +201,6 @@ export default async function setup(project: TestProject) {
   } catch (error) {
     await appendFile(join(artifactsDirectory, "setup.log"), `${String(error)}\n`);
     await cleanup();
-    throw new Error("Integration setup failed. Build the app first and ensure Docker and agent-browser Chromium are available; see test-results/integration logs.", { cause: error });
+    throw new Error("Integration setup failed. Build the app first and ensure Docker (PostgreSQL and Mailpit images) and agent-browser Chromium are available; see test-results/integration logs.", { cause: error });
   }
 }

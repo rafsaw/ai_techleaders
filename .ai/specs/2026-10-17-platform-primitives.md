@@ -1,6 +1,6 @@
 # Platform primitives — the reusable backend and frontend layer for Now
 
-- Companion spec: [`2026-10-17-accounts-and-roles.md`](./2026-10-17-accounts-and-roles.md) (epic #28), the first consumer. It builds every primitive marked **E01** below, inside its own phases.
+- Companion spec: [`2026-10-17-accounts-and-roles.md`](./implemented/2026-10-17-accounts-and-roles.md) (epic #28), the first consumer. It builds every primitive marked **E01** below, inside its own phases.
 - Design authority: `.ai/specs/product-brief.md` (Now scope), `AGENTS.md` (stack and layer rules), `BACKWARD_COMPATIBILITY.md` (protected surfaces)
 - Status: **draft for review** (PO revisions, accounts design review and platform grilling 2026-10-18). P5 (`assertOwner`), P13 (onboarding half) and P17 have their final design contracts in the E02 spec [`2026-10-18-mentor-setup.md`](./2026-10-18-mentor-setup.md), section "Final primitive contracts"; E02 also builds P14's signature-only `webhookHandler` wrapper, while P14's inbox stays provisional for E04; the other E02–E05 candidates remain provisional
 
@@ -290,7 +290,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   returnToSchema  // same-origin relative page path only; ≤ 512 chars;
                   // unsafe or reserved destinations become "/" (rules below)
   ```
-- **Validation:** require a leading `/`, reject protocol-relative paths, schemes, backslashes and control characters, then parse against a trusted base and verify the resulting origin. The isomorphic schema needs no server config: it may use a fixed base for validation; P7 resolves the accepted path against `config.app().url`. Check the normalized, safely decoded pathname too, so dot segments and encoded forms cannot bypass the rules; reject malformed or ambiguous encodings. Reject `/api`, `/_next` and their descendants, including encoded/normalized equivalents. `/apiary` remains valid, and `/api/` inside a query value is not a pathname exclusion. Invalid destinations always fall back to `/`. The same validator applies to every internal success and error redirect.
+- **Validation:** require a leading `/`, reject protocol-relative paths, schemes, backslashes and control characters, then parse against a trusted base and verify the resulting origin. The isomorphic schema needs no server config: it may use a fixed base for validation; P7 resolves the accepted path against `config.app().url`. Check the normalized, safely decoded pathname too, so dot segments and encoded forms cannot bypass the rules; reject malformed or ambiguous encodings. Reject `/api`, `/_next` and their descendants, including encoded/normalized equivalents. `/apiary` remains valid, and `/api/` inside a query value is not a pathname exclusion. Invalid destinations always fall back to `/`. The same validator applies to every internal success and error redirect. *(E01 Phase 1 re-review R6:)* the 512-character limit applies to user-supplied input; a redirect target the server builds from an accepted `returnTo` (a new account's added `welcome=1`, or the `returnTo` re-encoded into `/sign-in?error=…&returnTo=…`) is checked by `parseInternalRedirect` with the same rules and a 2048-character bound, so a safe destination is never lost to `/`.
 - **Carried through:**
   - the sign-in and sign-up pages' query string
   - the OAuth state cookie (E01-S01)
@@ -309,7 +309,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   )  // GET only
   ```
 - **Behavior:**
-  - **Internal success:** `303` to `redirectTo`. The target is resolved against `config.app().url` and never against the `Host` header. It must pass `returnToSchema`.
+  - **Internal success:** `303` to `redirectTo`. The target is resolved against `config.app().url` and never against the `Host` header. It must pass the P6 rules (`parseInternalRedirect`: P6 with a 2048-character bound for server-built targets).
   - **External success:** `303` to `externalUrl`, only when its origin is in `externalOrigins` (e.g. `config.github().oauthUrl`, later the Stripe Connect origin). Any other origin is a bug: it is logged and redirected to `/error`.
   - **`AppError`:** redirect to `onError(error)`. The default is `/error?code=<code>`. Validate this destination through P6 and resolve against `config.app().url`, exactly as for internal success; invalid error destinations fall back to `/`.
   - **Anything else:** logged with a static route template and safe error summary, never raw URL/path/query values, then redirect to `/error?code=internal_error`.
@@ -326,7 +326,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   hashToken(token): string  // SHA-256 hex
   ```
 - **Rule:** only hashes are stored, and no column stores a URL or path that embeds a raw token. A `returnTo` that contains one travels in the link instead. Raw invitation tokens exist transiently in memory and in the delivered email/browser link; **CLI stdout, stderr and logs never contain tokens or token-bearing URLs**. There is no raw-token persistence or background send queue.
-- **Logging boundary:** handlers, page errors, Proxy and CLI use static route templates or command names and sanitized error summaries. Redact secret keys, cookies and nested `returnTo`; do not log raw request URLs or provider error messages that can embed them. Configure hosting/reverse-proxy access logs to omit or redact invitation path segments and confirmation queries. Token pages send `Referrer-Policy: no-referrer`, `Cache-Control: private, no-store` and `noindex`; metadata alone is not the log protection. Capture tests and diagnostics without copying token-bearing URLs into artifacts.
+- **Logging boundary:** handlers, page errors, Proxy and CLI use static route templates or command names and sanitized error summaries. Redact secret keys, cookies and nested `returnTo`; do not log raw request URLs or provider error messages that can embed them. Configure hosting/reverse-proxy access logs to omit or redact invitation path segments and confirmation queries. Token pages send `Referrer-Policy: no-referrer`, `Cache-Control: private, no-store` and `noindex`; metadata alone is not the log protection. A token page is any route whose address can carry a token, including one nested in a `returnTo` (the auth pages), and gets the rules by route, whatever its query, never by matching the query value (accounts review fix R9). The app-issued trailing-slash 308 that echoes a token page's address carries the same headers: Next sends no `headers()` rule with a redirect, so `skipTrailingSlashRedirect` is on and the Proxy issues that 308 itself with the token-page headers, on every path (accounts review fix R10). Next's unconditional repeated-slash/backslash 308 (`/sign-in//`, `/invite//<t>`, `/sign-in\`) runs before `headers()` and the Proxy and cannot carry headers; covering it is a hosting/edge responsibility and a production release condition (accounts known limitation R11). Capture tests and diagnostics without copying token-bearing URLs into artifacts.
 
 ### P9. Single-use token records (E01-S02; reused by E01-S03)
 
@@ -373,7 +373,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
 - **Contract:**
   ```ts
   interface RateLimiter { hit(key: string, rule: { limit: number; windowMs: number }): Promise<{ allowed: boolean; retryAfterMs: number }> }
-  clientIp(req, { trustProxy }): string | null  // one validated address from the configured, overwriting edge; else null
+  clientIp(req, { trustProxy }): string | null  // one validated address from the configured, overwriting edge, in canonical form (RFC 5952 IPv6; IPv4-mapped → IPv4); else null
   TooManyRequestsError  // new AppError: code "rate_limited", 429; apiHandler adds Retry-After
   ```
 - **Unknown IP:** callers **skip** per-IP rules when `clientIp` is `null`. They never pool every visitor into one bucket, which would let one attacker lock everyone out. Per-account rules always apply. `TRUST_PROXY` defaults to `false` and is added in accounts Phase 2.
@@ -456,6 +456,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
 - **Contract:**
   ```ts
   useSchemaForm({ schema, fields, initialValues, onSubmit, onSuccess, onCancel, resetOnSuccess = true })
+  // onSubmit(values, { signal }): signal aborts on unmount (added in accounts Phase 2; one-argument callbacks still work)
     → { values, setValue, fieldErrors, formError, isSubmitting, handleSubmit, handleKeyDown }
   ```
 - **Behavior:**
@@ -463,6 +464,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   - Server `fieldErrors` land on their fields. A non-field failure becomes `formError`.
   - Cmd/Ctrl+Enter submits; Escape cancels.
   - `onSuccess` receives the response `data`, so a sign-in form can navigate to `data.redirectTo`.
+  - One request at a time (a synchronous ref guard). *(Accounts Phase 2 manual test:)* with `lockAfterSuccess` (passed by F3 `SchemaForm`, whose forms all navigate on success) the form also stays pending after success until it unmounts, so a double click whose second click lands after a fast answer sends no second request. It unlocks when the page is restored from the back/forward cache (`pageshow` with `persisted`) or after `SUCCESS_LOCK_TIMEOUT_MS` (10 s), so a navigation that fails or never completes leaves no stuck form. `CrudForm` keeps the default (`false`) and unlocks after success, as before.
 - **Phase 1 account support:** add only the optional `resetOnSuccess` prop to the existing `CrudForm` (default `true`, today's behavior), so `/account` can keep the saved value. No hook extraction or public-form kit ships in Phase 1.
 - **Phase 2 `CrudForm` refactor:** extract the existing state/mapping into this hook when public email forms become its second skin. Preserve all existing props and tests; add first-invalid-field focus and cover cancellation, rejected submissions and form-level errors.
 
@@ -472,6 +474,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   - `forms/SchemaForm.tsx`
   - `forms/TextField.tsx`
   - `forms/SubmitButton.tsx`
+  - `forms/PasswordField.tsx` (Phase 2)
   - `feedback/Notice.tsx` (`info | success | error`, `role="status"`/`"alert"`)
   - `actions/LinkButton.tsx`
 - **Exports:** `./frontend/*`. Plain Tailwind utilities only.

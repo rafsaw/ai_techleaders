@@ -50,6 +50,7 @@ expired `info`, used `success`, invalid `error` (P-A8, proposal approved by Rafa
 | Invalid | *Invalid* |
 | Loading | *Pending* |
 | Error: wrong password (401) | *Wrong password* |
+| Error: the link stopped working meanwhile (404) | *Link stopped working* |
 | Long address, 320 px | *Long content, narrow* |
 | Empty, many, partial | not applicable: one link, one address |
 
@@ -60,10 +61,16 @@ expired `info`, used `success`, invalid `error` (P-A8, proposal approved by Rafa
 - The page never consumes the token on GET (AD7); only **Confirm** does.
 - The invalid state is `role="alert"`; expired and used are `role="status"`.
 - A wrong password keeps the link usable and shows the generic message.
+- When **Confirm** answers 404 (another tab confirmed, a newer link replaced it, or it expired
+  since the page opened), the form gives way to the server's reason and **Sign in**.
+- The page sets `referrer: "no-referrer"` (and a `Referrer-Policy` header), so the token in the
+  address never leaks to another site.
 
 ## 8. Content
 
-Copy from E01 Flow 2. Every state says why in one sentence and offers one action (E01 UI/UX).
+Copy from E01 Flow 2. Every state says why in one sentence and offers one action (E01 UI/UX). The
+invalid state reads *This link isn't valid. Sign in to continue.* (SM-AC6, wording accepted by the
+PO 2026-10-27).
 
 ## 9. Responsiveness
 
@@ -80,7 +87,7 @@ Copy from E01 Flow 2. Every state says why in one sentence and offers one action
 |---|---|---|
 | `state` | `{ status: "valid", email } \| { status: "expired" \| "used" \| "invalid" }` | from the token inspection |
 | `signInHref` | `string` | `/sign-in` with `returnTo` |
-| `confirm` | `{ schema, submit, onConfirmed }` | `submit` posts `{ token, password, returnTo }` |
+| `confirm` | `{ schema, submit, onConfirmed }` | `submit(values, { signal })` posts `{ token, password, returnTo }` |
 
 <Controls of={Stories.Playground} />
 
@@ -91,8 +98,8 @@ Copy from E01 Flow 2. Every state says why in one sentence and offers one action
   state={state}
   signInHref={`/sign-in?returnTo=${encodeURIComponent(returnTo)}`}
   confirm={{
-    schema: z.object({ password: z.string().min(1, "Enter your password") }),
-    submit: ({ password }) => apiCall("/api/auth/confirm-email", { method: "POST", body: { token, password, returnTo } }),
+    schema: emailConfirmSchema.pick({ password: true }),
+    submit: ({ password }, { signal }) => apiCall("/api/auth/confirm-email", { method: "POST", body: { token, password, returnTo }, signal }),
     onConfirmed: (to) => window.location.assign(to),
   }}
 />

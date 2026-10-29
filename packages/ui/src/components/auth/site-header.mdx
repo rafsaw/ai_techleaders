@@ -35,7 +35,7 @@ every page.
 |---|---|---|
 | *DevMentor* | always | link to `/` |
 | **Sign in** | signed out | `returnTo` when the page has one |
-| **Mentor setup** | role `mentor` | `/mentor` |
+| **Mentor setup** | role `mentor` **and** a `mentorSetupHref` prop | the given href (`/mentor` from E02 Phase 1); the E01 app passes none, so E01 never links to an unshipped page |
 | **Backend** | role `operator` | `/backend` |
 | Display name | signed in | link to `/account`; cut with an ellipsis after 12 rem, full name in `title` (P-A4, proposal approved by Rafał; temporary until the account menu, see What is missing: Menu) |
 | **Sign out** | signed in | POST, then full navigation (E01 F5) |
@@ -52,6 +52,7 @@ By account: signed out, mentee, mentor, operator (and combinations).
 | Signed in (mentee) | *Playground* |
 | Signed out | *Signed out* |
 | Many: mentor and operator | *Mentor and operator* |
+| Mentor before E02 (no `mentorSetupHref`) | *Mentor without mentor area* |
 | Loading: signing out | *Signing out* |
 | Error: sign-out failed | *Sign out failed* |
 | Long name, 320 px | *Long content, narrow* |
@@ -72,7 +73,7 @@ By account: signed out, mentee, mentor, operator (and combinations).
 
 ## 8. Content
 
-Labels from E01: *Sign in*, *Sign out*, *Backend*; *Mentor setup* from E02.
+Labels from E01: *Sign in*, *Sign out*, *Backend*; *Mentor setup* from E02 (opt-in through `mentorSetupHref`).
 
 ## 9. Responsiveness
 
@@ -91,6 +92,7 @@ Labels from E01: *Sign in*, *Sign out*, *Backend*; *Mentor setup* from E02.
 | `signInHref` | `string` | default `/sign-in` |
 | `signOut` | `() => Promise<ApiResult<{ redirectTo }>>` | `apiCall` |
 | `onSignedOut` | `(redirectTo) => void` | full navigation |
+| `mentorSetupHref` | `string` (optional) | **Mentor setup** for mentors; omit while the mentor area does not exist (E01) |
 | `linkComponent` | component or `"a"` | Next's `Link` in the app |
 
 <Controls of={Stories.Playground} />
@@ -111,6 +113,7 @@ Labels from E01: *Sign in*, *Sign out*, *Backend*; *Mentor setup* from E02.
 | Do | Don't | Why |
 |---|---|---|
 | Show **Backend** only to operators | show it and answer 404 | E01: role-dependent header |
+| Pass `mentorSetupHref` only once `/mentor` ships (E02 Phase 1) | link mentors to a page that 404s | E01 never navigates to an unshipped mentor page |
 | Sign out with POST | a GET link to sign out | prefetch would sign people out |
 
 ## 13. Related

@@ -3,7 +3,7 @@
 import type { ChangeEvent, ReactNode } from "react";
 import type { z } from "zod";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { useSchemaForm, type FieldName } from "@devmentor/ui/forms/useSchemaForm";
 import { Notice } from "@devmentor/ui/frontend/feedback/Notice";
 import { PasswordField } from "@devmentor/ui/frontend/forms/PasswordField";
@@ -29,8 +29,8 @@ export interface SchemaFormProps<TSchema extends z.ZodType, TData> {
   submitLabel: string;
   /** -ing form (P-C4): "Signing in…". */
   pendingLabel: string;
-  /** Usually an `apiCall`; failure envelopes are shown on the form. */
-  onSubmit: (values: z.output<TSchema>) => Promise<ApiResult<TData>>;
+  /** Usually an `apiCall`; failure envelopes are shown on the form. `signal` aborts on unmount. */
+  onSubmit: (values: z.output<TSchema>, options: { signal: AbortSignal }) => Promise<ApiResult<TData>>;
   /** Receives the response data, e.g. to navigate to `data.redirectTo`. */
   onSuccess?: (data: TData) => void;
   /** Default `false`: a public form navigates on success, so the values stay while it does. */
@@ -42,7 +42,8 @@ export interface SchemaFormProps<TSchema extends z.ZodType, TData> {
 /**
  * Public, schema-driven form (F3): one column, labels always visible, validation when a field is
  * left and on submit, focus on the first error, values kept after a failure, one submit at a
- * time, success only after the server answers. Docs: schema-form.mdx.
+ * time, success only after the server answers, and still pending after success until the page
+ * navigates away. Docs: schema-form.mdx.
  */
 export function SchemaForm<TSchema extends z.ZodType, TData = unknown>({
   schema,
@@ -56,7 +57,8 @@ export function SchemaForm<TSchema extends z.ZodType, TData = unknown>({
   children,
 }: SchemaFormProps<TSchema, TData>) {
   const { values, setValue, fieldErrors, formError, isSubmitting, handleBlur, handleSubmit, handleKeyDown } =
-    useSchemaForm({ schema, fields, initialValues, onSubmit, onSuccess, resetOnSuccess });
+    // A public form navigates on success: it stays pending until the next page replaces it.
+    useSchemaForm({ schema, fields, initialValues, onSubmit, onSuccess, resetOnSuccess, lockAfterSuccess: true });
 
   return (
     <form

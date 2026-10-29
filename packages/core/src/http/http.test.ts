@@ -3,14 +3,14 @@ import { z } from "zod";
 
 import {
   AppError, asValue, ConflictError, createApiHandler, createAppContainer,
-  createMakeCrudRoute, CSRF_HEADER, ForbiddenError, NotFoundError, parseInput,
-  readJsonBody, UnauthorizedError, ValidationError,
+  createMakeCrudRoute, CSRF_HEADER, ForbiddenError, isAppError, NotFoundError, parseInput,
+  readJsonBody, ResponseCookies, TooManyRequestsError, UnauthorizedError, ValidationError,
 } from "../index";
 
 function setup() {
   const container = createAppContainer();
   const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
-  container.register({ logger: asValue(logger) });
+  container.register({ logger: asValue(logger), principalResolver: asValue({ resolve: async () => null }) });
   return { container, logger, apiHandler: createApiHandler(container) };
 }
 
@@ -39,6 +39,33 @@ describe("domain errors", () => {
       message: "Invalid input", code: "validation_error", status: 400, fieldErrors: { name: ["required"] },
     });
     expect(new ValidationError({}, "custom", { cause })).toMatchObject({ message: "custom", cause });
+    expect(new TooManyRequestsError()).toMatchObject({
+      message: "Too many attempts. Try again later", code: "rate_limited", status: 429,
+      name: "TooManyRequestsError", retryAfterMs: undefined,
+    });
+    expect(new TooManyRequestsError(1500, "custom", { cause })).toMatchObject({ retryAfterMs: 1500, message: "custom", cause });
+    expect(isAppError(new TooManyRequestsError())).toBe(true);
+  });
+});
+
+/** A fresh copy of the errors module, as another Next.js bundle would load it. */
+async function foreignErrors() {
+  vi.resetModules();
+  const copy = await import("./errors");
+  expect(copy.AppError).not.toBe(AppError);
+  return copy;
+}
+
+describe("AppError across module copies", () => {
+  it("is recognized by its brand, not by class identity", async () => {
+    const copy = await foreignErrors();
+    const foreign = new copy.ConflictError("Taken");
+    expect(foreign instanceof AppError).toBe(false);
+    expect(isAppError(foreign)).toBe(true);
+    expect(isAppError(new ConflictError())).toBe(true);
+    for (const value of [new Error("Conflict"), { code: "conflict", status: 409 }, "conflict", null, undefined]) {
+      expect(isAppError(value)).toBe(false);
+    }
   });
 });
 
@@ -73,7 +100,7 @@ describe("input validation", () => {
 describe("API envelope", () => {
   it.each(["GET", "HEAD", "OPTIONS"])("permits safe %s requests without CSRF", async (method) => {
     const { apiHandler } = setup();
-    const response = await apiHandler(async () => ({ accepted: true }))(request(method, undefined, undefined, false), ctx);
+    const response = await apiHandler(async () => ({ accepted: true }), { access: "public" })(request(method, undefined, undefined, false), ctx);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true, data: { accepted: true } });
   });
@@ -86,7 +113,7 @@ describe("API envelope", () => {
       expect(cradle.logger).toBe(logger);
       return "created";
     });
-    const wrapped = apiHandler(handler, { status: 201 });
+    const wrapped = apiHandler(handler, { access: "public", status: 201 });
     const response = await wrapped(request("POST"), ctx);
     await wrapped(request("POST"), ctx);
     expect(scopeSpy).toHaveBeenCalledTimes(2);
@@ -97,14 +124,14 @@ describe("API envelope", () => {
 
   it.each([undefined, null])("normalizes nullish data %s", async (data) => {
     const { apiHandler } = setup();
-    const response = await apiHandler(async () => data, {})(request(), ctx);
+    const response = await apiHandler(async () => data, { access: "public" })(request(), ctx);
     expect(await response.json()).toEqual({ ok: true, data: null });
   });
 
   it("rejects missing CSRF before executing state-changing handlers", async () => {
     const { apiHandler } = setup();
     const handler = vi.fn();
-    const response = await apiHandler(handler)(request("POST", undefined, undefined, false), ctx);
+    const response = await apiHandler(handler, { access: "public" })(request("POST", undefined, undefined, false), ctx);
     expect(handler).not.toHaveBeenCalled();
     expect(response.status).toBe(403);
     expect(await response.json()).toEqual({ ok: false, error: { code: "forbidden", message: "Missing CSRF header" } });
@@ -113,7 +140,7 @@ describe("API envelope", () => {
   it.each([new UnauthorizedError(), new ForbiddenError(), new NotFoundError(), new ConflictError(),
     new ValidationError({ name: ["required"] })])("maps domain error $code", async (error) => {
     const { apiHandler, logger } = setup();
-    const response = await apiHandler(async () => { throw error; })(request(), ctx);
+    const response = await apiHandler(async () => { throw error; }, { access: "public" })(request(), ctx);
     expect(response.status).toBe(error.status);
     expect(await response.json()).toEqual({ ok: false, error: {
       code: error.code, message: error.message,
@@ -122,14 +149,75 @@ describe("API envelope", () => {
     expect(logger.error).not.toHaveBeenCalled();
   });
 
+  it("maps a domain error thrown by another copy of core, keeping field errors", async () => {
+    const copy = await foreignErrors();
+    const { apiHandler, logger } = setup();
+    const conflict = await apiHandler(async () => { throw new copy.ConflictError("Taken"); }, { access: "public" })(request(), ctx);
+    expect(conflict.status).toBe(409);
+    expect(await conflict.json()).toEqual({ ok: false, error: { code: "conflict", message: "Taken" } });
+    const invalid = await apiHandler(async () => { throw new copy.ValidationError({ email: ["taken"] }); },
+      { access: "public" })(request(), ctx);
+    expect(invalid.status).toBe(400);
+    expect(await invalid.json()).toEqual({ ok: false,
+      error: { code: "validation_error", message: "Invalid input", fieldErrors: { email: ["taken"] } } });
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [1, "1"], [1000, "1"], [1001, "2"], [14_999, "15"], [0, "1"], [-5, "1"],
+  ])("answers 429 for %d ms with Retry-After %s and the usual envelope", async (retryAfterMs, seconds) => {
+    const { apiHandler, logger } = setup();
+    const response = await apiHandler(async () => { throw new TooManyRequestsError(retryAfterMs); },
+      { access: "public" })(request("POST"), ctx);
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe(seconds);
+    expect(await response.json()).toEqual({ ok: false,
+      error: { code: "rate_limited", message: "Too many attempts. Try again later" } });
+    expect(logger.error).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, Number.NaN, Number.POSITIVE_INFINITY])("omits Retry-After when the wait is %s", async (retryAfterMs) => {
+    const { apiHandler } = setup();
+    const response = await apiHandler(async () => { throw new TooManyRequestsError(retryAfterMs); },
+      { access: "public" })(request(), ctx);
+    expect(response.status).toBe(429);
+    expect(response.headers.has("retry-after")).toBe(false);
+  });
+
+  it("sets Retry-After only on 429s, also for an error from another copy of core", async () => {
+    const copy = await foreignErrors();
+    const { apiHandler } = setup();
+    const limited = await apiHandler(async () => { throw new copy.TooManyRequestsError(2500); }, { access: "public" })(request(), ctx);
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get("retry-after")).toBe("3");
+    const other = Object.assign(new ConflictError(), { retryAfterMs: 2500 });
+    const conflict = await apiHandler(async () => { throw other; }, { access: "public" })(request(), ctx);
+    expect(conflict.status).toBe(409);
+    expect(conflict.headers.has("retry-after")).toBe(false);
+  });
+
+  it("keeps session cookies on a 429", async () => {
+    const container = createAppContainer();
+    container.register({
+      logger: asValue({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+      principalResolver: asValue({ resolve: async (_req: Request, cookies: ResponseCookies) => {
+        cookies.set("s", "v", { secure: true });
+        return null;
+      } }),
+    });
+    const response = await createApiHandler(container)(async () => { throw new TooManyRequestsError(1000); },
+      { access: "public" })(request(), ctx);
+    expect(response.headers.get("retry-after")).toBe("1");
+    expect(response.headers.get("set-cookie")).toContain("s=v");
+  });
+
   it("logs unexpected failures without disclosing their details", async () => {
     const { apiHandler, logger } = setup();
     const error = new Error("private details");
-    const req = request();
-    const response = await apiHandler(async () => { throw error; })(req, ctx);
+    const response = await apiHandler(async () => { throw error; }, { access: "public" })(request(), ctx);
     expect(response.status).toBe(500);
     expect(await response.json()).toEqual({ ok: false, error: { code: "internal_error", message: "Something went wrong" } });
-    expect(logger.error).toHaveBeenCalledWith("Unhandled API error", { method: "GET", url: req.url, error });
+    expect(logger.error).toHaveBeenCalledWith("Unhandled API error", { method: "GET", route: "api", error: { name: "Error" } });
   });
 });
 
@@ -139,7 +227,7 @@ describe("CRUD handlers", () => {
     const service = { list: vi.fn().mockResolvedValue([]), create: vi.fn().mockResolvedValue({ id: "new" }),
       update: vi.fn().mockResolvedValue({ id: "updated" }), delete: vi.fn().mockResolvedValue(undefined) };
     const schema = z.object({ name: z.string().trim().min(1) });
-    const routes = createMakeCrudRoute(apiHandler)({ methods: ["GET", "POST", "PUT", "DELETE"],
+    const routes = createMakeCrudRoute(apiHandler)({ methods: ["GET", "POST", "PUT", "DELETE"], access: "public",
       service: () => service, createSchema: schema, updateSchema: schema });
     return { routes, service };
   }
@@ -171,7 +259,7 @@ describe("CRUD handlers", () => {
 
   it("only exposes requested methods and maps service failures", async () => {
     const { apiHandler } = setup();
-    const routes = createMakeCrudRoute(apiHandler)({ methods: ["GET"], service: () => ({
+    const routes = createMakeCrudRoute(apiHandler)({ methods: ["GET"], access: "public", service: () => ({
       list: async () => { throw new NotFoundError("gone"); },
     }) });
     expect(Object.keys(routes)).toEqual(["GET"]);

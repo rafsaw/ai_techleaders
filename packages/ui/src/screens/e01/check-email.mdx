@@ -16,14 +16,14 @@ Telling the person where the confirmation link went and how long it works.
 
 ## Built from
 
-**Site header**, **Notice**, **Link button**.
+**Site header**, **Check email notice**, **Link button**.
 
 ## State map
 
 | Screen state | Story | Source |
 |---|---|---|
 | Sent: Check your inbox at …, 24-hour expiry | *Sent* | E01 UI/UX |
-| Not sent (SMTP failed or the per-address limit is used up) | *Not sent* | E01 Flow 2, edge cases |
+| Not sent (SMTP failed or the per-address limit is used up), back to sign-up | *Not sent* | E01 Flow 2, SM-AC3 |
 | Long address, 320 px | *Narrow* | P-L1 |
 
 Loading, empty, many: not applicable (one message).
@@ -32,4 +32,7 @@ Loading, empty, many: not applicable (one message).
 
 ## Notes
 
-The not-sent body *Sign in with your email and password to resend the confirmation.* and **Sign in** as the main action there are P-SCR4 (proposal approved by Rafał); the spec says only that resend goes through sign-in.
+The not-sent variant follows SM-AC3 (approved 2026-10-27): *We couldn't send the email. Please try again
+later.*, no cause, no countdown, no retry control, and **Back to sign-up** (it keeps `returnTo`).
+This supersedes P-SCR4 (a resend body and **Sign in** as the main action). Resend through sign-in
+is unchanged. Without `email` in the address the page redirects to `/sign-up` (SM-AC5).

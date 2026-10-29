@@ -14,8 +14,13 @@ database, create the env file and apply migrations; see
 [Local setup](#local-setup) below.
 
 - `/` is the public frontend (Tailwind).
-- `/backend` is the admin area (shadcn/ui). It also shows the database
-  connection status.
+- `/sign-in` signs in with GitHub or with email and password; `/sign-up`
+  creates an email account, confirmed through an emailed link (see
+  [Email sign-up locally](#email-sign-up-locally)); `/account` is the
+  signed-in area.
+- `/backend` is the admin area (shadcn/ui), open only to accounts holding
+  the `operator` role (see [Operator role](#operator-role)). It also shows
+  the database connection status.
 
 ## Local setup
 
@@ -30,7 +35,7 @@ prints one line per step:
 
 - **Prerequisites:** Node ≥ 22.17, plus Docker and the Compose plugin.
 - **Dependencies:** `npm install`.
-- **PostgreSQL:** `docker compose up -d --wait`.
+- **PostgreSQL and Mailpit:** `docker compose up -d --wait`.
 - **Env:** copies `packages/app/.env.example` to `packages/app/.env`.
 - **Migrations:** `npm run db:migrate`.
 
@@ -79,6 +84,13 @@ password and database `devmentor` on port 5432. If port 5432 is taken, change
 the host port mapping (e.g. `"5433:5432"`) and use the same port in
 `DATABASE_URL`.
 
+The same command starts **Mailpit**, a local SMTP sink: the app sends email to
+`smtp://localhost:1025`, and every message lands in the inbox at
+<http://localhost:8025> instead of a real mailbox. No external account is
+needed. Confirmation and "you already have an account" emails appear there
+within a second of the sign-up; open one and follow its link (it points at
+`APP_URL`, so the app must run on that origin).
+
 #### 4. Configure env
 
 Create `packages/app/.env` (not in the repo root: the MikroORM CLI in
@@ -96,8 +108,36 @@ cp packages/app/.env.example packages/app/.env
 ```
 
 The file is git-ignored and must never be committed. `DATABASE_URL` is the
-only required variable; `DB_HOST`/`DB_USER`-style variables are not
+only variable needed to boot; `DB_HOST`/`DB_USER`-style variables are not
 supported. Optional: `DB_POOL_MIN`, `DB_POOL_MAX`, `DB_DEBUG`.
+
+Other settings are grouped into sections (`packages/app/src/server/config.ts`)
+that are validated lazily: a section is read the first time a feature uses it,
+so the app builds and boots without it, and only that feature fails, logging
+a `ConfigError` that names the missing or invalid variables (never their
+values).
+
+| Variable | Section | Required | Purpose |
+| -------- | ------- | -------- | ------- |
+| `APP_URL` | `app` | for absolute links and redirects | Public origin, e.g. `http://localhost:3000`; https in production |
+| `TRUST_PROXY` | `app` | no (default `false`) | `true` only behind an edge that replaces `X-Forwarded-For` with one validated client address and blocks direct origin access; enables per-IP rate limits (see [Trusted edge](#trusted-edge-and-trust_proxy)). Any value other than `true`/`false` is a `ConfigError` |
+| `GITHUB_CLIENT_ID` | `github` | for GitHub sign-in | OAuth App client id |
+| `GITHUB_CLIENT_SECRET` | `github` | for GitHub sign-in | OAuth App client secret |
+| `GITHUB_OAUTH_URL` | `github` | no (default `https://github.com`) | OAuth endpoint override for test stubs |
+| `GITHUB_API_URL` | `github` | no (default `https://api.github.com`) | API endpoint override for test stubs |
+| `SMTP_URL` | `email` | for sending email | `smtp://[user:pass@]host:port` (STARTTLS when offered) or `smtps://…` (TLS); local Mailpit: `smtp://localhost:1025` |
+| `MAIL_FROM` | `email` | for sending email | Sender, e.g. `DevMentor <no-reply@example.com>` (quote it in `.env` files) |
+
+The `.env.example` values (`SMTP_URL=smtp://localhost:1025`, a localhost
+`MAIL_FROM`, `TRUST_PROXY=false`) work with the Compose Mailpit as they are.
+Without `SMTP_URL`/`MAIL_FROM` the app still boots; sign-up and resend then
+log a `ConfigError` and fail with a 500 (the account and its link are kept).
+
+**GitHub OAuth App for local sign-in.** In GitHub, open Settings → Developer
+settings → OAuth Apps → New OAuth App. Set the homepage URL to
+`http://localhost:3000` and the authorization callback URL to
+`http://localhost:3000/api/auth/github/callback`, then copy the client id and
+a generated client secret into `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
 
 Both loaders read files from `packages/app`. Existing `process.env` values
 win over all files. Files are loaded in the order below; for each variable,
@@ -155,6 +195,45 @@ npm run dev
 Open http://localhost:3000. Backend pages are under `/backend`; the users
 panel is at `/backend/users`.
 
+### Release email test
+
+A green test suite proves only that an SMTP server **accepted** the message
+(that is all `EmailSender` reports, platform P10). Before a release that
+sends email, check delivery to a real inbox against the production
+provider (platform PD1):
+
+1. Configure the production `SMTP_URL` and `MAIL_FROM` (a sender domain the
+   provider has verified, with SPF/DKIM in place).
+2. Sign up on the release build with a real mailbox you control, ideally one
+   each at two large providers.
+3. Confirm that the message arrives in the inbox (not spam), the sender is
+   right, and the link opens `/confirm-email` on the production `APP_URL` and
+   confirms the account.
+4. Record the result (date, provider, mailbox domains, pass/fail) in the
+   release notes, without the link or its token: tokens never go into
+   evidence or logs.
+
+### Trusted edge and `TRUST_PROXY`
+
+Next.js route handlers do not see the socket address, so the client IP comes
+only from `X-Forwarded-For`, and only when `TRUST_PROXY=true`. With the
+default `false`, the per-IP rate limits (sign-in/confirm 10 per 15 minutes,
+sign-up 5 per hour) are **skipped**; the per-address limits still apply.
+
+Set `TRUST_PROXY=true` only when both hold:
+
+- the edge (load balancer, CDN or reverse proxy) **overwrites** any inbound
+  `X-Forwarded-For` with exactly one address, the client it validated, and
+  never appends to a client-supplied value;
+- the app's origin cannot be reached except through that edge (private
+  network, firewall or an origin secret), so nobody can send their own
+  header straight to the app.
+
+The app treats a list, a port, brackets, a zone id or anything that is not a
+single IP address as unknown, which again skips the per-IP rules. If the
+chosen hosting cannot give this contract, keep `TRUST_PROXY=false` and add a
+trusted-IP adapter through a spec instead.
+
 ### Daily workflow
 
 Make sure Docker is running, then:
@@ -166,6 +245,189 @@ npm run dev
 
 Stop the database with `docker compose down`. Data is kept in the `pgdata`
 volume.
+
+### Operator role
+
+Every account gets the `mentee` role on sign-up. The `operator` role, which
+opens `/backend` and `/api/users`, is granted and revoked only from the
+command line, against the database in `DATABASE_URL` (env is loaded from
+`packages/app` like the app does). The account must already exist, so sign
+in once with GitHub first:
+
+```bash
+npm run operator -- role grant  --email you@example.com --role operator
+npm run operator -- role revoke --email you@example.com --role operator
+```
+
+- The change is live on the account's **next request**: roles are read from
+  the database on every request, so there is no need to sign out or in, and
+  revoking leaves the session signed in (it just loses `/backend`).
+- Both commands are idempotent ("already holds operator" / "does not hold
+  operator; nothing changed").
+- Only `--role operator` is accepted; `mentor` comes only from an
+  invitation.
+- The command prints the database host first. With `NODE_ENV=production`
+  it refuses to run unless you add `--yes`.
+- Exit codes: `0` success, `1` refused or failed (e.g. no account with that
+  email), `2` usage error. `npm run operator -- help` lists the commands.
+
+### Mentor invitations (operator runbook)
+
+The `mentor` role comes only from an email-bound invitation, managed from the
+same CLI (there is no admin page and no open mentor registration). The
+invitee opens the emailed link at `/invite/<token>` and accepts it while
+signed in to the DevMentor account with that **verified** email address.
+
+```bash
+npm run operator -- invite create --email ada@example.com
+npm run operator -- invite resend --email ada@example.com
+npm run operator -- invite revoke --email ada@example.com
+```
+
+Like `role`, every command uses the database in `DATABASE_URL`, prints
+`Database: <host>` first, refuses to run with `NODE_ENV=production` unless
+you add `--yes`, and exits `0` on success, `1` when refused or failed, `2` on
+a usage error (an unknown flag). `--email` is the only flag: it is trimmed
+and lowercased, and the output shows the normalized address, so check it.
+`--note` and `--expires-in-days` are refused (exit `1`); invitations carry no
+note and always expire **14 days** after `create` or `resend`.
+
+**1. Before `create`, confirm the engineer's sign-in address.** Only an
+account with exactly that verified email can accept, and the address of an
+existing account never changes. Ask which address they sign in with:
+
+- They already have an account: the email shown on their `/account` page.
+- They will use GitHub: their GitHub **primary** email (DevMentor reads only
+  the verified primary address).
+- Otherwise the address they will register and confirm with email and
+  password.
+
+Inviting another address forces them to create a second account with it. A
+misaddressed invitation invites whoever owns that address: revoke it.
+
+**2. Create.** On success (exit `0`):
+
+```text
+Invitation created: id <uuid>, email ada@example.com, expires <ISO time, UTC>.
+Delivery: email accepted by the mail server.
+```
+
+"Accepted by the mail server" is SMTP acceptance, not proof that the email
+reached the inbox. If the address already has a still-valid open invitation,
+nothing is created and the command exits `1` with
+`ada@example.com already has an open invitation. Use invite resend or revoke.`
+An expired open invitation is closed automatically and a new one created.
+
+**3. Resend** gives the open invitation (still valid or expired) a new link
+and a new 14-day expiry; the previous link stops working at once. Output as
+for create, with `Invitation resent: …`. With no open invitation (never
+invited, revoked or already accepted) it exits `1` with
+`ada@example.com has no open invitation to resend. Use invite create.`
+
+**4. Revoke** makes the open invitation's link stop working (exit `0`):
+`Invitation revoked: id <uuid>, email ada@example.com. Its link no longer works.`
+It is idempotent: with no open invitation it prints
+`ada@example.com has no open invitation; nothing changed.` (exit `0`). If
+the latest invitation was accepted, it adds
+` The latest invitation (id <uuid>) was accepted on <ISO time>; revoking does not remove the mentor role.`
+
+**Delivery failure.** The invitation is committed before the email is sent,
+so a failed send (SMTP down, or `APP_URL`/`SMTP_URL`/`MAIL_FROM` missing)
+keeps it saved. The command prints the `Invitation created|resent: …` line,
+then on stderr, and exits `1`:
+
+```text
+Delivery: failed, the invitation email was not sent. The invitation is saved. Send a new link with: npm run operator -- invite resend --email ada@example.com
+```
+
+After a failed `resend` the message also says
+`Its previous link no longer works.`: the link was rotated even though the
+email was not sent. Fix mail, then run the `invite resend` it prints. Nothing
+retries in the background.
+
+**What the invitee sees.** Signed out: sign in or create an account with the
+invited address (the invitation path survives GitHub, email sign-in and
+email confirmation). Signed in with another or unconfirmed address: no
+Accept button, the invited address is not shown, and the page offers Sign
+out and says "Or ask the DevMentor team to re-invite <their current
+email>". If they would rather keep that account, revoke the old invitation
+and `create` one for that address (this keeps one account). Already a mentor: "You already have the
+mentor role.", and the invitation stays open until you revoke it. Matching
+verified account: the page names the account that receives the role, and
+**Accept invitation** adds `mentor` to its existing roles, live on its next
+request without signing in again. A used, revoked, rotated or expired link
+says "This invitation is not valid. Ask the DevMentor team for a new email."
+
+**After acceptance.** The invitation is used and cannot be accepted again or
+resent. Revoking it does not remove the mentor role. There is no command to
+remove `mentor` in 1.0: `role revoke --role mentor` is refused, and removal
+stays a manual operator action outside this CLI.
+
+**Secret-free output.** The CLI never prints the token or the invitation
+link, in stdout, stderr or logs; a failed send is logged with the invitation
+id and a sanitized error only. Only the token's hash is stored. The raw link
+exists only in the email. Before sending production invitations, make sure
+the hosting and reverse-proxy access logs omit or redact `/invite/` path
+segments (and `token=` query values).
+
+**Repeated slashes and backslashes (release condition, accounts R11).**
+Next.js answers any path holding `//` or `\` (`/sign-in//?returnTo=…`,
+`/invite//<token>`) with its own 308 before the app's Proxy and header
+rules run, so that redirect echoes the address without the token-page
+headers and the app cannot fix it. Before production, the hosting edge must
+either normalize repeated slashes and backslashes in the path before the
+request reaches the app, or add `Cache-Control: no-store`,
+`Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex, nofollow` to the
+app's 3xx responses. Verify with
+`curl -sI --path-as-is 'https://<host>/sign-in//?returnTo=x'` (and
+`'https://<host>/sign-in\?returnTo=x'`): the answer must carry
+`no-store`, or be a redirect issued by the edge whose request never reached
+the app un-normalized. The inputs are listed in
+`packages/app/tests/integration/token-page-repeated-slash.test.ts`.
+
+**Rollback** is code only, as for every accounts change (see
+[Rollback](#rollback)): keep the `mentor_invitations` table, the
+`user_roles.invitation_id` column and every granted role. Code from before
+the invitations release ignores them and keeps every mentor role; it has no
+`invite` commands and no `/invite` page, so open links answer 404 until the
+newer code is back, and then work again until they expire. Never run
+`db:migrate:down` for this: its `down()` drops all invitation history.
+
+**Why email-bound.** Issue #46 first described a create-only bearer link,
+printed by the CLI, with an optional note and expiry and no revoke. The
+product owner replaced that on 2026-10-18 (accounts spec AD5): invitations
+are bound to a verified email, printed nowhere, expire after a fixed 14
+days, and can be revoked and resent, so a forwarded link alone cannot make
+an unrelated account a mentor.
+
+### Email sign-up locally
+
+With `docker compose up -d` and `npm run dev` running:
+
+1. Open <http://localhost:3000/sign-up>, enter a display name, any email
+   address (nothing leaves your machine) and a password of at least 15
+   characters. You land on "Check your inbox at …".
+2. Signing in at `/sign-in` now answers "Confirm your email first" with
+   **Resend confirmation**; each resend sends a new link and the older ones
+   stop working.
+3. Open <http://localhost:8025>, open the newest "Confirm your email address
+   for DevMentor" message and follow its link to `/confirm-email`.
+4. Enter the same password and press **Confirm**: you are signed in, and
+   `/account` lists "Email and password" as a sign-in method.
+
+Limits apply locally too: 5 sign-in/confirm attempts per address per 15
+minutes and 3 confirmation-type emails per address per hour. To start over,
+clear them with `docker compose exec postgres psql -U devmentor -c "delete
+from rate_limit_buckets"`. Per-IP limits are skipped while `TRUST_PROXY` is
+`false`.
+
+**Password reset is not available in 1.0** (product decision N03). Both
+`/sign-up` and `/sign-in` say so: "Password reset is not available yet. Save
+your password in a password manager, or use GitHub sign-in. If you forget an
+email-only account's password, you cannot recover access in version 1.0."
+GitHub sign-in recovers an account only when its verified primary email is
+the account's address. There is no reset route and no manual recovery; don't
+add one without a spec.
 
 ### Reset the database
 
@@ -199,17 +461,23 @@ npm run db:seed   # optional: sample user
 │   ├── app/    @devmentor/app   Next.js application
 │   │   └── src/
 │   │       ├── app/(frontend)/    public pages — Tailwind utilities
+│   │       ├── app/(app)/         signed-in pages (/account) — shadcn/ui
+│   │       ├── app/(error)/       identity-free /error page
 │   │       ├── app/backend/       admin pages (/backend) — shadcn/ui
 │   │       ├── app/api/<concept>/ route handlers (apiHandler / makeCrudRoute)
 │   │       └── server/            server-only code
 │   │           ├── container.ts   DI composition root
 │   │           ├── cradle.ts      Cradle types of the app's services
-│   │           ├── http.ts        apiHandler + makeCrudRoute bound to the container
+│   │           ├── http.ts        apiHandler, makeCrudRoute, navigationHandler bound to the container
+│   │           ├── config.ts      lazily validated env sections (APP_URL/TRUST_PROXY, GITHUB_*, SMTP_URL/MAIL_FROM)
+│   │           ├── auth/          page guards, session cookie rules
+│   │           ├── cli/           operator CLI (npm run operator)
 │   │           └── services/<concept>/  domain services
 │   ├── core/   @devmentor/core  reusable, framework-agnostic code
 │   │   └── src/
 │   │       ├── di/                Awilix container factory + Cradle type
-│   │       ├── http/              AppError hierarchy, apiHandler, makeCrudRoute
+│   │       ├── http/              AppError hierarchy, apiHandler, makeCrudRoute, navigationHandler, clientIp
+│   │       ├── security/          tokens, RateLimiter port
 │   │       ├── validators/<concept>/  Zod schemas shared by routes and forms
 │   │       └── logger.ts          logger with secret redaction
 │   ├── db/     @devmentor/db    data layer
@@ -218,11 +486,15 @@ npm run db:seed   # optional: sample user
 │   │       ├── config.ts          runtime ORM config (pool, migrations)
 │   │       ├── entities/<concept>/  defineEntity-based entities
 │   │       ├── migrations/        generated, committed migrations
+│   │       ├── single-use-token.ts, rate-limiter.ts  P9 token helpers, Postgres rate limiter
 │   │       └── register.ts        registers `orm` + `em` in the container
 │   └── ui/     @devmentor/ui    reusable UI
 │       └── src/
-│           ├── components/        shadcn/ui components
-│           ├── backend/           apiCall, CrudForm, DataTable, feedback states
+│           ├── components/        shadcn/ui components; components/<concept>/ domain components
+│           ├── api/               apiCall, the client envelope types
+│           ├── backend/           CrudForm, DataTable, feedback states
+│           ├── forms/             useSchemaForm form core, field-error mapping
+│           ├── frontend/          Tailwind-only public kit (SchemaForm, TextField, Notice, …)
 │           ├── lib/utils.ts       cn()
 │           └── styles/globals.css Tailwind + theme tokens
 ├── tsconfig.base.json             shared compiler options
@@ -335,6 +607,7 @@ All scripts run from the repository root.
 | `npm run db:migration:list`   | List executed migrations                      |
 | `npm run db:seed`             | Insert the sample user (idempotent)           |
 | `npm run ui:add -- <name>`    | Add a shadcn/ui component to `@devmentor/ui`  |
+| `npm run operator -- <command>` | Operator CLI: `role grant` / `role revoke` (see [Operator role](#operator-role)), `invite create` / `resend` / `revoke` (see [Mentor invitations](#mentor-invitations-operator-runbook)) |
 
 ## Tests and continuous integration
 
@@ -359,10 +632,18 @@ npm run test:integration
 
 The suite allocates a disposable PostgreSQL instance, applies committed
 migrations, chooses an available app port, and cleans up the browser, app,
-and container. It never uses your `.env` database. It covers the public home,
-admin database status/navigation, users validation, creation, reload, and
-duplicate-email handling, and running `npm run db:seed` twice without creating a
-duplicate. Logs, screenshots, accessibility snapshots, and
+and container. It never uses your `.env` database. GitHub is replaced by a
+local stub (`packages/app/tests/integration/github-stub.ts`), and outbound
+email goes to a disposable Mailpit container whose inbox the tests read over
+its HTTP API (`packages/app/tests/integration/mailpit.ts`). It covers the
+public home, GitHub sign-in, the account page and sign-out, operator
+grant/revoke through the real `npm run operator` CLI, admin database
+status/navigation, users validation, creation, reload, and duplicate-email
+handling, running `npm run db:seed` twice without creating a duplicate,
+and email accounts: sign-up with the message read from Mailpit, sign-in
+refused before confirming, resend, replaced/expired/tampered links,
+confirmation with a full navigation, password sign-in, and the
+per-address rate limits. Logs, screenshots, accessibility snapshots, and
 JUnit results are saved in `test-results/integration/`.
 
 GitHub Actions runs Build, Lint, Typecheck, Unit tests (100% coverage), and
@@ -371,6 +652,18 @@ to `main`. Integration reuses the build artifact. Coverage and browser evidence
 are uploaded for debugging. No database secrets or shared test database are
 required. To prevent merging failed checks, make these five check names required
 in the repository's GitHub branch protection/ruleset settings.
+
+## Rollback
+
+Rollback is **code only**: deploy the previous code and keep the database as
+it is. Schema changes for accounts are additive (new nullable `users`
+columns including `password_hash`, the `user_roles`, `auth_sessions`,
+`email_confirmation_tokens`, `rate_limit_buckets` and `mentor_invitations`
+tables, the nullable `user_roles.invitation_id` and their indexes), so older
+code keeps working with them. Do not run `npm run db:migrate:down` as
+a rollback: its `down()` drops roles, sessions, passwords, confirmation links
+and invitation history and is meant only for disposable databases. Note that code from before the operator gate leaves
+`/backend` and `/api/users` open to everyone, as they were then.
 
 ## Project process
 

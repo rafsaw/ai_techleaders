@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent } from "storybook/test";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { SiteHeader } from "@devmentor/ui/components/auth/SiteHeader";
 
 const meta = {
@@ -31,9 +31,17 @@ export const Playground: Story = {
 /** Signed out: only Sign in (with returnTo when the page has one). */
 export const SignedOut: Story = { args: { account: null, signInHref: "/sign-in?returnTo=%2Fmentors%2F1" } };
 
-/** Many: a mentor who is also an operator sees Mentor setup and Backend (E01, E02 Phase 1). */
+/** Many: a mentor who is also an operator sees Mentor setup and Backend once the app passes `mentorSetupHref` (E02 Phase 1). */
 export const MentorAndOperator: Story = {
-  args: { account: { displayName: "Ada Nowak", roles: ["mentee", "mentor", "operator"] } },
+  args: { account: { displayName: "Ada Nowak", roles: ["mentee", "mentor", "operator"] }, mentorSetupHref: "/mentor" },
+};
+
+/** A mentor while E01 runs standalone: no `mentorSetupHref`, so no Mentor setup link (the page ships in E02 Phase 1). */
+export const MentorWithoutMentorArea: Story = {
+  args: { account: { displayName: "Ada Nowak", roles: ["mentee", "mentor"] } },
+  play: async ({ canvas }) => {
+    await expect(canvas.queryByRole("link", { name: "Mentor setup" })).toBeNull();
+  },
 };
 
 /** Loading: Signing out… while the request runs. */
@@ -62,7 +70,7 @@ export const SignOutFailed: Story = {
 /** Long content at 320 px: the links wrap to a second line; a long name is cut with an ellipsis (P-A4, proposal approved by Rafał; temporary until the account menu). */
 export const LongContentNarrow: Story = {
   globals: { viewport: { value: "w320", isRotated: false } },
-  args: { account: { displayName: "Aleksandra Wiśniewska-Konstantynowicz", roles: ["mentee", "mentor", "operator"] } },
+  args: { account: { displayName: "Aleksandra Wiśniewska-Konstantynowicz", roles: ["mentee", "mentor", "operator"] }, mentorSetupHref: "/mentor" },
   play: async ({ canvas, canvasElement }) => {
     await expect(canvas.getByRole("link", { name: "Aleksandra Wiśniewska-Konstantynowicz" })).toBeVisible();
     await expect(canvasElement.scrollWidth).toBeLessThanOrEqual(canvasElement.clientWidth);

@@ -3,7 +3,7 @@ import { delay, http, HttpResponse } from "msw";
 import { useState } from "react";
 import { expect, userEvent, waitFor, within } from "storybook/test";
 
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
+import { apiCall } from "@devmentor/ui/api/apiCall";
 import { SlotList } from "@devmentor/ui/components/availability/SlotList";
 import { BOOKED_SENTENCE, SlotRow } from "@devmentor/ui/components/availability/SlotRow";
 

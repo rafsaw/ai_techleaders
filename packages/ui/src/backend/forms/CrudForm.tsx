@@ -3,7 +3,7 @@
 import { useId } from "react";
 import type { z } from "zod";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { ErrorMessage } from "@devmentor/ui/backend/feedback/ErrorMessage";
 import { Button } from "@devmentor/ui/components/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@devmentor/ui/components/field";
@@ -38,6 +38,8 @@ export interface CrudFormProps<TSchema extends z.ZodType> {
   onSuccess?: () => void;
   /** Shows a Cancel button and enables Escape to cancel. */
   onCancel?: () => void;
+  /** Clear the fields after a successful save (default). `false` keeps the saved values, e.g. `/account`. */
+  resetOnSuccess?: boolean;
 }
 
 /**
@@ -56,15 +58,18 @@ export function CrudForm<TSchema extends z.ZodType>({
   onSubmit,
   onSuccess,
   onCancel,
+  resetOnSuccess = true,
 }: CrudFormProps<TSchema>) {
   const idPrefix = useId();
   const { values, setValue, fieldErrors, formError, isSubmitting, handleBlur, handleSubmit, handleKeyDown } = useSchemaForm({
     schema,
     fields,
     initialValues,
-    onSubmit,
+    // The public API stays `onSubmit(values)`; an unmounted form still drops the late result.
+    onSubmit: (values) => onSubmit(values),
     onSuccess: () => onSuccess?.(),
     onCancel,
+    resetOnSuccess,
   });
 
   return (

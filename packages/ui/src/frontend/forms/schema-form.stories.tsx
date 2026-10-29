@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor, type within } from "storybook/test";
 import { z } from "zod";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { Notice } from "@devmentor/ui/frontend/feedback/Notice";
 import { SchemaForm } from "@devmentor/ui/frontend/forms/SchemaForm";
 
@@ -75,7 +75,10 @@ export const Playground: Story = {
     await fillSignIn(canvas);
     await userEvent.click(canvas.getByRole("button", { name: "Sign in" }));
     await waitFor(() => expect(args.onSuccess).toHaveBeenCalledWith({ redirectTo: "/account" }));
-    await expect(args.onSubmit).toHaveBeenCalledWith({ email: "ada@example.com", password: "correct horse battery staple" });
+    await expect(args.onSubmit).toHaveBeenCalledWith(
+      { email: "ada@example.com", password: "correct horse battery staple" },
+      { signal: expect.any(AbortSignal) }
+    );
   },
 };
 

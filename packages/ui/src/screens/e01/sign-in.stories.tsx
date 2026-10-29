@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { delay, http } from "msw";
 import { expect, fn, userEvent, within } from "storybook/test";
 
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
+import { apiCall } from "@devmentor/ui/api/apiCall";
 import { SignInOptions, type GithubErrorCode } from "@devmentor/ui/components/auth/SignInOptions";
 
 import { fail, ok, signInSchema } from "../../../.storybook/blocks/fixtures";

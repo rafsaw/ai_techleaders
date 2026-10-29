@@ -1,0 +1,101 @@
+import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./welcome-notice.stories";
+
+<Meta of={Stories} />
+
+# Welcome notice
+
+`import { WelcomeNotice } from "@devmentor/ui/components/auth/WelcomeNotice"`
+
+E01 product component shown once after a new account's first GitHub sign-in (Flow 1 step 5,
+SM-AC7). Tailwind only (F3), so public pages may use it.
+
+## 1. What it is for
+
+The display name comes from GitHub. The notice tells a new person that this name is public and
+that they can change it, on the page they signed in to reach.
+
+## 2. When to use
+
+- In the public and signed-in layouts, on a page whose URL carries `welcome=1` while someone is
+  signed in. The callback adds the flag only for a newly created account.
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| `/account?welcome=1` | the notice inside **AccountSummary** (`welcome`), so it never shows twice | E01 SM-AC7 |
+| An existing account's sign-in | nothing: the flag is never added | E01 Flow 1 step 5 |
+| `/backend` | nothing: a new account is never an operator | AGENTS.md |
+
+## 4. Anatomy
+
+| Part | Required | Notes | Source |
+|---|---|---|---|
+| Notice, `info` | yes | title *This is the name others see. You can change it.* | E01 Flow 1 step 5 |
+| Display name | yes | bold, wraps anywhere | E01 SM-AC7 |
+| Link | yes | *Change it in Account settings*, to `/account` | E01 SM-AC7 |
+
+## 5. Variants
+
+None. It always uses the `info` Notice.
+
+## 6. States (data states)
+
+| State | Story |
+|---|---|
+| Default | *Playground* |
+| Long name, 320 px | *Long content, narrow* |
+| Loading, empty, error, many | not applicable: shown or not by the layout |
+
+## 7. Behaviour and accessibility
+
+- `role="status"` from Notice; it is news, never `role="alert"`.
+- One-time: the app drops `welcome` from the address with `history.replaceState` once it has
+  rendered, so a reload does not show it again, and hides it on a navigation to another page.
+- In the app, pass `linkComponent={Link}` (Next) for client navigation; ui cannot import Next.
+
+## 8. Content
+
+The title is the same as the `/account` notice in AccountSummary (`WELCOME_TITLE`). SM-AC7: the
+name "can be changed in Account settings".
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | full width; a long name wraps |
+| 768 px, 1440 px | the layout sets the width |
+
+<Canvas of={Stories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Description |
+|---|---|---|
+| `displayName` | `string` | from the principal |
+| `accountHref` | `string` | default `/account` |
+| `linkComponent` | component or `"a"` | Next's `Link` in the app |
+| `className` | `string` | layout spacing |
+
+<Controls of={Stories.Playground} />
+
+## 11. Code
+
+```tsx
+{show ? <WelcomeNotice displayName={principal.displayName} linkComponent={Link} /> : null}
+```
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| Show it once, on the `returnTo` page | show it on that page and on `/account` | SM-AC7: never both places |
+| Drop the flag after it rendered | keep `welcome=1` in the address | SM-AC7: not again after a reload |
+
+## 13. Related
+
+- Built from: **Notice**, **Link button** (`linkButtonVariants`).
+- Used in: the public and signed-in layouts of E01.
+- See also: **AccountSummary** (`welcome`) for `/account`.

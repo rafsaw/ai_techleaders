@@ -8,7 +8,7 @@
     "./components/*": "./src/components/*.tsx",
     "./lib/*": "./src/lib/*.ts",
     "./hooks/*": "./src/hooks/*.ts",
-    "./backend/api/*": "./src/backend/api/*.ts",
+    "./api/*": "./src/api/*.ts",
     "./backend/forms/*": "./src/backend/forms/*.tsx",
     "./backend/tables/*": "./src/backend/tables/*.tsx",
     "./backend/feedback/*": "./src/backend/feedback/*.tsx",

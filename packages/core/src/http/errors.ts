@@ -2,11 +2,22 @@
 export type FieldErrors = Record<string, string[]>;
 
 /**
+ * Brand shared by every copy of this module. Next.js may load
+ * `@devmentor/core` once per bundle (a page and a route handler), while the
+ * process-wide container, and every service that throws, is built from
+ * whichever copy ran first; `instanceof AppError` then fails across copies.
+ */
+const APP_ERROR: unique symbol = Symbol.for("@devmentor/core/AppError");
+
+/**
  * Base class for expected, domain-level failures (as opposed to bugs).
  * Services throw these; `apiHandler` maps them to an HTTP status and the
- * JSON error envelope. A service never builds a response itself.
+ * JSON error envelope. A service never builds a response itself. Detect them
+ * with `isAppError`, never `instanceof`: see `APP_ERROR`.
  */
 export class AppError extends Error {
+  readonly [APP_ERROR] = true;
+
   constructor(
     message: string,
     readonly code: string,
@@ -16,6 +27,11 @@ export class AppError extends Error {
     super(message, options);
     this.name = new.target.name;
   }
+}
+
+/** Whether `value` is an `AppError` from any copy of this module. */
+export function isAppError(value: unknown): value is AppError {
+  return typeof value === "object" && value !== null && (value as Partial<AppError>)[APP_ERROR] === true;
 }
 
 export class ValidationError extends AppError {
@@ -49,5 +65,21 @@ export class NotFoundError extends AppError {
 export class ConflictError extends AppError {
   constructor(message = "Conflict", options?: ErrorOptions) {
     super(message, "conflict", 409, options);
+  }
+}
+
+/**
+ * A rate limit refused the attempt (platform P11). `apiHandler` answers 429
+ * with the usual error envelope and, when `retryAfterMs` is known, a
+ * `Retry-After` header in whole seconds. Clients show the generic message and
+ * no countdown.
+ */
+export class TooManyRequestsError extends AppError {
+  constructor(
+    readonly retryAfterMs?: number,
+    message = "Too many attempts. Try again later",
+    options?: ErrorOptions,
+  ) {
+    super(message, "rate_limited", 429, options);
   }
 }

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn } from "storybook/test";
 
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
+import { apiCall } from "@devmentor/ui/api/apiCall";
 import { BookableStatusLine, type BookableStatus } from "@devmentor/ui/components/mentors/BookableStatusLine";
 import { SetupChecklist, type ProfileSetup, type SlotsSetup } from "@devmentor/ui/components/mentors/SetupChecklist";
 import type { PayoutSetup } from "@devmentor/ui/components/payments/PayoutStatus";

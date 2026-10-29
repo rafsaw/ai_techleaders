@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { http, HttpResponse } from "msw";
 import { expect, fn, userEvent, within } from "storybook/test";
 
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
+import { apiCall } from "@devmentor/ui/api/apiCall";
 import { SetupChecklist } from "@devmentor/ui/components/mentors/SetupChecklist";
 import type { PayoutSetup } from "@devmentor/ui/components/payments/PayoutStatus";
 

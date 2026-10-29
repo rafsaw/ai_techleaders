@@ -4,6 +4,8 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   root: fileURLToPath(new URL("../..", import.meta.url)),
+  // Lets a scenario drive a server-side adapter directly (e.g. the SMTP sender).
+  resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   test: {
     name: "integration",
     environment: "node",

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { expect, userEvent, waitFor } from "storybook/test";
 import { z } from "zod";
 
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
+import { apiCall } from "@devmentor/ui/api/apiCall";
 import { CrudForm } from "@devmentor/ui/backend/forms/CrudForm";
 import { Alert, AlertTitle } from "@devmentor/ui/components/alert";
 import { Notice } from "@devmentor/ui/frontend/feedback/Notice";

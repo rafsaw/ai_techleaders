@@ -1,7 +1,7 @@
 # E02 — Mentor setup: profile, prices, Stripe onboarding and slots
 
 - Epic: #29 (E02) · Stories: #37 (E02-S01), #38 (E02-S02), #39 (E02-S03) · Task: #47 (E02-S02-T01)
-- Depends on: E01 [`2026-10-17-accounts-and-roles.md`](./2026-10-17-accounts-and-roles.md) (the `mentor` role, sessions, page guards, `(app)` area). Platform catalog [`2026-10-17-platform-primitives.md`](./2026-10-17-platform-primitives.md) is cited as "platform P*n*/F*n*". **This spec holds the final contracts for P5 (`assertOwner`), P13 (onboarding half) and P17, and builds P14's signature-only `webhookHandler` wrapper.** P14's inbox (event-ID deduplication) stays provisional for E04. The catalog keeps only status and a pointer here, changed in the same PR.
+- Depends on: E01 [`2026-10-17-accounts-and-roles.md`](./implemented/2026-10-17-accounts-and-roles.md) (the `mentor` role, sessions, page guards, `(app)` area). Platform catalog [`2026-10-17-platform-primitives.md`](./2026-10-17-platform-primitives.md) is cited as "platform P*n*/F*n*". **This spec holds the final contracts for P5 (`assertOwner`), P13 (onboarding half) and P17, and builds P14's signature-only `webhookHandler` wrapper.** P14's inbox (event-ID deduplication) stays provisional for E04. The catalog keeps only status and a pointer here, changed in the same PR.
 - Design authority: `.ai/specs/product-brief.md` (D03–D06, D12, D16, R01, N01, N02)
 - Research: one shared pass for the three stories and #47 (section "Research"). It is #47's deliverable.
 - Grey prototype (mentor onboarding, source of the questions at the end): `.ai/prototypes/discovery/mentor-onboarding/revision-002/`

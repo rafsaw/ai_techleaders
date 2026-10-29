@@ -1,6 +1,11 @@
 import type { AppContainer, Cradle } from "../di/container";
 import type { Logger } from "../logger";
-import { AppError, ForbiddenError, ValidationError, type FieldErrors } from "./errors";
+import { authorize, type Access, type PrincipalFor } from "./auth";
+import { ResponseCookies } from "./cookies";
+import {
+  ForbiddenError, isAppError, type AppError, type FieldErrors, type TooManyRequestsError, type ValidationError,
+} from "./errors";
+import { summarizeError } from "./logging";
 
 // The JSON envelope every API route returns. `@devmentor/ui` declares the
 // same shape for its client; keep the two in sync.
@@ -25,21 +30,37 @@ export type RouteHandler<TParams = object> = (
   ctx: { params: Promise<TParams> },
 ) => Promise<Response>;
 
-export interface ApiHandlerArgs<TParams> {
+export interface ApiHandlerArgs<TParams, A extends Access = Access> {
   req: Request;
   params: TParams;
   /** Cradle of a fresh container scope, so `em` is forked per request. */
   cradle: Cradle;
+  /** The caller allowed by `access`: always `null` on public routes. */
+  principal: PrincipalFor<A>;
+  /**
+   * Cookies to send with the response, success or error. The session
+   * renewal is written first; a handler that starts or ends a session
+   * overrides it by writing the same name.
+   */
+  cookies: ResponseCookies;
 }
 
-export interface ApiHandlerOptions {
+export interface ApiHandlerOptions<A extends Access = Access> {
+  /** Who may call the route (platform PD3). Required: there is no default. */
+  access: A;
   /** Status of a successful response. Defaults to 200. */
   status?: number;
+  /**
+   * Static route template for unexpected-error logs, e.g. `/invite/[token]`.
+   * Never pass the request's path: it may carry tokens or a nested `returnTo`.
+   * Defaults to the constant label `api`.
+   */
+  logRoute?: string;
 }
 
-export type ApiHandler = <TParams = object>(
-  handler: (args: ApiHandlerArgs<TParams>) => Promise<unknown>,
-  options?: ApiHandlerOptions,
+export type ApiHandler = <TParams = object, const A extends Access = Access>(
+  handler: (args: ApiHandlerArgs<TParams, A>) => Promise<unknown>,
+  options: ApiHandlerOptions<A>,
 ) => RouteHandler<TParams>;
 
 function failure(code: string, message: string, fieldErrors?: FieldErrors): ApiFailure {
@@ -51,35 +72,79 @@ function assertCsrfHeader(req: Request): void {
   throw new ForbiddenError("Missing CSRF header");
 }
 
-function toErrorResponse(error: unknown, req: Request, logger: Logger): Response {
-  if (error instanceof AppError) {
-    const fieldErrors = error instanceof ValidationError ? error.fieldErrors : undefined;
-    return Response.json(failure(error.code, error.message, fieldErrors), {
-      status: error.status,
-    });
-  }
-
-  // Anything else is a bug: log the details, never send them to the client.
-  logger.error("Unhandled API error", { method: req.method, url: req.url, error });
-  return Response.json(failure("internal_error", "Something went wrong"), { status: 500 });
+function respond(
+  body: ApiResult<unknown>,
+  status: number,
+  cookies: ResponseCookies,
+  headers = new Headers(),
+): Response {
+  cookies.applyTo(headers);
+  return Response.json(body, { status, headers });
 }
 
 /**
- * Builds the `apiHandler` wrapper every route handler goes through: CSRF
- * check, a per-request container scope, the JSON envelope, and the mapping
- * from thrown `AppError`s to status codes. Routes never write their own
+ * `Retry-After` for a 429 that knows its wait: whole seconds, rounded up and
+ * at least 1 (RFC 9110 delay-seconds). Checked by status and property, not
+ * `instanceof`, since the error may come from another copy of core.
+ */
+function errorHeaders(error: AppError): Headers {
+  const headers = new Headers();
+  const { retryAfterMs } = error as Partial<TooManyRequestsError>;
+  if (error.status === 429 && typeof retryAfterMs === "number" && Number.isFinite(retryAfterMs)) {
+    headers.set("retry-after", String(Math.max(1, Math.ceil(retryAfterMs / 1000))));
+  }
+  return headers;
+}
+
+function toErrorResponse(
+  error: unknown,
+  req: Request,
+  logger: Logger,
+  route: string,
+  cookies: ResponseCookies,
+): Response {
+  if (isAppError(error)) {
+    // Not `instanceof ValidationError`: the error may come from another copy of core.
+    const fieldErrors = "fieldErrors" in error ? (error as ValidationError).fieldErrors : undefined;
+    return respond(failure(error.code, error.message, fieldErrors), error.status, cookies, errorHeaders(error));
+  }
+
+  // Anything else is a bug: log a safe summary under the static route
+  // template (never the raw URL), and never send details to the client.
+  logger.error("Unhandled API error", { method: req.method, route, error: summarizeError(error) });
+  return respond(failure("internal_error", "Something went wrong"), 500, cookies);
+}
+
+/**
+ * Builds the `apiHandler` wrapper every route handler goes through. In order:
+ *
+ * 1. a per-request container scope;
+ * 2. principal resolution, on every route, so a presented session records
+ *    activity and renews its cookie even on public routes; a resolver
+ *    failure is a 500 (fail closed);
+ * 3. the CSRF header check on state-changing methods;
+ * 4. the access rule: 401 without a session, 403 without the role;
+ * 5. the handler, whose result becomes the JSON envelope;
+ * 6. `Set-Cookie` on the success or error response.
+ *
+ * Thrown `AppError`s map to their status; a `TooManyRequestsError` also sets
+ * `Retry-After`, with the same envelope. Routes never write their own
  * try/catch.
  */
 export function createApiHandler(container: AppContainer): ApiHandler {
-  return (handler, { status = 200 } = {}) =>
+  return (handler, { access, status = 200, logRoute = "api" }) =>
     async (req, ctx) => {
       const { cradle } = container.createScope();
+      const cookies = new ResponseCookies();
       try {
+        const resolved = await cradle.principalResolver.resolve(req, cookies);
         assertCsrfHeader(req);
-        const data = (await handler({ req, params: await ctx.params, cradle })) ?? null;
-        return Response.json({ ok: true, data } satisfies ApiSuccess<unknown>, { status });
+        const principal = authorize(access, resolved);
+        const data =
+          (await handler({ req, params: await ctx.params, cradle, principal, cookies })) ?? null;
+        return respond({ ok: true, data }, status, cookies);
       } catch (error) {
-        return toErrorResponse(error, req, cradle.logger);
+        return toErrorResponse(error, req, cradle.logger, logRoute, cookies);
       }
     };
 }

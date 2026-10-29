@@ -2,41 +2,31 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { delay, http } from "msw";
 import { expect, fn, userEvent, waitFor } from "storybook/test";
 
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
-import { N03_BODY, N03_TITLE } from "@devmentor/ui/components/auth/SignInOptions";
-import { LinkButton } from "@devmentor/ui/frontend/actions/LinkButton";
-import { Notice } from "@devmentor/ui/frontend/feedback/Notice";
-import { SchemaForm } from "@devmentor/ui/frontend/forms/SchemaForm";
+import { apiCall } from "@devmentor/ui/api/apiCall";
+import { N03_TITLE } from "@devmentor/ui/components/auth/SignInOptions";
+import { SignUpForm } from "@devmentor/ui/components/auth/SignUpForm";
 
 import { fail, ok, signUpSchema } from "../../../.storybook/blocks/fixtures";
 import { Screen, screenParameters } from "../../../.storybook/blocks/screen";
 
 const SIGN_UP = "/api/auth/sign-up";
 const INVITE = encodeURIComponent("/invite/k7Qm2xV9pLr4");
-/** The page's full navigation (window.location.assign). */
+/** The page's client navigation to Check your inbox (router.push). */
 const navigate = fn();
 
 /** /sign-up (E01 Flow 2): display name, email, password; N03 before typing; returnTo kept. */
 function SignUpScreen({ invited = false }: { invited?: boolean }) {
   return (
     <Screen account={null} title="Create an account" width="text">
-      {invited ? <Notice title="Use the email address that received your invitation." /> : null}
-      <Notice title={N03_TITLE}>{N03_BODY}</Notice>
-      <SchemaForm
+      <SignUpForm
         schema={signUpSchema}
-        fields={[
-          { name: "displayName", label: "Display name", autoComplete: "name", hint: "This is the name others see. You can change it." },
-          { name: "email", label: "Email", type: "email", autoComplete: "email" },
-          { name: "password", label: "Password", type: "password", autoComplete: "new-password" },
-        ]}
-        submitLabel="Create account"
-        pendingLabel="Creating account…"
-        onSubmit={(body) => apiCall<{ email: string; emailSent: boolean }>(SIGN_UP, { method: "POST", body: invited ? { ...body, returnTo: "/invite/k7Qm2xV9pLr4" } : body })}
-        onSuccess={({ email }) => navigate(`/sign-up/check-email?email=${encodeURIComponent(email)}`)}
+        invited={invited}
+        submit={(body, { signal }) =>
+          apiCall<{ email: string; emailSent: boolean }>(SIGN_UP, { method: "POST", body: invited ? { ...body, returnTo: "/invite/k7Qm2xV9pLr4" } : body, signal })}
+        onSignedUp={({ email, emailSent }) =>
+          navigate(`/sign-up/check-email?email=${encodeURIComponent(email)}${emailSent ? "" : "&sent=0"}`)}
+        signInHref={invited ? `/sign-in?returnTo=${INVITE}` : "/sign-in"}
       />
-      <LinkButton href={invited ? `/sign-in?returnTo=${INVITE}` : "/sign-in"} variant="link" className="self-start">
-        Sign in instead
-      </LinkButton>
     </Screen>
   );
 }
@@ -103,6 +93,16 @@ export const Invalid: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Create account" }));
     await expect(canvas.getByRole("textbox", { name: "Display name" })).toHaveFocus();
     await expect(canvas.getByText("Use at least 15 characters")).toBeVisible();
+  },
+};
+
+/** Not sent (SMTP failed or the per-address allowance is used up): the same answer, then the not-sent page. */
+export const NotSent: Story = {
+  parameters: { msw: [http.post(SIGN_UP, () => ok({ email: "ada@example.com", emailSent: false }, 201))] },
+  play: async ({ canvas }) => {
+    await fill(canvas);
+    await userEvent.click(canvas.getByRole("button", { name: "Create account" }));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith("/sign-up/check-email?email=ada%40example.com&sent=0"));
   },
 };
 

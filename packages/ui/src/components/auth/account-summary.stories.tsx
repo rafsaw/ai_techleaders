@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor } from "storybook/test";
 import { z } from "zod";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { CrudForm } from "@devmentor/ui/backend/forms/CrudForm";
 import { AccountSummary } from "@devmentor/ui/components/auth/AccountSummary";
 
@@ -17,6 +17,7 @@ function NameForm({ name = "Ada Nowak", onSubmit = save }: { name?: string; onSu
       fields={[{ name: "displayName", label: "Display name", autoComplete: "name" }]}
       initialValues={{ displayName: name }}
       onSubmit={onSubmit}
+      resetOnSuccess={false}
     />
   );
 }

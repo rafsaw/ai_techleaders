@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { delay, http } from "msw";
 import { expect, fn, userEvent, waitFor } from "storybook/test";
 
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
+import { apiCall } from "@devmentor/ui/api/apiCall";
 import { CrudForm } from "@devmentor/ui/backend/forms/CrudForm";
 
 import { fail, mentorProfileSchema, ok } from "../../../.storybook/blocks/fixtures";
@@ -34,7 +34,7 @@ const ada = {
 /** /mentor/profile (E02 Flow 2, signed-in): CrudForm with select and textarea fields; Save goes to /mentor. */
 function ProfileScreen({ editing }: { editing: boolean }) {
   return (
-    <Screen account={ADA_MENTOR} title={editing ? "Edit profile" : "Create your profile"} width="text">
+    <Screen account={ADA_MENTOR} mentorSetupHref="/mentor" title={editing ? "Edit profile" : "Create your profile"} width="text">
       <CrudForm
         schema={mentorProfileSchema}
         fields={fields}

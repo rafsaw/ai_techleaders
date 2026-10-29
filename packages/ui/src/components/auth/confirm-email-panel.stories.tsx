@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { expect, fn, userEvent, waitFor } from "storybook/test";
 import { z } from "zod";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { ConfirmEmailPanel } from "@devmentor/ui/components/auth/ConfirmEmailPanel";
 
 const schema = z.object({ password: z.string().min(1, "Enter your password") });
@@ -42,7 +42,7 @@ export const AlreadyConfirmed: Story = { args: { state: { status: "used" } } };
 export const Invalid: Story = {
   args: { state: { status: "invalid" } },
   play: async ({ canvas }) => {
-    await expect(canvas.getByRole("alert")).toHaveTextContent("This link isn't valid.");
+    await expect(canvas.getByRole("alert")).toHaveTextContent("This link isn't valid.Sign in to continue.");
     await expect(canvas.getByRole("link", { name: "Sign in" })).toBeVisible();
   },
 };
@@ -72,6 +72,25 @@ export const WrongPassword: Story = {
     await userEvent.type(canvas.getByLabelText("Password"), "wrong horse battery staple");
     await userEvent.click(canvas.getByRole("button", { name: "Confirm" }));
     await expect(await canvas.findByRole("alert")).toHaveTextContent("Email or password is incorrect");
+  },
+};
+
+/** Error: the link stopped working after the page opened (another tab confirmed it, 404): the reason and Sign in. */
+export const LinkStoppedWorking: Story = {
+  args: {
+    confirm: {
+      ...confirm,
+      submit: fn(async (): Promise<ApiResult<{ redirectTo: string }>> => ({
+        ok: false,
+        error: { code: "not_found", message: "Your address is already confirmed. Sign in" },
+      })),
+    },
+  },
+  play: async ({ canvas }) => {
+    await userEvent.type(canvas.getByLabelText("Password"), "correct horse battery staple");
+    await userEvent.click(canvas.getByRole("button", { name: "Confirm" }));
+    await expect(await canvas.findByRole("alert")).toHaveTextContent("Your address is already confirmed. Sign in");
+    await expect(canvas.getByRole("link", { name: "Sign in" })).toBeVisible();
   },
 };
 

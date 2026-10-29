@@ -4,7 +4,7 @@ import { useState } from "react";
 import { expect, fn, userEvent } from "storybook/test";
 import { z } from "zod";
 
-import { apiCall } from "@devmentor/ui/backend/api/apiCall";
+import { apiCall } from "@devmentor/ui/api/apiCall";
 import { InvitationPanel } from "@devmentor/ui/components/auth/InvitationPanel";
 import { SignInOptions } from "@devmentor/ui/components/auth/SignInOptions";
 
@@ -25,7 +25,7 @@ function SignInThenReturn() {
   if (back) {
     return (
       <InvitationPanel
-        state={{ status: "valid", displayName: "Ada Nowak", email: "ada@example.com", accept: fn(async () => ({ ok: true as const, data: {} })), onAccepted: fn() }}
+        state={{ status: "valid", displayName: "Ada Nowak", email: "ada@example.com", accept: { schema: z.object({ token: z.string() }), values: { token: "tok" }, submit: fn(async () => ({ ok: true as const, data: {} })), onDone: fn() } }}
       />
     );
   }

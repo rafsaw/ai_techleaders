@@ -1,0 +1,120 @@
+import { Canvas, Controls, Meta } from "@storybook/addon-docs/blocks";
+
+import * as Stories from "./sign-up-form.stories";
+
+<Meta of={Stories} />
+
+# Sign-up form
+
+`import { SignUpForm } from "@devmentor/ui/components/auth/SignUpForm"`
+
+E01 product component for `/sign-up` (Flow 2), built from the public kit (F3) only: `Notice`,
+`SchemaForm` (with `PasswordField`), `LinkButton`. Moved out of the Sign up screen story in E01
+Phase 2, so the screen and the page render the same code.
+
+## 1. What it is for
+
+It lets a person without GitHub create an email account, with the password rule and the
+no-reset warning (N03) shown before they type.
+
+## 2. When to use
+
+- `/sign-up` only. The page adds the validated `returnTo` to the request and moves on to
+  `/sign-up/check-email` in `onSignedUp`.
+
+## 3. When not to use
+
+| Situation | Use instead | Source |
+|---|---|---|
+| Signing in | **Sign-in options** | E01 Flow 2 |
+| Changing the display name later | the `/account` form (`CrudForm`) | E01 UI/UX |
+
+## 4. Anatomy
+
+| Part | Required | Notes | Source |
+|---|---|---|---|
+| Invitation notice | when `invited` | *Use the email address that received your invitation.* | E01 UI/UX; P-SCR3, proposal approved by Rafał |
+| N03 notice | yes | before the fields | E01 Flow 2 |
+| Display name | yes | hint *This is the name others see. You can change it.* | E01 Flow 1 step 5 |
+| Email | yes | `autocomplete="email"` | E01 Flow 2 |
+| Password | yes | `PasswordField`, `new-password`, the 15-character hint | AD6 |
+| **Create account** | yes | `SubmitButton`, *Creating account…* | P-C3, P-C4 |
+| **Sign in instead** | yes | `LinkButton variant="link"`, keeps `returnTo` | P-SCR3 |
+
+## 5. Variants
+
+| Variant | When |
+|---|---|
+| Default | `/sign-up` |
+| From an invitation | `returnTo` is an `/invite/…` path |
+
+## 6. States (data states)
+
+| State | Story |
+|---|---|
+| Idle | *Playground* |
+| From an invitation | *From invitation* |
+| Loading | *Pending* |
+| Validation, focus on the first error | *Invalid* |
+| Error: 429 | *Rate limited* |
+| Long content, 320 px | *Long content, narrow* |
+| Empty, many | not applicable |
+
+<Canvas of={Stories.FromInvitation} />
+
+## 7. Behaviour and accessibility
+
+- The response is the same whether or not the email has an account (E01 Flow 2), so there is no
+  "already registered" state.
+- The page moves on only after the server answered (`onSignedUp` gets `{ email, emailSent }`).
+- Technical failures (429, network, server) use the form's one error notice (SM-AC17).
+
+## 8. Content
+
+Copy from E01 Flow 2 and N03; the invitation notice and **Sign in instead** are P-SCR3.
+
+## 9. Responsiveness
+
+| Width | Behaviour |
+|---|---|
+| 320 px | one column, full-width button |
+| 768 px, 1440 px | within `max-w-text` |
+
+<Canvas of={Stories.LongContentNarrow} />
+
+## 10. API
+
+| Prop | Type | Description |
+|---|---|---|
+| `schema` | `ZodType<{ displayName, email, password }>` | `signUpSchema` without `returnTo` |
+| `submit` | `(values, { signal }) => Promise<ApiResult<{ email, emailSent }>>` | an `apiCall` |
+| `onSignedUp` | `({ email, emailSent }) => void` | after success |
+| `signInHref` | `string` | `/sign-in` with `returnTo` |
+| `invited` | `boolean` | `returnTo` is an invitation |
+
+<Controls of={Stories.Playground} />
+
+## 11. Code
+
+```tsx
+<SignUpForm
+  schema={signUpSchema.omit({ returnTo: true })}
+  submit={(values, { signal }) => apiCall("/api/auth/sign-up", { method: "POST", body: { ...values, returnTo }, signal })}
+  onSignedUp={({ email, emailSent }) => router.push(checkEmailPath(email, emailSent, returnTo))}
+  signInHref={signInHref}
+  invited={returnTo?.startsWith("/invite/")}
+/>
+```
+
+## 12. Do and don't
+
+| Do | Don't | Why |
+|---|---|---|
+| Show the rule and N03 before typing | reveal rules only after a failed submit | AD6, N03 |
+| The same answer for every address | "This email is already registered" | E01 Flow 2 |
+
+## 13. Related
+
+- Built from: **Notice**, **Schema form**, **Password field**, **Link button**.
+- Used in: the Sign up screen; `/sign-up`.
+- See also: **Check email notice** for the next page.

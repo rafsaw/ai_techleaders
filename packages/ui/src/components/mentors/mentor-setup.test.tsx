@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import type { ApiResult } from "../../backend/api/types";
+import type { ApiResult } from "../../api/types";
 import { SlotList } from "../availability/SlotList";
 import { BOOKED_SENTENCE, SlotRow } from "../availability/SlotRow";
 import { payoutHasAction, PayoutStatus, type PayoutSetup } from "../payments/PayoutStatus";

@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { OctagonXIcon } from "lucide-react";
 
-import type { ApiResult } from "@devmentor/ui/backend/api/types";
+import type { ApiResult } from "@devmentor/ui/api/types";
 import { Alert, AlertTitle } from "@devmentor/ui/components/alert";
 import {
   AlertDialog,
