@@ -322,10 +322,13 @@ the `returnTo` schema) goes in `validators/`.
   another account. The GET page only inspects; resend rotates the hash in
   place, revoke closes the row; neither touches a role already granted.
 - **Secret-free:** CLI output and logs carry the id, email, expiry and
-  delivery status, never the token or link. `/invite/:token`, and the
-  sign-in/sign-up pages when `returnTo` is an invitation, send the
-  token-page headers and metadata (`app/token-page.ts`). A failed send
-  keeps the invitation and exits 1 asking for `invite resend`.
+  delivery status, never the token or link. Every route in `TOKEN_PAGES`
+  (`app/token-page.ts`: `/confirm-email`, `/invite/:token` and the auth
+  pages that keep a `returnTo`, `/sign-in`, `/sign-up`,
+  `/sign-up/check-email`) always sends the token-page headers and static
+  metadata, whatever its query. Protect by route; never match `returnTo` in
+  a `next.config` `has` rule (R9). A failed send keeps the invitation and
+  exits 1 asking for `invite resend`.
 - **Staged for E02:** `INVITATION_ACCEPTED_DESTINATION`
   (`(frontend)/auth-links.ts`, now `/?invitation=accepted`) becomes
   `/mentor` in E02 Phase 1, and `SiteHeader` shows **Mentor setup** only

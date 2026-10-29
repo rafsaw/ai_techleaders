@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Principal } from "@devmentor/core";
 
 import FrontendLayout from "@/app/(frontend)/layout";
-import SignInPage, { generateMetadata } from "@/app/(frontend)/sign-in/page";
+import SignInPage, { metadata } from "@/app/(frontend)/sign-in/page";
 import { getPrincipal } from "@/server/auth/page-guards";
 
 vi.mock("@/server/auth/page-guards", () => ({ getPrincipal: vi.fn() }));
@@ -75,7 +75,7 @@ describe("(frontend) layout: one-time welcome notice (SM-AC7)", () => {
 describe("/sign-in", () => {
   it("offers GitHub first as a real link, with one h1 and no banner", async () => {
     render(await signInPage());
-    expect(await generateMetadata({ searchParams: Promise.resolve({}) })).toEqual({ title: "Sign in" });
+    expect(metadata.title).toBe("Sign in");
     expect(screen.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
     const main = screen.getByRole("main");
     const github = within(main).getAllByRole("link")[0]!;

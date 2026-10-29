@@ -23,14 +23,43 @@ describe("invitation page and API (production build)", () => {
     expect(html).not.toContain("Accept invitation");
   });
 
-  it("protects an auth page whose returnTo carries an invitation token, and only that one", async () => {
-    const nested = await fetch(`${baseURL}/sign-in?returnTo=${encodeURIComponent("/invite/abc")}`);
-    expect(nested.headers.get("referrer-policy")).toBe("no-referrer");
-    expect(nested.headers.get("cache-control")).toBe("private, no-store");
-    expect(await nested.text()).toContain('<meta name="robots" content="noindex, nofollow"/>');
-    const plain = await fetch(`${baseURL}/sign-in?returnTo=%2Faccount`);
-    expect(plain.headers.get("referrer-policy")).toBeNull();
-    expect(await plain.text()).not.toContain('<meta name="robots"');
+  // Review fix R9: the auth pages that keep a `returnTo` are token pages by
+  // route. A duplicate, dot-segment or percent-encoded nested invitation
+  // returnTo must not drop the headers or the meta tags.
+  const nested = [
+    "",
+    "?error=session_expired",
+    "?returnTo=%2Faccount",
+    "?returnTo=%2Finvite%2Fabc",
+    "?error=github_cancelled&returnTo=%2Finvite%2Fabc",
+    "?returnTo=%2Finvite%2Fabc&returnTo=%2Faccount",
+    "?returnTo=%2Fx%2F..%2Finvite%2Fabc",
+    "?returnTo=%2Fx%2F%252E%252E%2Finvite%2Fabc",
+    "?returnTo=%2F%2569nvite%2Fabc",
+  ];
+  const authPages = ["/sign-in", "/sign-up", "/sign-up/check-email"];
+  const join = (page: string, query: string) =>
+    page === "/sign-up/check-email" ? `${page}?email=ada%40example.com${query.replace("?", "&")}` : `${page}${query}`;
+
+  it.each(authPages.flatMap((page) => nested.map((query) => join(page, query))))(
+    "serves %s as a no-referrer, no-store, noindex page",
+    async (path) => {
+      const response = await fetch(`${baseURL}${path}`, { redirect: "manual" });
+      expect(response.status).toBe(200);
+      expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+      expect(response.headers.get("cache-control")).toBe("private, no-store");
+      expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+      const html = await response.text();
+      expect(html).toContain('<meta name="referrer" content="no-referrer"/>');
+      expect(html).toContain('<meta name="robots" content="noindex, nofollow"/>');
+    },
+  );
+
+  it("leaves pages that keep no returnTo alone", async () => {
+    const home = await fetch(`${baseURL}/?invitation=accepted`);
+    expect(home.headers.get("referrer-policy")).toBeNull();
+    expect(home.headers.get("x-robots-tag")).toBeNull();
+    expect(await home.text()).not.toContain('<meta name="robots"');
   });
 
   it("refuses an accept without a session (401) and shows no accepted notice to a signed-out visitor", async () => {

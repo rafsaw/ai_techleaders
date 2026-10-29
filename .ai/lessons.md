@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-28 — Never re-implement request parsing in `next.config` `has` matchers; protect by route
+
+**Context:** E01 Phase 3 review fix R9. The auth pages got the token-page headers only when `has: [{ type: "query", key: "returnTo", value: "/invite/.*" }]` matched, but the pages read the first `returnTo` and normalized it with `parseReturnTo`. Duplicates, dot segments and percent-encoding produced pages that carried an invitation token with no `Referrer-Policy`, `Cache-Control` or `X-Robots-Tag`.
+**Lesson:** a security header must not depend on a second parser of the same input. Give the protection to every route that *can* carry the secret, unconditionally (`TOKEN_PAGES` in `packages/app/src/app/token-page.ts`, static `metadata`), instead of deciding from the query in `next.config.ts` or in `generateMetadata`. When a header is conditional, test it with duplicate, dot-segment and percent-encoded values on the production build.
+**Applies to:** `next.config.ts` `headers()`, token pages, any page that forwards a `returnTo`.
+
 ### 2026-10-28 — Force DB race orderings with a lock holder, and agent-browser ref ids are not document order
 
 **Context:** E01 step 3.4 needed four deterministic invitation races (accept vs revoke/resend, two accepts, two creates) and a browser click on the second of two same-named **Sign out** buttons.

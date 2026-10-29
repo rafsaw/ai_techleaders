@@ -5,15 +5,15 @@ import { LinkButton } from "@devmentor/ui/frontend/actions/LinkButton";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { first, returnToPageMetadata, withReturnTo } from "@/app/(frontend)/auth-links";
+import { first, withReturnTo } from "@/app/(frontend)/auth-links";
+import { TOKEN_PAGE_METADATA } from "@/app/token-page";
 import { getPrincipal } from "@/server/auth/page-guards";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-// From an invitation, `returnTo` carries its token: no referrer, no indexing then.
-export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParams> }): Promise<Metadata> {
-  return returnToPageMetadata("Check your email", parseReturnTo(first((await searchParams).returnTo)));
-}
+// `returnTo` can carry an invitation's token: always no referrer, no indexing
+// (platform P8, review fix R9; next.config.ts sends the headers).
+export const metadata: Metadata = { title: "Check your email", ...TOKEN_PAGE_METADATA };
 
 /**
  * /sign-up/check-email (accounts Flow 2, SM-AC3, SM-AC5): "Check your inbox

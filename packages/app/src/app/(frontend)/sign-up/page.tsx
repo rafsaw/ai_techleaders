@@ -2,16 +2,16 @@ import { parseReturnTo, RETURN_TO_FALLBACK } from "@devmentor/core/validators/au
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { first, isInvitation, returnToPageMetadata, withReturnTo } from "@/app/(frontend)/auth-links";
+import { first, isInvitation, withReturnTo } from "@/app/(frontend)/auth-links";
 import { AppSignUpForm } from "@/app/(frontend)/sign-up/sign-up-form";
+import { TOKEN_PAGE_METADATA } from "@/app/token-page";
 import { getPrincipal } from "@/server/auth/page-guards";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-// From an invitation, `returnTo` carries its token: no referrer, no indexing then.
-export async function generateMetadata({ searchParams }: { searchParams: Promise<SearchParams> }): Promise<Metadata> {
-  return returnToPageMetadata("Create an account", parseReturnTo(first((await searchParams).returnTo)));
-}
+// `returnTo` can carry an invitation's token: always no referrer, no indexing
+// (platform P8, review fix R9; next.config.ts sends the headers).
+export const metadata: Metadata = { title: "Create an account", ...TOKEN_PAGE_METADATA };
 
 /**
  * /sign-up (accounts Flow 2): display name, email and password, with the
