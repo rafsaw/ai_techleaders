@@ -139,6 +139,26 @@ describe("/invite/[token]", () => {
     expect(navigateFully).not.toHaveBeenCalled();
   });
 
+  it("fully navigates to sign-in with the session-expired banner, back to this invitation, when accept answers 401 (SM-AC2, R12)", async () => {
+    inspect.mockResolvedValue({ status: "valid", displayName: "Ada Nowak", email: "ada@example.com" });
+    vi.mocked(apiCall).mockResolvedValue(fail("unauthorized", "Authentication required"));
+    render(await page());
+    fireEvent.click(screen.getByRole("button", { name: "Accept invitation" }));
+    await waitFor(() => expect(navigateFully).toHaveBeenCalledWith(`/sign-in?error=session_expired&returnTo=${ENCODED_PATH}`));
+    expect(navigateFully).toHaveBeenCalledOnce();
+    // Never the success destination, never the server's message: the form stays pending until the browser leaves.
+    expect(screen.queryByText("Authentication required")).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Accepting invitation…" })).toBeDisabled();
+  });
+
+  it("falls back to returnTo=/ for an expired session when the panel has no invitation path", async () => {
+    vi.mocked(apiCall).mockResolvedValue(fail("unauthorized", "Authentication required"));
+    render(<AppInvitationPanel state={{ status: "valid", displayName: "Ada", email: "ada@example.com" }} token={TOKEN} invitationPath={null} />);
+    fireEvent.click(screen.getByRole("button", { name: "Accept invitation" }));
+    await waitFor(() => expect(navigateFully).toHaveBeenCalledWith("/sign-in?error=session_expired&returnTo=%2F"));
+  });
+
   it("refuses to post a valid state without its token", async () => {
     render(<AppInvitationPanel state={{ status: "valid", displayName: "Ada", email: "ada@example.com" }} invitationPath={null} />);
     fireEvent.click(screen.getByRole("button", { name: "Accept invitation" }));

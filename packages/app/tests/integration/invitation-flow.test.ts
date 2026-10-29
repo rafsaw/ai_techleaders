@@ -30,7 +30,9 @@ import { linksIn, MailpitInbox } from "./mailpit";
  * Rate limits (TRUST_PROXY is unset, so only per-address rules apply): each
  * invitee address here signs up once (1 of 3 confirmation emails) and
  * confirms once (1 of 5 sign-in/confirm attempts); the throwaway sign-up
- * address sends one confirmation email. Every address is unique to this file.
+ * address sends one confirmation email. The expired-session invitee uses
+ * GitHub only, so it spends no email-rule attempts. Every address is unique
+ * to this file.
  *
  * Evidence: `IntegrationBrowser` redacts `/invite/<token>` and `token=` in
  * everything it writes, and the last case asserts that no text artifact of
@@ -46,11 +48,12 @@ describe("mentor invitations (CLI, Mailpit, browser)", () => {
 
   const grace = { id: seed, name: "Grace Invitee", email: `inv-grace-${suffix}@example.com` };
   const mallory = { id: seed + 1, name: "Mallory Other", email: `inv-mallory-${suffix}@example.com` };
+  const eve = { id: seed + 2, name: "Eve Expired", email: `inv-eve-${suffix}@example.com` };
   const ada = { name: "Ada Invitee", email: `inv-ada-${suffix}@example.com`, password: "a lighthouse on the far shore" };
   const bea = { name: "Bea Invitee", email: `inv-bea-${suffix}@example.com`, password: "a lantern in the old harbour" };
   const cleo = `inv-cleo-${suffix}@example.com`;
   const dora = `inv-dora-${suffix}@example.com`;
-  const everyone = [grace.email, mallory.email, ada.email, bea.email, cleo, dora];
+  const everyone = [grace.email, mallory.email, eve.email, ada.email, bea.email, cleo, dora];
 
   /** Every raw token this file sees; none may appear in the evidence. */
   const seenTokens: string[] = [];
@@ -320,6 +323,43 @@ describe("mentor invitations (CLI, Mailpit, browser)", () => {
       await signUpAndConfirm(bea, token);
       await acceptInBrowser();
       expect(await rolesOf(bea.email)).toEqual(["mentee", "mentor"]);
+    });
+  });
+
+  describe("a session that expires before Accept (SM-AC2, R12)", () => {
+    let token = "";
+
+    it("Accept fully navigates to sign-in with the session-expired banner and this invitation as returnTo", async () => {
+      token = await create(eve.email);
+      await browser.command("cookies", "clear");
+      await setGitHubStubUser(inject("githubStubURL"), {
+        id: eve.id, login: `gh-${eve.id}`, name: eve.name,
+        emails: [{ email: eve.email, primary: true, verified: true }],
+      });
+      await signInFromInvitation(token);
+      await authorizeGitHub("Authorize");
+      await browser.waitForText("This account will receive the mentor role.");
+      expect(new URL(await browser.url()).pathname).toBe(`/invite/${token}`);
+
+      // Signed out elsewhere (or expired): the database row goes, the browser keeps its cookie.
+      await query("delete from auth_sessions where user_id = (select id from users where email = $1)", [eve.email]);
+      await markPage();
+      await browser.click("button", "Accept invitation");
+      await browser.waitForText("Your session expired.");
+      expect(await browser.url()).toBe(`${baseURL}/sign-in?error=session_expired&returnTo=${encodeURIComponent(`/invite/${token}`)}`);
+      expect(await pageKept()).toBe(false);
+      expect(await browser.snapshot()).not.toContain("Authentication required");
+      expect(await invitationRows(eve.email)).toEqual([expect.objectContaining({ consumed_at: null, accepted_by_user_id: null })]);
+      expect(await rolesOf(eve.email)).toEqual(["mentee"]);
+    });
+
+    it("signs in again, lands back on the same invitation and accepts it", async () => {
+      await authorizeGitHub("Authorize");
+      await browser.command("wait", "--url", invitationURL(token));
+      await browser.waitForText("This account will receive the mentor role.");
+      await acceptInBrowser();
+      expect(await headerText()).toContain(eve.name);
+      expect(await rolesOf(eve.email)).toEqual(["mentee", "mentor"]);
     });
   });
 

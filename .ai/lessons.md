@@ -27,6 +27,11 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-29 — Every client call to a signed-in API goes through `unlessSessionExpired`
+**Context:** review finding R12: Accept on `/invite/[token]` used a bare `apiCall`, so an expired session showed "Authentication required" on the page instead of fully navigating to sign-in with the session-expired banner (SM-AC2). `/account` and `/backend/users` already wrapped their calls.
+**Lesson:** Any client `submit`/fetch whose API is `access: "user"` or `{ role }` must return `unlessSessionExpired(await apiCall(...), <this page's returnTo>)` from `@/app/session-expiry`, with a unit test for the 401 navigation. `public`/`optional` APIs never answer 401 and need no wrapper (e.g. sign-out). When adding a form, check the route's `access` rule.
+**Applies to:** client components in `packages/app/src/app/**` that call `/api/*`.
+
 ### 2026-10-29 — Next's repeated-slash/backslash 308 cannot be protected in-app
 
 **Context:** E01 Phase 3 review R11. `/sign-in//?returnTo=/invite/<token>`, `/invite//<token>` and `/sign-in\?…` got a bare 308 (token in `Location`, no token-page headers) even after R10, because Next answers them before the Proxy.
