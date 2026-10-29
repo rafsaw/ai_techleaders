@@ -1,6 +1,6 @@
 # E01 — Accounts and roles: implementation tracker
 
-Spec: [`.ai/specs/2026-10-17-accounts-and-roles.md`](.ai/specs/2026-10-17-accounts-and-roles.md)
+Spec: [`.ai/specs/implemented/2026-10-17-accounts-and-roles.md`](.ai/specs/implemented/2026-10-17-accounts-and-roles.md)
 (companion: `.ai/specs/2026-10-17-platform-primitives.md`)
 Branch: `feat/e01-accounts-and-roles`
 
@@ -65,7 +65,7 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - [x] 3.2 Invitation create/revoke/resend service + CLI + email template
 - [x] 3.3 Inspect/accept, invitation page, `RoleService.grantMentorFromInvitation`, API route
 - [x] 3.4 Integration on PostgreSQL + Mailpit, including the four race tests
-- [x] 3.5 Documentation (operator runbook), move spec to `implemented/` (spec move to implemented/ deferred until Phase 3 approval)
+- [x] 3.5 Documentation (operator runbook), move spec to `implemented/` (moved 2026-10-29 after the product owner's E01 approval, see below)
 - [x] 3.G Phase 3 full gate + run log → **manual test pause**
 
 ### Phase 3 — review fixes (Codex review, REQUEST CHANGES, 2026-10-28)
@@ -92,3 +92,10 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 - [x] R13 GitHub token exchange and `/user` + `/user/emails` reads are bounded (10 s per step, body included, sibling aborted) so a stalled provider ends in `github_failed` with `returnTo` kept instead of a hanging callback; regression unit + integration tests
 - [x] R8.G Full E01 gate + run log — lint, typecheck, coverage (1885 tests, 100%), build, integration (12 files, 145 tests), storybook (342 tests) green
+
+## E01 completion (2026-10-29)
+
+- [x] Product owner approved the E01 implementation for the course after R13 and the green final E01 gate
+- [x] Spec moved to `.ai/specs/implemented/2026-10-17-accounts-and-roles.md`; status line says implemented, approved for the course, **not production-ready**; live references updated (platform and E02 specs, engineering standards, BACKWARD_COMPATIBILITY.md, design-system docs). The platform catalog `.ai/specs/2026-10-17-platform-primitives.md` stays active (its E02–E05 entries are not implemented)
+- [ ] **Production release blocked** until the release conditions in the spec's Risks & Impact Review are met, including the **unresolved known limitation R11** (hosting edge must cover Next's repeated-slash/backslash 308), the production email provider and real-inbox test, the trusted client-IP hosting decision, verified token redaction in hosting logs, brief.Q05 and brief.Q13
+- Run log: `.ai/runs/2026-10-29-e01-completion.md`

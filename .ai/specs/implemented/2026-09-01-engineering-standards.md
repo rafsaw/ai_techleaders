@@ -619,7 +619,7 @@ the code disagree, the code and `AGENTS.md` win. Deviations:
 
 ## Corrections (2026-10-17)
 
-From the accounts spec (`.ai/specs/2026-10-17-accounts-and-roles.md`, AD2).
+From the accounts spec (`.ai/specs/implemented/2026-10-17-accounts-and-roles.md`, AD2).
 Where the sections above disagree with these bullets, these bullets win.
 
 - DB sessions replace "JWT HS256 24h", for the reason given in AD2 of the accounts spec (roles are read live from the DB on every request, so no role change waits for a token to expire).
@@ -635,7 +635,7 @@ Where the sections above disagree with these bullets, these bullets win.
 
 ## Corrections (2026-10-28)
 
-From accounts Phase 2 (`.ai/specs/2026-10-17-accounts-and-roles.md`) and
+From accounts Phase 2 (`.ai/specs/implemented/2026-10-17-accounts-and-roles.md`) and
 platform P10/P11. Where the sections above disagree, these bullets win.
 
 - **Ports live with their callers, not always in `core`.** A port whose

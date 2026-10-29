@@ -15,7 +15,7 @@ Once a surface has consumers outside this repository (a published package, a pub
 
 ## Recorded breaking changes
 
-- **Accounts Phase 1 (`.ai/specs/2026-10-17-accounts-and-roles.md`):**
+- **Accounts Phase 1 (`.ai/specs/implemented/2026-10-17-accounts-and-roles.md`):**
   - `apiHandler` and `makeCrudRoute` take a required `access` option (PD3); every in-repo route was updated.
   - `/api/users` went from open to operators only: 401 signed out, 403 without `operator`.
   - `/backend` and its pages are operators only: signed out redirects to `/sign-in?returnTo=…`, a signed-in non-operator gets the neutral 404. The home page no longer links to `/backend`; the header shows the sign-in state instead.
