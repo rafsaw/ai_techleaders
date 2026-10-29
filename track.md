@@ -87,3 +87,8 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 - [x] R12 **Accept invitation** on an expired or signed-out session fully navigates to `/sign-in?error=session_expired&returnTo=/invite/<token>` (SM-AC2) instead of showing "Authentication required"; regression unit + integration tests
 - [x] R7.G Full Phase 3 gate + run log — lint, typecheck, coverage (1877 tests, 100%), build, integration (12 files, 140 tests), storybook (342 tests) green
+
+### E01 final review — R13 (Codex, Major, 2026-10-29)
+
+- [x] R13 GitHub token exchange and `/user` + `/user/emails` reads are bounded (10 s per step, body included, sibling aborted) so a stalled provider ends in `github_failed` with `returnTo` kept instead of a hanging callback; regression unit + integration tests
+- [x] R8.G Full E01 gate + run log — lint, typecheck, coverage (1885 tests, 100%), build, integration (12 files, 145 tests), storybook (342 tests) green
