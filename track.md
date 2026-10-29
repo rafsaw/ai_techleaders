@@ -81,4 +81,4 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 ### Phase 3 — R11 (Codex, Major, 2026-10-29)
 
 - [x] R11 Next's repeated-slash/backslash 308 (`/sign-in//?returnTo=…`, `/invite//<t>`, `/sign-in\?…`) lacks the token-page headers: documented known limitation + production release blocker (not resolved); canary integration test, hosting release condition
-- [ ] R6.G Full Phase 3 gate + run log — lint, typecheck, coverage, build, storybook green; `test:integration` not run (Docker Desktop not running in this session), rerun before ticking
+- [x] R6.G Full Phase 3 gate + run log — lint, typecheck, coverage, build, storybook green; `test:integration` rerun by the user with Docker on 2026-10-29: 12 files, 138 tests passed (JUnit verified)

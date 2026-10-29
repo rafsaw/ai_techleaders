@@ -2,7 +2,7 @@
 
 **Asked:** implement the approved R11 outcome (Codex review, Major). Next's unconditional repeated-slash/backslash 308 echoes a token page's token in `Location` without the platform P8 headers. Product-owner decision, verbatim: "R11 remains a documented known limitation and a production release blocker, not a resolved security defect." Document it (accounts spec entry + release condition, platform P8, README hosting checklist, AGENTS.md, lessons), add a canary integration test that pins today's behaviour, make the Proxy unit tests honest, run the full gate, update the tracker. No runtime change (no custom server, no Next patch, no change to `proxy.ts`, `next.config.ts` or `token-page.ts`). Stay in Phase 3 (spec not moved, no push, no PR).
 
-**Outcome:** partial. Docs and tests done; lint, typecheck, unit coverage, build and Storybook green. `npm run test:integration` could not run: Docker Desktop was not running in this session (`docker` missing in WSL, `docker.exe ps`: no `dockerDesktopLinuxEngine` pipe; Testcontainers: "Could not find a working container runtime strategy"). The R6.G tracker item stays unticked until the integration suite is rerun with Docker.
+**Outcome:** success after the integration rerun (see "Integration rerun" below). Initially partial: Docs and tests done; lint, typecheck, unit coverage, build and Storybook green. `npm run test:integration` could not run: Docker Desktop was not running in this session (`docker` missing in WSL, `docker.exe ps`: no `dockerDesktopLinuxEngine` pipe; Testcontainers: "Could not find a working container runtime strategy"). The R6.G tracker item stays unticked until the integration suite is rerun with Docker.
 
 ## Investigation (done before this run, re-checked here)
 
@@ -37,7 +37,7 @@ Risk recap: the token goes back only to the client that sent it; without `Cache-
 - `npm run typecheck`: pass.
 - `npm run test:coverage`: 99 files, 1875 tests passed (1876 before: two Proxy redirect rows removed, one defensive test added); 100% statements (1941), branches (1070), functions (552), lines (1729), per-file thresholds met.
 - `npm run build`: pass.
-- `npm run test:integration`: **not run** — Docker Desktop not running. Expected after rerun: 12 files, 138 tests (126 + 12).
+- `npm run test:integration`: not run in this session (Docker Desktop not running); rerun by the user, see below: 12 files, 138 tests passed.
 - `npm run test:storybook`: 56 files, 342 tests passed.
 
 No schema change.
@@ -46,3 +46,10 @@ No schema change.
 
 - test/docs commit: canary integration test, Proxy test cleanup, spec/platform/README/AGENTS/lessons docs.
 - chore(e01): Phase 3 R11 known limitation, gate and run log — `track.md` and this log.
+
+## Integration rerun (2026-10-29)
+
+- The user restarted Docker and ran `npm run test:integration` on the branch at `812611e` (clean tree): 12 files, 138 tests passed, 197.28 s.
+- Evidence verified in `test-results/integration/junit.xml` (written 2026-10-29T12:08Z, after the R11 commits at 12:01Z): `tests="138" failures="0" errors="0"`, 12 suites, none skipped. `token-page-repeated-slash.test.ts` 12/12 (the R11 canary, including the final pages for `/invite/<t>` and `/confirm-email` with a database), `token-page-redirect.test.ts` 17/17, `invitation-page.test.ts` 30/30.
+- No 43-character token-shaped string appears in the JUnit file.
+- `track.md` R6.G ticked. The R11 limitation itself stays open as a production release blocker (hosting release condition); the passing canary pins Next's behaviour, it does not resolve it.
