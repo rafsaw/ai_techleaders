@@ -231,6 +231,10 @@ the `returnTo` schema) goes in `validators/`.
   trailing-slash 308 (`skipTrailingSlashRedirect` is on), with the
   token-page headers, because Next's own redirect drops every `headers()`
   rule (R10). Don't turn the flag off or narrow the `/:path+/` matcher.
+  Next's repeated-slash/backslash 308 (`/sign-in//`, `/invite//<t>`,
+  `/sign-in\`) runs before the Proxy and `headers()` and cannot be
+  protected in-app: it is a hosting release condition (R11), so don't try
+  to fix it in the Proxy.
 - **`/error` is identity-free.** It lives in its own `(error)` route group,
   and neither its page, layout nor header resolves a principal, creates a
   request scope or touches the DB, so it can report exactly those failures.

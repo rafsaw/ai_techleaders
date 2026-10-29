@@ -98,7 +98,7 @@ describe("cookie-only Proxy", () => {
   // Review fix R10: Next's own trailing-slash 308 drops every headers() rule.
   it("also matches every trailing-slash path, the ones Next's own redirect covered", () => {
     const matches = (url: string) => unstable_doesMiddlewareMatch({ config: proxyModule.config, url });
-    for (const url of ["/sign-in/", "/invite/abc/", "/sign-up/check-email/?returnTo=%2F", "/api/users/", "/favicon.ico/", "/a//"]) {
+    for (const url of ["/sign-in/", "/invite/abc/", "/sign-up/check-email/?returnTo=%2F", "/api/users/", "/favicon.ico/"]) {
       expect(matches(url), url).toBe(true);
     }
   });
@@ -110,8 +110,6 @@ describe("cookie-only Proxy", () => {
     ["/confirm-email/?token=abc", "/confirm-email?token=abc"],
     ["/account/", "/account"],
     ["/api/users/?id=1", "/api/users?id=1"],
-    ["/a//", "/a"],
-    ["//", "/"],
   ])("redirects %s with a 308 to %s, as a token page", (path, location) => {
     const response = call(path, `devmentor_session=${TOKEN}`);
     expect(response.status).toBe(308);
@@ -121,6 +119,16 @@ describe("cookie-only Proxy", () => {
     expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
     // A redirect renews nothing; the canonical request does.
     expect(response.headers.getSetCookie()).toEqual([]);
+  });
+
+  // Defensive only: in production Next answers any path holding `//` or `\\`
+  // with its own bare 308 before the Proxy runs (accounts known limitation
+  // R11, a hosting release condition), so `//` never reaches it. This case
+  // covers the `|| "/"` fallback, which keeps the root from becoming empty.
+  it("would redirect a slash-only path to the root, though Next answers it first (R11)", () => {
+    const response = call("//", `devmentor_session=${TOKEN}`);
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe("http://localhost:3000/");
   });
 
   it("cannot authorize: it never redirects a canonical path, rewrites or blocks, whatever the cookie", () => {

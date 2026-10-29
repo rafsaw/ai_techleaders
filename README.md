@@ -370,6 +370,21 @@ exists only in the email. Before sending production invitations, make sure
 the hosting and reverse-proxy access logs omit or redact `/invite/` path
 segments (and `token=` query values).
 
+**Repeated slashes and backslashes (release condition, accounts R11).**
+Next.js answers any path holding `//` or `\` (`/sign-in//?returnTo=…`,
+`/invite//<token>`) with its own 308 before the app's Proxy and header
+rules run, so that redirect echoes the address without the token-page
+headers and the app cannot fix it. Before production, the hosting edge must
+either normalize repeated slashes and backslashes in the path before the
+request reaches the app, or add `Cache-Control: no-store`,
+`Referrer-Policy: no-referrer` and `X-Robots-Tag: noindex, nofollow` to the
+app's 3xx responses. Verify with
+`curl -sI --path-as-is 'https://<host>/sign-in//?returnTo=x'` (and
+`'https://<host>/sign-in\?returnTo=x'`): the answer must carry
+`no-store`, or be a redirect issued by the edge whose request never reached
+the app un-normalized. The inputs are listed in
+`packages/app/tests/integration/token-page-repeated-slash.test.ts`.
+
 **Rollback** is code only, as for every accounts change (see
 [Rollback](#rollback)): keep the `mentor_invitations` table, the
 `user_roles.invitation_id` column and every granted role. Code from before

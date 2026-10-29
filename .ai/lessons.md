@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-29 — Next's repeated-slash/backslash 308 cannot be protected in-app
+
+**Context:** E01 Phase 3 review R11. `/sign-in//?returnTo=/invite/<token>`, `/invite//<token>` and `/sign-in\?…` got a bare 308 (token in `Location`, no token-page headers) even after R10, because Next answers them before the Proxy.
+**Lesson:** in Next 16, any path (before `?`) containing `//` or `\` gets an unconditional 308 to the normalized URL with empty headers (`resolve-routes.js`, twin in `base-server.js`), before `headers()`, `redirects()`, rewrites and the Proxy; no config turns it off. Don't try to fix it in the Proxy or with header rules (a Proxy test with `//` passes but never runs in production). It belongs to the hosting edge (normalize first, or add no-store/no-referrer/noindex to 3xx) and is a production release condition (accounts R11). To test raw paths, use `node:http` or `curl --path-as-is`: `fetch`/WHATWG URL turns `\` into `/` before sending.
+**Applies to:** `packages/app/src/proxy.ts`, `tests/integration/token-page-repeated-slash.test.ts`, hosting checklist in `README.md`, any header that must accompany a redirect.
+
 ### 2026-10-28 — Next's built-in redirects drop every `headers()` rule
 
 **Context:** E01 Phase 3 review fix R10. `/invite/<token>/` and `/sign-in/?returnTo=/invite/<token>` got Next's automatic trailing-slash 308 with the token in `Location` and none of the token-page headers; adding header sources for the slash form changed nothing.
