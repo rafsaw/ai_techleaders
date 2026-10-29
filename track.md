@@ -77,3 +77,8 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 - [x] R10 Next's trailing-slash 308 on token pages (`/invite/<t>/`, `/sign-in/?returnTo=…`) carries the token-page headers
 - [x] R5.G Full Phase 3 gate + run log
+
+### Phase 3 — R11 (Codex, Major, 2026-10-29)
+
+- [x] R11 Next's repeated-slash/backslash 308 (`/sign-in//?returnTo=…`, `/invite//<t>`, `/sign-in\?…`) lacks the token-page headers: documented known limitation + production release blocker (not resolved); canary integration test, hosting release condition
+- [ ] R6.G Full Phase 3 gate + run log — lint, typecheck, coverage, build, storybook green; `test:integration` not run (Docker Desktop not running in this session), rerun before ticking
