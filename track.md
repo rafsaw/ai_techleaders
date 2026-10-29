@@ -67,3 +67,8 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 - [x] 3.4 Integration on PostgreSQL + Mailpit, including the four race tests
 - [x] 3.5 Documentation (operator runbook), move spec to `implemented/` (spec move to implemented/ deferred until Phase 3 approval)
 - [x] 3.G Phase 3 full gate + run log → **manual test pause**
+
+### Phase 3 — review fixes (Codex review, REQUEST CHANGES, 2026-10-28)
+
+- [x] R9 Token-page headers on auth pages can't be bypassed by duplicate or normalized nested `returnTo`
+- [x] R4.G Full Phase 3 gate + run log
