@@ -227,7 +227,10 @@ the `returnTo` schema) goes in `validators/`.
   well-formed session cookie with a fresh Max-Age on page requests (not
   `/api`, `/_next` or files), because Server Components cannot set cookies.
   It never authorizes and never imports the DB or the container; validity is
-  always decided by the guards and API wrappers.
+  always decided by the guards and API wrappers. It also sends the
+  trailing-slash 308 (`skipTrailingSlashRedirect` is on), with the
+  token-page headers, because Next's own redirect drops every `headers()`
+  rule (R10). Don't turn the flag off or narrow the `/:path+/` matcher.
 - **`/error` is identity-free.** It lives in its own `(error)` route group,
   and neither its page, layout nor header resolves a principal, creates a
   request scope or touches the DB, so it can report exactly those failures.
@@ -327,8 +330,9 @@ the `returnTo` schema) goes in `validators/`.
   pages that keep a `returnTo`, `/sign-in`, `/sign-up`,
   `/sign-up/check-email`) always sends the token-page headers and static
   metadata, whatever its query. Protect by route; never match `returnTo` in
-  a `next.config` `has` rule (R9). A failed send keeps the invitation and
-  exits 1 asking for `invite resend`.
+  a `next.config` `has` rule (R9). A redirect never gets `headers()`
+  rules, so the Proxy sends the trailing-slash 308 with the headers (R10).
+  A failed send keeps the invitation and exits 1 asking for `invite resend`.
 - **Staged for E02:** `INVITATION_ACCEPTED_DESTINATION`
   (`(frontend)/auth-links.ts`, now `/?invitation=accepted`) becomes
   `/mentor` in E02 Phase 1, and `SiteHeader` shows **Mentor setup** only

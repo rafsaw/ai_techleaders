@@ -11,7 +11,9 @@ import type { Metadata } from "next";
  * `<meta name="robots">` into the HTML, and `next.config.ts` sends the same
  * rules as response headers for each route in `TOKEN_PAGES`. Next keeps a
  * `Cache-Control` set there for dynamic pages (it only adds its own when the
- * response has none); `next dev` replaces it with `no-store`.
+ * response has none); `next dev` replaces it with `no-store`. Next sends no
+ * `headers()` rule with a redirect, so the Proxy issues the trailing-slash
+ * 308 (`/sign-in/` -> `/sign-in`) itself, with these headers (review fix R10).
  */
 export const TOKEN_PAGE_METADATA = {
   referrer: "no-referrer",

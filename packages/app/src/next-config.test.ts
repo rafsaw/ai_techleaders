@@ -59,4 +59,10 @@ describe("next.config headers", () => {
     expect(headers.get("cache-control")).toBeNull();
     expect(headers.get("x-robots-tag")).toBeNull();
   });
+
+  // Review fix R10: Next sends no headers() rule with its own trailing-slash
+  // 308, so it is off and the Proxy (src/proxy.ts) issues it with the headers.
+  it("leaves the trailing-slash redirect to the Proxy", () => {
+    expect(nextConfig.skipTrailingSlashRedirect).toBe(true);
+  });
 });

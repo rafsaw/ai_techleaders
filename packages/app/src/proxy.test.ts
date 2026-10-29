@@ -95,15 +95,43 @@ describe("cookie-only Proxy", () => {
     }
   });
 
-  it("cannot authorize: it never redirects, rewrites or blocks, whatever the cookie", () => {
+  // Review fix R10: Next's own trailing-slash 308 drops every headers() rule.
+  it("also matches every trailing-slash path, the ones Next's own redirect covered", () => {
+    const matches = (url: string) => unstable_doesMiddlewareMatch({ config: proxyModule.config, url });
+    for (const url of ["/sign-in/", "/invite/abc/", "/sign-up/check-email/?returnTo=%2F", "/api/users/", "/favicon.ico/", "/a//"]) {
+      expect(matches(url), url).toBe(true);
+    }
+  });
+
+  it.each([
+    ["/invite/abcDEF123_-/", "/invite/abcDEF123_-"],
+    ["/sign-in/?returnTo=%2Finvite%2Fabc", "/sign-in?returnTo=%2Finvite%2Fabc"],
+    ["/sign-up/check-email/?email=ada%40example.com&returnTo=%2Finvite%2Fabc", "/sign-up/check-email?email=ada%40example.com&returnTo=%2Finvite%2Fabc"],
+    ["/confirm-email/?token=abc", "/confirm-email?token=abc"],
+    ["/account/", "/account"],
+    ["/api/users/?id=1", "/api/users?id=1"],
+    ["/a//", "/a"],
+    ["//", "/"],
+  ])("redirects %s with a 308 to %s, as a token page", (path, location) => {
+    const response = call(path, `devmentor_session=${TOKEN}`);
+    expect(response.status).toBe(308);
+    expect(response.headers.get("location")).toBe(`http://localhost:3000${location}`);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
+    // A redirect renews nothing; the canonical request does.
+    expect(response.headers.getSetCookie()).toEqual([]);
+  });
+
+  it("cannot authorize: it never redirects a canonical path, rewrites or blocks, whatever the cookie", () => {
     for (const cookie of [undefined, `devmentor_session=${TOKEN}`, `devmentor_session=${"B".repeat(43)}`]) {
       expectPassThrough(call("/backend", cookie));
     }
   });
 
-  it("imports only cookie and config helpers", () => {
+  it("imports only cookie, config and token-page header helpers", () => {
     const source = readFileSync(new URL("./proxy.ts", import.meta.url), "utf8");
     const imports = [...source.matchAll(/from "([^"]+)"/g)].map((match) => match[1]);
-    expect(imports).toEqual(["@devmentor/core", "next/server", "@/server/auth/session-cookie", "@/server/config"]);
+    expect(imports).toEqual(["@devmentor/core", "next/server", "@/app/token-page", "@/server/auth/session-cookie", "@/server/config"]);
   });
 });

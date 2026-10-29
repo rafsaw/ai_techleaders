@@ -26,6 +26,12 @@ const nextConfig: NextConfig = {
   async headers() {
     return TOKEN_PAGES.map((source) => ({ source, headers: TOKEN_PAGE_HEADERS }));
   },
+
+  // Next sends no `headers()` rule with its automatic trailing-slash 308, so
+  // `/invite/<token>/` was redirected unprotected, the token in `Location`.
+  // The Proxy (src/proxy.ts) sends the same 308 with TOKEN_PAGE_HEADERS
+  // instead (review fix R10).
+  skipTrailingSlashRedirect: true,
 };
 
 export default nextConfig;

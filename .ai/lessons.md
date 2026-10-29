@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-28 — Next's built-in redirects drop every `headers()` rule
+
+**Context:** E01 Phase 3 review fix R10. `/invite/<token>/` and `/sign-in/?returnTo=/invite/<token>` got Next's automatic trailing-slash 308 with the token in `Location` and none of the token-page headers; adding header sources for the slash form changed nothing.
+**Lesson:** in Next 16, `resolve-routes` returns `resHeaders: null` for any config redirect (the internal trailing-slash one and `redirects()`), so `headers()` rules never reach a redirect response. Headers on a redirect need a Proxy-issued redirect (here `skipTrailingSlashRedirect: true` plus `trailingSlashRedirect` in `src/proxy.ts`, matcher `/:path+/`). Test security headers on redirects with `fetch(url, { redirect: "manual" })` against the production build, not just on the final page. When building a redirect URL in a Proxy, use `new URL(request.url)`: a cloned `NextURL` remembers the trailing slash it parsed and puts it back.
+**Applies to:** `packages/app/next.config.ts`, `packages/app/src/proxy.ts`, any header that must accompany a redirect.
+
 ### 2026-10-28 — Never re-implement request parsing in `next.config` `has` matchers; protect by route
 
 **Context:** E01 Phase 3 review fix R9. The auth pages got the token-page headers only when `has: [{ type: "query", key: "returnTo", value: "/invite/.*" }]` matched, but the pages read the first `returnTo` and normalized it with `parseReturnTo`. Duplicates, dot segments and percent-encoding produced pages that carried an invitation token with no `Referrer-Policy`, `Cache-Control` or `X-Robots-Tag`.
