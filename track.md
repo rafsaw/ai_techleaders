@@ -72,3 +72,8 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 - [x] R9 Token-page headers on auth pages can't be bypassed by duplicate or normalized nested `returnTo`
 - [x] R4.G Full Phase 3 gate + run log
+
+### Phase 3 — re-review fixes (Codex re-review of R9, 2026-10-28)
+
+- [x] R10 Next's trailing-slash 308 on token pages (`/invite/<t>/`, `/sign-in/?returnTo=…`) carries the token-page headers
+- [x] R5.G Full Phase 3 gate + run log
