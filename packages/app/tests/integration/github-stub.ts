@@ -25,6 +25,12 @@ const DEFAULT_USER: StubGitHubUser = {
   emails: [{ email: "octocat@example.com", primary: true, verified: true }],
 };
 
+/** A GitHub endpoint the stub can stall, and how: no headers, or headers then a body that never ends. */
+export interface GitHubStubStall {
+  path: "/login/oauth/access_token" | "/user" | "/user/emails";
+  mode: "headers" | "body";
+}
+
 type Grant = { challenge: string; redirectUri: string; user: StubGitHubUser };
 
 function send(response: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}): void {
@@ -64,13 +70,29 @@ function escapeHtml(value: string): string {
  * - `POST /__stub/user`: sets the identity for subsequent authorizations;
  * - `POST /__stub/barrier`: holds the next `count` `/user/emails` answers
  *   until all of them have arrived, so concurrent callbacks reach account
- *   resolution at the same moment (race tests).
+ *   resolution at the same moment (race tests);
+ * - `POST /__stub/stall`: from now on, holds every request to one endpoint
+ *   without headers, or with headers and an unfinished JSON body (`null`
+ *   clears it); `GET /__stub/stall` reports how many stalled requests the
+ *   client has not closed yet (timeout tests, R13).
  */
 export async function startGitHubStub({ clientId, clientSecret }: { clientId: string; clientSecret: string }): Promise<GitHubStub> {
   let currentUser = DEFAULT_USER;
   const grants = new Map<string, Grant>();
   const tokens = new Map<string, StubGitHubUser>();
   let barrier: { remaining: number; waiting: (() => void)[] } | undefined;
+  let stall: GitHubStubStall | null = null;
+  const stalled = new Set<ServerResponse>();
+
+  /** Holds the request open until the client gives up on it. */
+  const hold = (response: ServerResponse, mode: GitHubStubStall["mode"]) => {
+    stalled.add(response);
+    response.once("close", () => stalled.delete(response));
+    if (mode === "body") {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.write('{"access_token":');
+    }
+  };
 
   const passBarrier = async () => {
     if (!barrier) return;
@@ -143,6 +165,12 @@ export async function startGitHubStub({ clientId, clientSecret }: { clientId: st
     const route = `${request.method} ${url.pathname}`;
     const bearer = request.headers.authorization?.replace(/^Bearer /, "") ?? "";
     void (async () => {
+      if (stall && url.pathname === stall.path) return hold(response, stall.mode);
+      if (route === "POST /__stub/stall") {
+        stall = JSON.parse(await readBody(request)) as GitHubStubStall | null;
+        return send(response, 204, "");
+      }
+      if (route === "GET /__stub/stall") return send(response, 200, { open: stalled.size });
       if (route === "GET /login/oauth/authorize") return authorize(url, response);
       if (route === "POST /login/oauth/access_token") return exchange(request, response);
       if (route === "POST /__stub/user") {
@@ -191,4 +219,16 @@ export async function setGitHubStubUser(stubUrl: string, user: StubGitHubUser): 
 export async function setGitHubStubBarrier(stubUrl: string, count: number): Promise<void> {
   const response = await fetch(`${stubUrl}/__stub/barrier`, { method: "POST", body: JSON.stringify({ count }) });
   if (response.status !== 204) throw new Error(`GitHub stub refused the barrier (${response.status})`);
+}
+
+/** Stalls one stub endpoint for every later request (see `GitHubStubStall`), or clears it with `null`. */
+export async function setGitHubStubStall(stubUrl: string, stall: GitHubStubStall | null): Promise<void> {
+  const response = await fetch(`${stubUrl}/__stub/stall`, { method: "POST", body: JSON.stringify(stall) });
+  if (response.status !== 204) throw new Error(`GitHub stub refused the stall (${response.status})`);
+}
+
+/** How many stalled requests the client still holds open. */
+export async function openStalledGitHubRequests(stubUrl: string): Promise<number> {
+  const response = await fetch(`${stubUrl}/__stub/stall`);
+  return ((await response.json()) as { open: number }).open;
 }

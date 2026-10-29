@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { afterAll, afterEach, describe, expect, inject, it } from "vitest";
 
 import { IntegrationBrowser } from "./browser";
-import { setGitHubStubUser } from "./github-stub";
+import { openStalledGitHubRequests, setGitHubStubStall, setGitHubStubUser, type GitHubStubStall } from "./github-stub";
 import {
   expectEvidenceFreeOf,
   expectSecretFree,
@@ -31,7 +31,8 @@ import { linksIn, MailpitInbox } from "./mailpit";
  * invitee address here signs up once (1 of 3 confirmation emails) and
  * confirms once (1 of 5 sign-in/confirm attempts); the throwaway sign-up
  * address sends one confirmation email. The expired-session invitee uses
- * GitHub only, so it spends no email-rule attempts. Every address is unique
+ * GitHub only, so it spends no email-rule attempts, and so does the
+ * stalled-provider invitee (R13). Every address is unique
  * to this file.
  *
  * Evidence: `IntegrationBrowser` redacts `/invite/<token>` and `token=` in
@@ -49,11 +50,12 @@ describe("mentor invitations (CLI, Mailpit, browser)", () => {
   const grace = { id: seed, name: "Grace Invitee", email: `inv-grace-${suffix}@example.com` };
   const mallory = { id: seed + 1, name: "Mallory Other", email: `inv-mallory-${suffix}@example.com` };
   const eve = { id: seed + 2, name: "Eve Expired", email: `inv-eve-${suffix}@example.com` };
+  const fay = { id: seed + 3, name: "Fay Stalled", email: `inv-fay-${suffix}@example.com` };
   const ada = { name: "Ada Invitee", email: `inv-ada-${suffix}@example.com`, password: "a lighthouse on the far shore" };
   const bea = { name: "Bea Invitee", email: `inv-bea-${suffix}@example.com`, password: "a lantern in the old harbour" };
   const cleo = `inv-cleo-${suffix}@example.com`;
   const dora = `inv-dora-${suffix}@example.com`;
-  const everyone = [grace.email, mallory.email, eve.email, ada.email, bea.email, cleo, dora];
+  const everyone = [grace.email, mallory.email, eve.email, fay.email, ada.email, bea.email, cleo, dora];
 
   /** Every raw token this file sees; none may appear in the evidence. */
   const seenTokens: string[] = [];
@@ -70,6 +72,7 @@ describe("mentor invitations (CLI, Mailpit, browser)", () => {
   // sessions and links cascade) and the buckets, whatever order Vitest runs in.
   afterAll(async () => {
     try {
+      await setGitHubStubStall(inject("githubStubURL"), null);
       await query("delete from mentor_invitations where email = any($1)", [everyone]);
       await query("delete from users where email = any($1)", [everyone]);
       await query("delete from rate_limit_buckets");
@@ -360,6 +363,54 @@ describe("mentor invitations (CLI, Mailpit, browser)", () => {
       await acceptInBrowser();
       expect(await headerText()).toContain(eve.name);
       expect(await rolesOf(eve.email)).toEqual(["mentee", "mentor"]);
+    });
+  });
+
+  describe("a GitHub provider that stalls (R13)", () => {
+    const stubURL = inject("githubStubURL");
+    let token = "";
+
+    afterAll(async () => {
+      await setGitHubStubStall(stubURL, null);
+    });
+
+    it.each<GitHubStubStall>([
+      { path: "/login/oauth/access_token", mode: "headers" },
+      { path: "/login/oauth/access_token", mode: "body" },
+      { path: "/user/emails", mode: "headers" },
+      { path: "/user", mode: "body" },
+    ])("$path stalled ($mode): the callback gives up within the bound and keeps this invitation as returnTo", async (stall) => {
+      if (!token) {
+        token = await create(fay.email);
+        await browser.command("cookies", "clear");
+        await setGitHubStubUser(stubURL, {
+          id: fay.id, login: `gh-${fay.id}`, name: fay.name,
+          emails: [{ email: fay.email, primary: true, verified: true }],
+        });
+      }
+      await setGitHubStubStall(stubURL, stall);
+      await signInFromInvitation(token);
+      await browser.click("link", "Sign in with GitHub");
+      await browser.waitForText("Authorize DevMentor");
+      const started = Date.now();
+      await browser.click("link", "Authorize");
+      await browser.waitForText("GitHub sign-in failed.");
+      const elapsed = Date.now() - started;
+      expect(await browser.url()).toBe(`${baseURL}/sign-in?error=github_failed&returnTo=${encodeURIComponent(`/invite/${token}`)}`);
+      // The adapter's 10 s bound, not a quicker failure, ended the attempt.
+      expect(elapsed).toBeGreaterThanOrEqual(9_500);
+      expect(elapsed).toBeLessThan(20_000);
+      // The stalled request was cancelled, not left open on the provider.
+      await expect.poll(() => openStalledGitHubRequests(stubURL)).toBe(0);
+      expect(await sessionCookie()).toBeUndefined();
+    });
+
+    it("once GitHub answers again, signs in and returns to the same invitation", async () => {
+      await setGitHubStubStall(stubURL, null);
+      await authorizeGitHub("Authorize");
+      await browser.command("wait", "--url", invitationURL(token));
+      await browser.waitForText("This account will receive the mentor role.");
+      expect(await rolesOf(fay.email)).toEqual(["mentee"]);
     });
   });
 

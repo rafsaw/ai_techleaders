@@ -199,6 +199,9 @@ the `returnTo` schema) goes in `validators/`.
     `requirePrincipal`, `requireRole`).
   - GitHub: the port `server/services/auth/github-oauth.port.ts` and the
     arctic adapter `server/services/auth/adapters/arctic-github-oauth.ts`.
+    Every GitHub call is bounded by `GITHUB_REQUEST_TIMEOUT_MS` (10 s, body
+    included) through an `AbortSignal`; arctic only builds the authorization
+    URL, since its token request takes no signal (R13).
   - operator CLI: `packages/app/src/server/cli/` (`run-cli.ts`, one
     `commands/*.command.ts` per command). Command modules must not
     value-import `@devmentor/db` (type imports only): its config reads

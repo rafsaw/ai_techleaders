@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-29 — Bound every outbound HTTP call with an `AbortSignal`, body included
+
+**Context:** R13 — the GitHub callback hung on a stalled provider: arctic's token request and our `/user` reads used `fetch` with no signal, and undici's defaults wait 300 s for headers and again for the body.
+**Lesson:** Pass `AbortSignal.timeout(ms)` to every outbound `fetch` and read the body under the same signal (an abort during `response.json()` rejects with `TimeoutError`). Parallel calls share one deadline (`AbortSignal.any`) and the first failure aborts the rest. A library that builds its own `Request` without a signal (arctic 3.x token request) cannot be bounded — racing its promise answers in time but leaks the request — so do that request with your own `fetch`. Test stalls with a fetch stub that only settles on abort, and in integration with a stub that holds the response open.
+**Applies to:** `packages/app/src/server/services/auth/adapters/arctic-github-oauth.ts`, any future port adapter (payments, notifications, video).
+
 ### 2026-10-29 — Every client call to a signed-in API goes through `unlessSessionExpired`
 **Context:** review finding R12: Accept on `/invite/[token]` used a bare `apiCall`, so an expired session showed "Authentication required" on the page instead of fully navigating to sign-in with the session-expired banner (SM-AC2). `/account` and `/backend/users` already wrapped their calls.
 **Lesson:** Any client `submit`/fetch whose API is `access: "user"` or `{ role }` must return `unlessSessionExpired(await apiCall(...), <this page's returnTo>)` from `@/app/session-expiry`, with a unit test for the 401 navigation. `public`/`optional` APIs never answer 401 and need no wrapper (e.g. sign-out). When adding a form, check the route's `access` rule.
