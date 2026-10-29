@@ -82,3 +82,8 @@ Legend: `[ ]` todo · `[~]` in progress · `[x]` done
 
 - [x] R11 Next's repeated-slash/backslash 308 (`/sign-in//?returnTo=…`, `/invite//<t>`, `/sign-in\?…`) lacks the token-page headers: documented known limitation + production release blocker (not resolved); canary integration test, hosting release condition
 - [x] R6.G Full Phase 3 gate + run log — lint, typecheck, coverage, build, storybook green; `test:integration` rerun by the user with Docker on 2026-10-29: 12 files, 138 tests passed (JUnit verified)
+
+### Phase 3 — R12 (manual-test prep, 2026-10-29)
+
+- [x] R12 **Accept invitation** on an expired or signed-out session fully navigates to `/sign-in?error=session_expired&returnTo=/invite/<token>` (SM-AC2) instead of showing "Authentication required"; regression unit + integration tests
+- [x] R7.G Full Phase 3 gate + run log — lint, typecheck, coverage (1877 tests, 100%), build, integration (12 files, 140 tests), storybook (342 tests) green
