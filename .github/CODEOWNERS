@@ -1,0 +1,11 @@
+# AI agent configuration and instructions
+/.claude/        @rafsaw
+/.agents/        @rafsaw
+/.mcp.json       @rafsaw
+/CLAUDE.md       @rafsaw
+/AGENTS.md       @rafsaw
+/.github/CODEOWNERS @rafsaw
+
+# Nested agent instructions
+**/CLAUDE.md      @rafsaw
+**/AGENTS.md      @rafsaw
