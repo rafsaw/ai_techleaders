@@ -305,6 +305,26 @@ describe("mentor invitations (CLI, Mailpit, browser)", () => {
       expectSecretFree(revoke, [second]);
       expect(await rolesOf(grace.email)).toEqual(["mentee", "mentor", "operator"]);
     });
+
+    it("conceals setup and the retained public profile after the mentor role is removed", async () => {
+      const [profile] = await query<{ id: string }>(
+        `select id from mentor_profiles where user_id = (select id from users where email = $1)`,
+        [grace.email],
+      );
+      await query(
+        `delete from user_roles where user_id = (select id from users where email = $1) and role = 'mentor'`,
+        [grace.email],
+      );
+
+      const setup = await fetch(`${baseURL}/mentor`, {
+        headers: { cookie: await browserCookie() },
+        redirect: "manual",
+      });
+      expect(setup.status).toBe(404);
+      expect((await fetch(`${baseURL}/mentors/${profile!.id}`)).status).toBe(404);
+      expect(await query(`select id from mentor_profiles where id = $1`, [profile!.id]))
+        .toEqual([{ id: profile!.id }]);
+    });
   });
 
   describe("a different GitHub account, then the invited address by email", () => {

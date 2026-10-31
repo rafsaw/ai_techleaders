@@ -73,4 +73,4 @@ Validation completed successfully:
 - `npm run test:storybook` — 342 tests in each of the light and dark projects
 - `npm run check:tokens`
 - `npm run check:agents`
-- `npm run test:integration` — 149 tests
+- `npm run test:integration` — 150 tests
