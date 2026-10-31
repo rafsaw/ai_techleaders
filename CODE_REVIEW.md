@@ -1,6 +1,6 @@
 # Code review rules
 
-The review rules for DevMentor. `om-code-review` (and therefore `om-auto-review-pr`) applies this file automatically, on top of its built-in checklist. Human reviewers use it the same way. The authoritative stack and architecture rules are in `AGENTS.md`; this file turns them into review checks. When the two disagree, `AGENTS.md` wins and this file should be fixed.
+The review rules for DevMentor. `om-code-review` (and therefore `om-auto-review-pr`) applies this file automatically, on top of its built-in checklist. Human reviewers use it the same way. The authoritative stack and architecture rules are in the root `AGENTS.md` and the per-unit `AGENTS.md` files it routes to; this file turns them into review checks. When they disagree, `AGENTS.md` wins and this file should be fixed.
 
 ## Review priorities
 
@@ -28,7 +28,7 @@ Review in this order, and don't let a later category hide an earlier one:
 
 - Concept code follows the folder convention: `db/src/entities/<concept>/`, `app/src/server/services/<concept>/`, `core/src/validators/<concept>/`, `app/src/app/api/<concept>/`. File names follow `.ai/specs/implemented/2026-09-01-engineering-standards.md`.
 - No `modules/` folder and no empty, pre-scaffolded concept folders.
-- Reusable components go to their one designated home (`AGENTS.md`, "Every new reusable component has one designated home"). A shadcn primitive written by hand, or copied into `app`, is a finding.
+- Reusable components go to their one designated home (`packages/ui/AGENTS.md`, "Every new reusable component has one designated home"). A shadcn primitive written by hand, or copied into `app`, is a finding.
 
 ### API layer
 

@@ -108,7 +108,7 @@ Required path: update `.env.example`, `README.md` and the CI workflow in the sam
 
 ### 6. Repository scripts and commands
 
-The surface is the root `package.json` scripts that `AGENTS.md`, `README.md`, CI and the agent pipeline invoke: `setup`, `dev`, `build`, `lint`, `typecheck`, `test:coverage`, `test:integration`, `test:integration:install`, the `db:*` scripts, `ui:add`, and `operator` (`npm run operator -- role grant|revoke --email <email> --role operator [--yes]` and, from accounts Phase 3, `invite create|revoke|resend --email <email> [--yes]`, their flags, output lines and exit codes 0/1/2). The invite output lines are listed in the README operator runbook, and their being free of tokens and links is a `security` rule, not a format detail.
+The surface is the root `package.json` scripts that `AGENTS.md`, `README.md`, CI and the agent pipeline invoke: `setup`, `dev`, `build`, `lint`, `typecheck`, `test:coverage`, `test:integration`, `test:integration:install`, `test:storybook`, `check:tokens`, `check:agents`, the `db:*` scripts, `ui:add`, and `operator` (`npm run operator -- role grant|revoke --email <email> --role operator [--yes]` and, from accounts Phase 3, `invite create|revoke|resend --email <email> [--yes]`, their flags, output lines and exit codes 0/1/2). The invite output lines are listed in the README operator runbook, and their being free of tokens and links is a `security` rule, not a format detail.
 
 Breaking changes include renaming or removing a script, or changing what it validates (for example dropping a package from `typecheck`).
 

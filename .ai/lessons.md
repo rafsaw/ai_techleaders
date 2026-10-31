@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-30 — Put an agent rule where the code it governs loads it
+
+**Context:** The first task-router split filed rules by the package that defines a thing, not where it is used. `orm.em` lived only in `db` and `isAppError` only in `core`, yet app services use both. A text-overlap comparison reported nothing lost because the words still existed somewhere.
+**Lesson:** Nested instruction files load by path, so place a rule in a file on the path of the code it governs, and check placement rule by rule. Text overlap proves only that the words exist.
+**Applies to:** every nested `AGENTS.md`.
+
 ### 2026-10-29 — Bound every outbound HTTP call with an `AbortSignal`, body included
 
 **Context:** R13 — the GitHub callback hung on a stalled provider: arctic's token request and our `/user` reads used `fetch` with no signal, and undici's defaults wait 300 s for headers and again for the body.
