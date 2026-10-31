@@ -11,7 +11,7 @@
       "source": "open-mercato/skills",
       "sourceType": "github",
       "skillPath": "skills/om-apply-upgrade-notes/SKILL.md",
-      "computedHash": "85aeee1e4cf9d622712b1d72a70a7c327473ebf1cc62b3a923fd907b70b7d03d"
+      "computedHash": "81401509adb7377cdf0134a9098cd1f3b407454440899a5436b25ef626867e1c"
     },
     "om-approve-merge-pr": {
       "source": "open-mercato/skills",
@@ -155,7 +155,7 @@
       "source": "open-mercato/skills",
       "sourceType": "github",
       "skillPath": "skills/om-create-skill/SKILL.md",
-      "computedHash": "dda97d13d479e36b6f4799862c0381c59c7add40b94bc1d50a94d78524f1b1ca"
+      "computedHash": "2c6eaf6368d516df9d32400e1d300e3c1e7695a3b6fe0b2322ea1c78cb202145"
     },
     "om-discover": {
       "source": "open-mercato/skills",
@@ -293,7 +293,7 @@
       "source": "open-mercato/skills",
       "sourceType": "github",
       "skillPath": "skills/om-setup-agent-pipeline/SKILL.md",
-      "computedHash": "0eab7b0296547c198e412b66a2d1afe7b9f20eb172a3a5f4a501a0c1cc3d7d71"
+      "computedHash": "47a0c3fc5f76309419f02dfa8de1292e73aa5b25f2686b7d384fe5513722fe3c"
     },
     "om-setup-discovery-pipeline": {
       "source": "open-mercato/skills",
