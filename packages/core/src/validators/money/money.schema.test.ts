@@ -11,12 +11,12 @@ describe("money contract", () => {
   });
 
   it.each([
-    ["", "Price must be at least $5"],
-    [4, "Price must be at least $5"],
-    [-1, "Price must be at least $5"],
-    [1_001, "Price must be at most $1,000"],
-    [5.5, "Enter a whole-dollar price"],
-    ["not-a-number", "Enter a whole-dollar price"],
+    ["", "The lowest price is $5"],
+    [4, "The lowest price is $5"],
+    [-1, "The lowest price is $5"],
+    [1_001, "The highest price is $1,000"],
+    [5.5, "Enter a whole number of dollars"],
+    ["not-a-number", "Enter a whole number of dollars"],
   ])("rejects an invalid session price %#", (input, message) => {
     expect(priceDollarsSchema.safeParse(input).error?.issues[0]?.message).toBe(message);
   });

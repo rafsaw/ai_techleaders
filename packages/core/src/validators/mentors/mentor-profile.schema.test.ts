@@ -36,12 +36,12 @@ describe("mentor profile schema", () => {
   });
 
   it("rejects an unsupported or missing area with the product choices", () => {
-    expect(messages({ area: "go" }, "area")).toEqual(["Choose TypeScript, React or Python"]);
-    expect(messages({ area: "" }, "area")).toEqual(["Choose TypeScript, React or Python"]);
+    expect(messages({ area: "go" }, "area")).toEqual(["Choose an area"]);
+    expect(messages({ area: "" }, "area")).toEqual(["Choose an area"]);
   });
 
   it("enforces the trimmed description bounds", () => {
-    expect(messages({ description: " " }, "description")).toEqual(["Description is required"]);
+    expect(messages({ description: " " }, "description")).toEqual(["Describe what you help with"]);
     expect(mentorProfileSchema.parse({ ...valid, description: " x " }).description).toBe("x");
     expect(messages({ description: "x".repeat(MENTOR_DESCRIPTION_MAX_LENGTH) }, "description")).toEqual([]);
     expect(messages({ description: "x".repeat(MENTOR_DESCRIPTION_MAX_LENGTH + 1) }, "description"))
@@ -49,7 +49,7 @@ describe("mentor profile schema", () => {
   });
 
   it("requires one link and permits at most five", () => {
-    expect(messages({ publicWorkLinks: "\n " }, "publicWorkLinks")).toEqual(["Add at least one public-work link"]);
+    expect(messages({ publicWorkLinks: "\n " }, "publicWorkLinks")).toEqual(["Add at least one link"]);
     expect(messages({ publicWorkLinks: Array.from({ length: 6 }, (_, index) => `https://example.com/${index}`).join("\n") }, "publicWorkLinks"))
       .toContain("Use at most 5 public-work links");
   });
@@ -70,13 +70,13 @@ describe("mentor profile schema", () => {
   });
 
   it.each([
-    ["price25Dollars", 4, "Price must be at least $5"],
+    ["price25Dollars", 4, "The lowest price is $5"],
     ["price25Dollars", 5, undefined],
     ["price50Dollars", 1_000, undefined],
-    ["price50Dollars", 1_001, "Price must be at most $1,000"],
-    ["price50Dollars", -1, "Price must be at least $5"],
-    ["price50Dollars", 40.5, "Enter a whole-dollar price"],
-    ["price50Dollars", "nope", "Enter a whole-dollar price"],
+    ["price50Dollars", 1_001, "The highest price is $1,000"],
+    ["price50Dollars", -1, "The lowest price is $5"],
+    ["price50Dollars", 40.5, "Enter a whole number of dollars"],
+    ["price50Dollars", "nope", "Enter a whole number of dollars"],
   ])("validates %s with input %s", (field, value, message) => {
     expect(messages({ [field]: value }, field)).toEqual(message ? [message] : []);
   });

@@ -65,9 +65,9 @@ describe("PUT /api/mentors/profile", () => {
         code: "validation_error",
         message: expect.any(String),
         fieldErrors: {
-          area: ["Choose TypeScript, React or Python"],
+          area: ["Choose an area"],
           publicWorkLinks: ["Line 1: use a full https:// link"],
-          price25Dollars: ["Price must be at least $5"],
+          price25Dollars: ["The lowest price is $5"],
         },
       },
     });
