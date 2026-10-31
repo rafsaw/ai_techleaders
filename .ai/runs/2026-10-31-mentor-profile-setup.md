@@ -4,6 +4,7 @@ Source doc: .ai/specs/2026-10-18-mentor-setup.md
 Story: #37 (E02-S01)
 Epic: #29 (E02)
 Approved UX: .ai/prototypes/discovery/mentor-onboarding/revision-002
+Pull request: #62
 
 ## Goal
 
@@ -53,4 +54,23 @@ Ship Phase 1 of E02 so an invited mentor can create and edit a validated public 
 - [x] 1.4 Add the mentor-only `PUT /api/mentors/profile` route with validation and access-matrix tests. — 0972fc7
 - [x] 1.5 Build the signed-in setup/profile pages and public profile page from the approved Storybook components, extending `CrudForm` only where required and covering all page states. — e9f0b4e
 - [x] 1.6 Route invitation acceptance to `/mentor`, enable the mentor-only header link, and add the Phase 1 browser journey plus denied-role coverage. — 0537871
-- [ ] 1.7 Update protected-contract documentation and the autonomous run record, then run the full project and UI validation gates.
+- [x] 1.7 Update protected-contract documentation and the autonomous run record, then run the full project and UI validation gates. — 89cac92
+
+## Outcome
+
+Phase 1 of E02 is implemented on PR #62. Invited mentors now land on a mentor setup dashboard, can create and replace their public profile and USD text-session prices, and can revisit the profile editor. Anonymous visitors can view profiles for users who still hold the mentor role; Phase 1 profiles remain explicitly not bookable.
+
+The implementation reuses the approved E02 Storybook components and page designs, adds the protected core, database, API, dependency-injection, and route contracts, and updates the invitation handoff from `/` to `/mentor`. Phases 2 and 3 remain out of scope.
+
+Two boundary defects found during verification were fixed before handoff: the form now adapts normalized public-work links back to the API wire format, and the migration/entity mapping uses explicit snake-case price column names across the numeric property boundary.
+
+Validation completed successfully:
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test:coverage` — 1,945 tests; 100% statements, branches, functions, and lines per covered source file
+- `npm run build`
+- `npm run test:storybook` — 342 tests in each of the light and dark projects
+- `npm run check:tokens`
+- `npm run check:agents`
+- `npm run test:integration` — 149 tests
