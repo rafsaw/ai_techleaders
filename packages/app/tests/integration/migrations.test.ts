@@ -20,6 +20,7 @@ const BASELINE = "Migration20261013225312";
 const ACCOUNTS = "Migration20261028002328";
 const ACCOUNTS_PHASE_2 = "Migration20261028165323";
 const ACCOUNTS_PHASE_3 = "Migration20261028212643";
+const MENTOR_PROFILE = "Migration20261031173300";
 
 const PRE_EXISTING_USERS = [
   { id: randomUUID(), email: "grace@example.com", name: "Grace Hopper", createdAt: "2026-01-02 03:04:05.123456+00" },
@@ -529,5 +530,74 @@ describe("accounts migration round trip on PostgreSQL (E01 Phase 3)", () => {
     expect(await indexes("mentor_invitations")).toEqual([
       "CREATE UNIQUE INDEX mentor_invitations_open_email_unique ON public.mentor_invitations USING btree (email) WHERE ((consumed_at IS NULL) AND (revoked_at IS NULL))",
     ]);
+  });
+});
+
+describe("mentor profile migration round trip on PostgreSQL (E02 Phase 1)", () => {
+  const logPath = join(inject("integrationArtifactsDirectory"), "migrations-round-trip-mentor-profile.log");
+  const scratch = useScratchDatabase("migrations_e02_p1");
+  const { query } = scratch;
+  const { executedMigrations, tables, columns, constraints } = probes(query);
+  const migrate = (direction: "up" | "down", flags: string[]) => scratch.migrate(direction, flags, logPath);
+  const PHASE_3_TABLES = ["auth_sessions", "email_confirmation_tokens", "mentor_invitations", "rate_limit_buckets", "user_roles", "users"];
+  const PROFILE_TABLES = ["auth_sessions", "email_confirmation_tokens", "mentor_invitations", "mentor_profiles", "rate_limit_buckets", "user_roles", "users"];
+  const mentorId = randomUUID();
+
+  it("starts from the complete accounts schema with a mentor", async () => {
+    await migrate("up", ["--to", ACCOUNTS_PHASE_3]);
+    await query(`insert into users (id, created_at, updated_at, email, name) values ($1, now(), now(), 'mentor@example.com', 'Mentor')`, [mentorId]);
+    await query(`insert into user_roles (id, created_at, updated_at, user_id, role) values (gen_random_uuid(), now(), now(), $1, 'mentor')`, [mentorId]);
+    expect(await tables()).toEqual(PHASE_3_TABLES);
+  });
+
+  it("adds one profile per user with constrained areas, prices and cascading ownership", async () => {
+    await migrate("up", ["--to", MENTOR_PROFILE]);
+
+    expect(await executedMigrations()).toEqual([BASELINE, ACCOUNTS, ACCOUNTS_PHASE_2, ACCOUNTS_PHASE_3, MENTOR_PROFILE]);
+    expect(await tables()).toEqual(PROFILE_TABLES);
+    expect(await columns("mentor_profiles")).toEqual([
+      idColumn, ...timestamps, userIdColumn,
+      { column_name: "area", data_type: "text", character_maximum_length: null, is_nullable: "NO" },
+      { column_name: "description", data_type: "text", character_maximum_length: null, is_nullable: "NO" },
+      { column_name: "public_work_links", data_type: "ARRAY", character_maximum_length: null, is_nullable: "NO" },
+      { column_name: "price_25_cents", data_type: "integer", character_maximum_length: null, is_nullable: "NO" },
+      { column_name: "price_50_cents", data_type: "integer", character_maximum_length: null, is_nullable: "NO" },
+    ]);
+    expect(await constraints("mentor_profiles")).toEqual([
+      { name: "mentor_profiles_area_check", definition: "CHECK ((area = ANY (ARRAY['typescript'::text, 'react'::text, 'python'::text])))" },
+      { name: "mentor_profiles_pkey", definition: "PRIMARY KEY (id)" },
+      { name: "mentor_profiles_price_25_cents_check", definition: "CHECK ((price_25_cents > 0))" },
+      { name: "mentor_profiles_price_50_cents_check", definition: "CHECK ((price_50_cents > 0))" },
+      { name: "mentor_profiles_user_id_foreign", definition: "FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE" },
+      { name: "mentor_profiles_user_id_unique", definition: "UNIQUE (user_id)" },
+    ]);
+
+    const insert = (userId: string, area = "typescript", price25 = 4_000, price50 = 7_000) => query(
+      `insert into mentor_profiles values (gen_random_uuid(), now(), now(), $1, $2, 'Description', array['https://example.com'], $3, $4)`,
+      [userId, area, price25, price50]);
+    await insert(mentorId);
+    await expect(insert(mentorId)).rejects.toMatchObject({ code: "23505", constraint: "mentor_profiles_user_id_unique" });
+    await expect(insert(randomUUID())).rejects.toMatchObject({ code: "23503", constraint: "mentor_profiles_user_id_foreign" });
+
+    const another = randomUUID();
+    await query(`insert into users (id, created_at, updated_at, email, name) values ($1, now(), now(), 'another@example.com', 'Another')`, [another]);
+    await expect(insert(another, "rust")).rejects.toMatchObject({ code: "23514", constraint: "mentor_profiles_area_check" });
+    await expect(insert(another, "react", 0)).rejects.toMatchObject({ code: "23514", constraint: "mentor_profiles_price_25_cents_check" });
+    await expect(insert(another, "react", 4_000, -1)).rejects.toMatchObject({ code: "23514", constraint: "mentor_profiles_price_50_cents_check" });
+
+    await insert(another, "react");
+    await query(`delete from users where id = $1`, [another]);
+    expect(await query(`select count(*)::int as left from mentor_profiles where user_id = $1`, [another])).toEqual([{ left: 0 }]);
+  });
+
+  it("drops only mentor profiles and can apply the migration again", async () => {
+    await migrate("down", ["--only", MENTOR_PROFILE]);
+    expect(await executedMigrations()).toEqual([BASELINE, ACCOUNTS, ACCOUNTS_PHASE_2, ACCOUNTS_PHASE_3]);
+    expect(await tables()).toEqual(PHASE_3_TABLES);
+    expect(await query(`select role from user_roles where user_id = $1`, [mentorId])).toEqual([{ role: "mentor" }]);
+
+    await migrate("up", ["--to", MENTOR_PROFILE]);
+    expect(await tables()).toEqual(PROFILE_TABLES);
+    expect(await query(`select count(*)::int as profiles from mentor_profiles`)).toEqual([{ profiles: 0 }]);
   });
 });

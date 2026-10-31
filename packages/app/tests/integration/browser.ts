@@ -94,6 +94,14 @@ export class IntegrationBrowser {
     await this.command("fill", await this.reference("textbox", label), value);
   }
 
+  async fillNumber(label: string, value: string): Promise<void> {
+    await this.command("fill", await this.reference("spinbutton", label), value);
+  }
+
+  async select(label: string, value: string): Promise<void> {
+    await this.command("select", await this.reference("combobox", label), value);
+  }
+
   /** The current value of the textbox with this accessible name. */
   async value(label: string): Promise<string> {
     const result = await this.command("get", "value", await this.reference("textbox", label));

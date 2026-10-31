@@ -31,14 +31,13 @@ export function isInvitation(returnTo: string | null | undefined): boolean {
   return returnTo?.startsWith("/invite/") ?? false;
 }
 
-/** The flag a successful acceptance adds to `/`, for its one-time notice (SM-AC8a). */
+/** The legacy home-notice flag retained for existing links and E01 tests. */
 export const INVITATION_ACCEPTED_FLAG = "invitation";
 
 /**
- * Where a successful acceptance goes (SM-AC8a): home, with the one-time
- * "Invitation accepted" notice, while E01 runs standalone. E02 Phase 1
- * changes it to `/mentor`; E01 never navigates to an unshipped page.
+ * Where a successful acceptance goes once E02 Phase 1 provides the first
+ * mentor setup step.
  * Kept here, not in the client panel: a server page importing a value from a
  * "use client" module gets a client reference, not the value.
  */
-export const INVITATION_ACCEPTED_DESTINATION = `/?${INVITATION_ACCEPTED_FLAG}=accepted`;
+export const INVITATION_ACCEPTED_DESTINATION = "/mentor";
