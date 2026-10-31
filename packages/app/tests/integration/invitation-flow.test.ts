@@ -271,6 +271,7 @@ describe("mentor invitations (CLI, Mailpit, browser)", () => {
       for (const visible of [grace.name, "TypeScript", "github.com/grace/devmentor", "example.com/talks/typescript", "25 min", "$40", "50 min", "$70", "Not taking bookings yet", "Text sessions only"])
         expect(publicText).toContain(visible);
       expect(publicText).not.toMatch(/rating|review/i);
+      expect((await fetch(`${baseURL}/mentors/not-a-profile-id`)).status).toBe(404);
 
       const { cookie: menteeCookie } = await githubSession(mallory);
       const setupAsMentee = await fetch(`${baseURL}/mentor`, { headers: { cookie: menteeCookie }, redirect: "manual" });

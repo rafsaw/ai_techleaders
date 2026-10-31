@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-10-31 — Validate route identifiers before typed database lookups
+
+**Context:** E02's public profile route accepted an arbitrary path segment and passed it directly to a PostgreSQL UUID lookup. A malformed profile id could therefore raise a database cast error and return 500 instead of the specified neutral 404.
+**Lesson:** Parse route identifiers at or before the service boundary before querying a typed database column. Map malformed and absent public identifiers to the same not-found result, and cover both a malformed id and an existing row that has become invisible in integration.
+**Applies to:** Dynamic routes and services that query UUID or other strongly typed identifiers.
+
 ### 2026-10-31 — Adapt transformed form output back to the API wire shape
 
 **Context:** E02's shared mentor-profile schema turns the public-work textarea string into `string[]`. `CrudForm` correctly handed its parsed output to the page, but sending that array directly made the API's second parse reject it because the protected request contract is a newline-delimited string.

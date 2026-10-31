@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   MENTOR_DESCRIPTION_MAX_LENGTH,
   PUBLIC_WORK_LINK_MAX_LENGTH,
+  mentorProfileIdSchema,
   mentorProfileSchema,
 } from "./mentor-profile.schema";
 
@@ -21,6 +22,11 @@ function messages(input: Record<string, unknown>, field: string) {
 }
 
 describe("mentor profile schema", () => {
+  it("accepts only UUID profile identifiers", () => {
+    expect(mentorProfileIdSchema.safeParse("3ca6da44-e6c9-41ad-9895-829612fc1a25").success).toBe(true);
+    expect(mentorProfileIdSchema.safeParse("not-a-profile-id").success).toBe(false);
+  });
+
   it("normalizes a valid profile and drops blank link lines", () => {
     expect(mentorProfileSchema.parse(valid)).toEqual({
       area: "typescript",

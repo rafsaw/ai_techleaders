@@ -5,7 +5,11 @@ import {
   type Money,
   type Principal,
 } from "@devmentor/core";
-import type { MentorArea, MentorProfileInput } from "@devmentor/core/validators/mentors/mentor-profile.schema";
+import {
+  mentorProfileIdSchema,
+  type MentorArea,
+  type MentorProfileInput,
+} from "@devmentor/core/validators/mentors/mentor-profile.schema";
 import {
   MentorProfile,
   UniqueConstraintViolationException,
@@ -82,7 +86,9 @@ export class MentorProfileService {
   }
 
   async getPublic(profileId: string): Promise<PublicMentorProfileDto> {
-    const profile = await this.em.findOne(MentorProfile, { id: profileId }, { populate: ["user"] });
+    const parsedId = mentorProfileIdSchema.safeParse(profileId);
+    if (!parsedId.success) throw new NotFoundError("Mentor profile not found");
+    const profile = await this.em.findOne(MentorProfile, { id: parsedId.data }, { populate: ["user"] });
     if (!profile) throw new NotFoundError("Mentor profile not found");
     const mentorRole = await this.em.findOne(UserRole, { user: profile.user.id, role: "mentor" });
     if (!mentorRole) throw new NotFoundError("Mentor profile not found");

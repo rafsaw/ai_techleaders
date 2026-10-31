@@ -10,6 +10,8 @@ import { describe, expect, it, vi } from "vitest";
 import { MentorProfileService } from "./mentor-profile.service";
 
 const principal: Principal = { userId: "user-id", sessionId: "session-id", displayName: "Ada", roles: ["mentor"] };
+const PROFILE_ID = "3ca6da44-e6c9-41ad-9895-829612fc1a25";
+const MISSING_PROFILE_ID = "eb971c25-c2e0-47f0-9341-dd2149d47dc6";
 const input = {
   area: "typescript" as const,
   description: "TypeScript systems",
@@ -121,17 +123,23 @@ describe("MentorProfileService", () => {
   it("returns a public profile only while its owner holds mentor", async () => {
     const { em, existing, service } = setup();
     em.findOne.mockResolvedValueOnce(existing).mockResolvedValueOnce({ role: "mentor" });
-    await expect(service.getPublic("profile-id")).resolves.toEqual({ ...dto, displayName: "Ada Lovelace", bookable: false });
-    expect(em.findOne).toHaveBeenNthCalledWith(1, MentorProfile, { id: "profile-id" }, { populate: ["user"] });
+    await expect(service.getPublic(PROFILE_ID)).resolves.toEqual({ ...dto, displayName: "Ada Lovelace", bookable: false });
+    expect(em.findOne).toHaveBeenNthCalledWith(1, MentorProfile, { id: PROFILE_ID }, { populate: ["user"] });
     expect(em.findOne).toHaveBeenNthCalledWith(2, expect.any(Function), { user: "user-id", role: "mentor" });
   });
 
   it("conceals an absent profile and a profile whose owner is no longer a mentor", async () => {
     const { em, existing, service } = setup();
     em.findOne.mockResolvedValueOnce(null);
-    await expect(service.getPublic("missing")).rejects.toEqual(new NotFoundError("Mentor profile not found"));
+    await expect(service.getPublic(MISSING_PROFILE_ID)).rejects.toEqual(new NotFoundError("Mentor profile not found"));
     em.findOne.mockResolvedValueOnce(existing).mockResolvedValueOnce(null);
-    await expect(service.getPublic("profile-id")).rejects.toEqual(new NotFoundError("Mentor profile not found"));
+    await expect(service.getPublic(PROFILE_ID)).rejects.toEqual(new NotFoundError("Mentor profile not found"));
+  });
+
+  it("conceals a malformed public profile id before querying the UUID column", async () => {
+    const { em, service } = setup();
+    await expect(service.getPublic("not-a-profile-id")).rejects.toEqual(new NotFoundError("Mentor profile not found"));
+    expect(em.findOne).not.toHaveBeenCalled();
   });
 
   it("derives Phase 1 setup state with and without a profile", async () => {

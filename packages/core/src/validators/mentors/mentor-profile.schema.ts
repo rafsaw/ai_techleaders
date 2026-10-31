@@ -5,6 +5,7 @@ import { priceDollarsSchema } from "../money/money.schema";
 export const mentorAreas = ["typescript", "react", "python"] as const;
 export const mentorAreaSchema = z.enum(mentorAreas, { error: "Choose an area" });
 export type MentorArea = z.output<typeof mentorAreaSchema>;
+export const mentorProfileIdSchema = z.uuid();
 
 export const MENTOR_DESCRIPTION_MAX_LENGTH = 2_000;
 export const PUBLIC_WORK_LINK_MAX_LENGTH = 2_048;

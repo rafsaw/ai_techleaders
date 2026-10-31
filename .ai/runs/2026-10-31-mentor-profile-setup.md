@@ -62,13 +62,13 @@ Phase 1 of E02 is implemented on PR #62. Invited mentors now land on a mentor se
 
 The implementation reuses the approved E02 Storybook components and page designs, adds the protected core, database, API, dependency-injection, and route contracts, and updates the invitation handoff from `/` to `/mentor`. Phases 2 and 3 remain out of scope.
 
-Two boundary defects found during verification were fixed before handoff: the form now adapts normalized public-work links back to the API wire format, and the migration/entity mapping uses explicit snake-case price column names across the numeric property boundary.
+Three boundary defects found during verification were fixed before handoff: the form now adapts normalized public-work links back to the API wire format, the migration/entity mapping uses explicit snake-case price column names across the numeric property boundary, and malformed public profile IDs are rejected as neutral 404s before reaching PostgreSQL's UUID column.
 
 Validation completed successfully:
 
 - `npm run lint`
 - `npm run typecheck`
-- `npm run test:coverage` — 1,945 tests; 100% statements, branches, functions, and lines per covered source file
+- `npm run test:coverage` — 1,947 tests; 100% statements, branches, functions, and lines per covered source file
 - `npm run build`
 - `npm run test:storybook` — 342 tests in each of the light and dark projects
 - `npm run check:tokens`
