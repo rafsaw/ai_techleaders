@@ -12,3 +12,5 @@ The working chain is:
 The readiness poll suppresses expected connection-refused output while the production server is starting. This prevents a healthy cold boot from looking degraded in automation logs.
 
 The descriptor records `agent-browser --version` from the binary it actually verifies. A healthy older binary already on `PATH` must never be mislabeled as the descriptor's pinned target version.
+
+A forced restart still tears down the environment recorded in the existing descriptor before replacing it. Skipping that teardown leaks the previous disposable containers and process group because the new descriptor can no longer name them.

@@ -5,6 +5,7 @@
 #   2026-10-31 generated for the repository's production Next.js + disposable PostgreSQL/Mailpit QA environment
 #   2026-10-31 repair: silence expected connection refusals during the bounded application readiness poll
 #   2026-10-31 repair: record the installed browser binary's actual version instead of the provider target version
+#   2026-10-31 repair: tear down the recorded environment before a forced restart
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
@@ -19,17 +20,19 @@ for arg in "$@"; do
 done
 mkdir -p "$QA_DIR"
 
-if [ "$FORCE" -eq 0 ] && [ -f "$DESCRIPTOR" ]; then
-  STATUS=$(jq -r '.status // empty' "$DESCRIPTOR" 2>/dev/null || true)
-  APP_PID=$(jq -r '.app.pid // empty' "$DESCRIPTOR" 2>/dev/null || true)
-  BASE_URL=$(jq -r '.baseUrl // empty' "$DESCRIPTOR" 2>/dev/null || true)
-  SOURCE_HEAD=$(jq -r '.sourceHead // empty' "$DESCRIPTOR" 2>/dev/null || true)
-  CURRENT_HEAD=$(git -C "$ROOT" rev-parse HEAD)
-  if [ "$STATUS" = "running" ] && [ "$SOURCE_HEAD" = "$CURRENT_HEAD" ] \
-    && [ -n "$APP_PID" ] && kill -0 "$APP_PID" 2>/dev/null \
-    && curl -fsS --max-time 3 "$BASE_URL" | grep -q DevMentor; then
-    printf 'TEST_ENV_STATUS=running\nTEST_ENV_BASE_URL=%s\nTEST_ENV_DESCRIPTOR=.ai/qa/test-env.json\nTEST_ENV_REUSED=1\nBROWSER_PROVIDER=agent-browser\nBROWSER_INSTALLED=1\n' "$BASE_URL"
-    exit 0
+if [ -f "$DESCRIPTOR" ]; then
+  if [ "$FORCE" -eq 0 ]; then
+    STATUS=$(jq -r '.status // empty' "$DESCRIPTOR" 2>/dev/null || true)
+    APP_PID=$(jq -r '.app.pid // empty' "$DESCRIPTOR" 2>/dev/null || true)
+    BASE_URL=$(jq -r '.baseUrl // empty' "$DESCRIPTOR" 2>/dev/null || true)
+    SOURCE_HEAD=$(jq -r '.sourceHead // empty' "$DESCRIPTOR" 2>/dev/null || true)
+    CURRENT_HEAD=$(git -C "$ROOT" rev-parse HEAD)
+    if [ "$STATUS" = "running" ] && [ "$SOURCE_HEAD" = "$CURRENT_HEAD" ] \
+      && [ -n "$APP_PID" ] && kill -0 "$APP_PID" 2>/dev/null \
+      && curl -fsS --max-time 3 "$BASE_URL" | grep -q DevMentor; then
+      printf 'TEST_ENV_STATUS=running\nTEST_ENV_BASE_URL=%s\nTEST_ENV_DESCRIPTOR=.ai/qa/test-env.json\nTEST_ENV_REUSED=1\nBROWSER_PROVIDER=agent-browser\nBROWSER_INSTALLED=1\n' "$BASE_URL"
+      exit 0
+    fi
   fi
   sh "$DOWN" >/dev/null 2>&1 || true
 fi
