@@ -92,7 +92,7 @@ describe("/mentor/profile", () => {
       body: {
         area: "typescript",
         description: "TypeScript systems",
-        publicWorkLinks: ["https://github.com/ada/project"],
+        publicWorkLinks: "https://github.com/ada/project",
         price25Dollars: 40,
         price50Dollars: 70,
       },

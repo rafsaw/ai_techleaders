@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-html-link-for-pages -- UI stories demonstrate framework-neutral anchor rendering; app consumers provide Next Link. */
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { CheckIcon, ClockIcon, OctagonXIcon, TriangleAlertIcon } from "lucide-react";
 import { expect } from "storybook/test";

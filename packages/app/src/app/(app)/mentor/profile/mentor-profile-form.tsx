@@ -49,7 +49,12 @@ export function MentorProfileForm({ profile }: { profile: MentorProfileDto | nul
       fields={fields}
       initialValues={initialValues(profile)}
       onSubmit={async (body) => unlessSessionExpired(
-        await apiCall<MentorProfileDto>("/api/mentors/profile", { method: "PUT", body }),
+        await apiCall<MentorProfileDto>("/api/mentors/profile", {
+          method: "PUT",
+          // CrudForm hands us the schema output, but the protected API contract deliberately
+          // keeps the textarea-shaped newline string and normalizes it again on the server.
+          body: { ...body, publicWorkLinks: body.publicWorkLinks.join("\n") },
+        }),
         "/mentor/profile",
       )}
       onSuccess={() => navigateFully("/mentor")}

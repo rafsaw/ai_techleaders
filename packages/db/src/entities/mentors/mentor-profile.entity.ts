@@ -13,8 +13,8 @@ const MentorProfileSchema = defineEntity({
     area: p.enum(mentorAreas),
     description: p.text(),
     publicWorkLinks: p.text().array(),
-    price25Cents: p.integer().check("price_25_cents > 0"),
-    price50Cents: p.integer().check("price_50_cents > 0"),
+    price25Cents: p.integer().fieldName("price_25_cents").check("price_25_cents > 0"),
+    price50Cents: p.integer().fieldName("price_50_cents").check("price_50_cents > 0"),
   },
 });
 
