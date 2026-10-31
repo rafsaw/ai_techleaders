@@ -51,6 +51,6 @@ Ship Phase 1 of E02 so an invited mentor can create and edit a validated public 
 - [x] 1.2 Add the `MentorProfile` entity, exports, reversible migration, and migration coverage. — 87734af
 - [x] 1.3 Add and register `MentorProfileService` with create/replace/retry, DTO, public visibility, setup, and Phase 1 bookability tests. — 07c55f0
 - [x] 1.4 Add the mentor-only `PUT /api/mentors/profile` route with validation and access-matrix tests. — 0972fc7
-- [ ] 1.5 Build the signed-in setup/profile pages and public profile page from the approved Storybook components, extending `CrudForm` only where required and covering all page states.
+- [x] 1.5 Build the signed-in setup/profile pages and public profile page from the approved Storybook components, extending `CrudForm` only where required and covering all page states. — e9f0b4e
 - [ ] 1.6 Route invitation acceptance to `/mentor`, enable the mentor-only header link, and add the Phase 1 browser journey plus denied-role coverage.
 - [ ] 1.7 Update protected-contract documentation and the autonomous run record, then run the full project and UI validation gates.
