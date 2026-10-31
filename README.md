@@ -3,7 +3,7 @@
 A project for tech leaders who use AI in their teams' daily work.
 
 DevMentor is a Next.js + TypeScript monorepo backed by PostgreSQL. Coding
-agents should read [`AGENTS.md`](./AGENTS.md) first: it holds the binding
+agents should read [`AGENTS.md`](./AGENTS.md) first: it routes to the binding
 architecture rules this README explains.
 
 ## Getting started
@@ -599,6 +599,7 @@ All scripts run from the repository root.
 | `npm run setup`               | Idempotent local setup (deps, DB, env, migrations) |
 | `npm run dev`                 | Start the Next.js dev server                  |
 | `npm run build` / `start`     | Production build / serve it                   |
+| `npm run check:agents`        | Task Router targets exist; `AGENTS.md` budgets |
 | `npm run lint`                | ESLint across all packages                    |
 | `npm run typecheck`           | `tsc --noEmit` in every package               |
 | `npm run db:migration:create` | Generate a migration from entity changes      |
@@ -646,11 +647,12 @@ confirmation with a full navigation, password sign-in, and the
 per-address rate limits. Logs, screenshots, accessibility snapshots, and
 JUnit results are saved in `test-results/integration/`.
 
-GitHub Actions runs Build, Lint, Typecheck, Unit tests (100% coverage), and
-Integration tests (PostgreSQL + agent-browser) for every pull request and push
+GitHub Actions runs Build, Lint, Typecheck, Unit tests (100% coverage),
+Integration tests (PostgreSQL + agent-browser), Storybook tests (light + dark),
+Values outside tokens and Agent instructions for every pull request and push
 to `main`. Integration reuses the build artifact. Coverage and browser evidence
 are uploaded for debugging. No database secrets or shared test database are
-required. To prevent merging failed checks, make these five check names required
+required. To prevent merging failed checks, make these check names required
 in the repository's GitHub branch protection/ruleset settings.
 
 ## Rollback
@@ -667,7 +669,7 @@ and invitation history and is meant only for disposable databases. Note that cod
 
 ## Project process
 
-Specs, run logs and lessons learned live in `.ai/` (see `AGENTS.md`):
+Specs, run logs and lessons learned live in `.ai/` (see `.ai/AGENTS.md`):
 
 - `.ai/specs/`: specifications. The ones for this setup are
   `.ai/specs/implemented/2026-10-13-monorepo-foundation.md` and

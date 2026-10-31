@@ -166,7 +166,7 @@ Every PR passes the full validation gate before review sign-off, in this order:
 - `npm run test:coverage`
 - `npm run build`
 
-CI (`.github/workflows/ci.yml`) additionally runs `npm run test:integration` (Testcontainers PostgreSQL + agent-browser, Docker required). It is kept out of the agent gate for speed, but `AGENTS.md` still requires it to pass locally before work is called done, and the CI job is a required check.
+CI (`.github/workflows/ci.yml`) additionally runs `npm run test:integration` (Testcontainers PostgreSQL + agent-browser, Docker required). It is kept out of the agent gate for speed. Local checks follow the change's scope (`AGENTS.md`), and full green CI, including this required job, is needed before merge.
 
 Any non-zero exit fails the gate and blocks the PR. The implementing skills run the gate before opening a PR, and `om-check-and-commit` runs it before pushing a hand-worked branch. The command list lives in `.ai/agentic.config.json`; when it changes, update it there and in this section together.
 

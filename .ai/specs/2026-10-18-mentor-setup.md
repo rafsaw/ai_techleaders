@@ -626,9 +626,9 @@ Each step leaves the app working and names its tests. Unit tests are colocated; 
    - `(app)/mentor/page.tsx` with item 1 and the status line "Not bookable yet." (G5).
    - `(app)/mentor/profile/page.tsx`.
    - `(frontend)/mentors/[id]/page.tsx` (plain text with line breaks, safe links, prices, "Text sessions only", "Not taking bookings yet").
-   - The header **Mentor setup** link.
+   - The header **Mentor setup** link: `SiteHeader` shows it only when the app passes `mentorSetupHref`, which `AppSiteHeader` starts doing in this phase. Don't link to `/mentor` before it exists.
    - Tests: RTL for each state, and no rating text or element on the public page.
-6. **Invitation destination and E01 amendments.** Acceptance keeps `AccountDto`, ordinary P3 cookie renewal and the existing session token. The client fully navigates to `/mentor` when E02 Phase 1 ships; E01 alone retains `/`. Amend accounts Flow 3/header/tests and platform contracts in the same change. `/error` retains its identity-free header.
+6. **Invitation destination and E01 amendments.** Acceptance keeps `AccountDto`, ordinary P3 cookie renewal and the existing session token. The client fully navigates to `/mentor` when E02 Phase 1 ships; E01 alone retains `/`. `INVITATION_ACCEPTED_DESTINATION` (`packages/app/src/app/(frontend)/auth-links.ts`, now `/?invitation=accepted`) becomes `/mentor` in this phase. Amend accounts Flow 3/header/tests and platform contracts in the same change. `/error` retains its identity-free header.
    - Integration:
      - accept an invitation and land on `/mentor` with item 1 *Not started*
      - save a profile with invalid input and see per-field errors
