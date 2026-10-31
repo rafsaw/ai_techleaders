@@ -48,7 +48,7 @@ Ship Phase 1 of E02 so an invited mentor can create and edit a validated public 
 ### Phase 1: E02-S01 profile and prices
 
 - [x] 1.1 Add the USD money helpers and mentor-profile validators with exhaustive boundary and error-message tests. — 4abcb2c
-- [ ] 1.2 Add the `MentorProfile` entity, exports, reversible migration, and migration coverage.
+- [x] 1.2 Add the `MentorProfile` entity, exports, reversible migration, and migration coverage. — 87734af
 - [ ] 1.3 Add and register `MentorProfileService` with create/replace/retry, DTO, public visibility, setup, and Phase 1 bookability tests.
 - [ ] 1.4 Add the mentor-only `PUT /api/mentors/profile` route with validation and access-matrix tests.
 - [ ] 1.5 Build the signed-in setup/profile pages and public profile page from the approved Storybook components, extending `CrudForm` only where required and covering all page states.
