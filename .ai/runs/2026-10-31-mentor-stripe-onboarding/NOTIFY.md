@@ -9,3 +9,5 @@
 - 2026-11-01 UTC: Delegated the payout schema and an independent adapter security review. Review identified malformed signed account events; fixed in e0835d7. Split the original 2.4 into the generic signature-only webhook handler (2.4) and onboarding service (2.10), preserving their execution order and separate verifiable commits.
 
 - 2026-11-01 UTC: Checkpoint 1 completed after 2.4: lint, typecheck, build, focused tests and per-file coverage passed; disposable PostgreSQL migration/constraints passed. No UI touched. Next: 2.10.
+
+- 2026-11-01 UTC: Independent service review identified a recovery race; the one-match path now rechecks country, profile and failed state under lock. Database integration coverage remains in step 2.7.
