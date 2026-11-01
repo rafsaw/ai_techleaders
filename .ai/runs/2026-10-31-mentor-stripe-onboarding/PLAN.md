@@ -12,8 +12,9 @@ Base: PR #62 (`feat/mentor-profile-setup`). Story: #38; epic: #29. Status: in-pr
 | 2 | 2.3 | Payout schema and migration | dispatch (economy) | done | this commit |
 | 2 | 2.4 | Signature-only webhook handler | inline | done | 3575aab |
 | 2 | 2.4-review-fix | Remove webhook test lint warnings | inline | done | 4530f79 |
-| 2 | 2.10 | Onboarding service | inline | done | this commit |
-| 2 | 2.5 | Routes and bookability | inline | todo | — |
+| 2 | 2.10 | Onboarding service | inline | done | 79b4a8c |
+| 2 | 2.5 | Onboarding and webhook routes | inline | done | this commit |
+| 2 | 2.11 | Bookability and setup state | inline | todo | — |
 | 2 | 2.6 | Setup UI using approved prototype and Storybook | dispatch (standard) | todo | — |
 | 2 | 2.7 | Stripe stub and integration scenarios | dispatch (standard) | todo | — |
 | 2 | 2.8 | Documentation and specification updates | dispatch (economy) | todo | — |

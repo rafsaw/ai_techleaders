@@ -10,6 +10,8 @@ import type { PasswordHasher } from "@/server/services/auth/password-hasher.port
 import type { RoleService } from "@/server/services/auth/role.service";
 import type { UserService } from "@/server/services/auth/user.service";
 import type { EmailSender } from "@/server/services/notifications/email-sender.port";
+import type { PayoutOnboarding } from "@/server/services/payments/payout-onboarding.port";
+import type { PayoutOnboardingService } from "@/server/services/payments/payout-onboarding.service";
 import type { MentorProfileService } from "@/server/services/mentors/mentor-profile.service";
 
 // Types of the services registered in container.ts, one line per service.
@@ -23,6 +25,8 @@ declare module "@devmentor/core" {
     passwordAccountService: PasswordAccountService;
     mentorInvitationService: MentorInvitationService;
     mentorProfileService: MentorProfileService;
+    payoutOnboarding: PayoutOnboarding;
+    payoutOnboardingService: PayoutOnboardingService;
     roleService: RoleService;
     userService: UserService;
     emailSender: EmailSender;

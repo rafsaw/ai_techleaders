@@ -11,3 +11,5 @@
 - 2026-11-01 UTC: Checkpoint 1 completed after 2.4: lint, typecheck, build, focused tests and per-file coverage passed; disposable PostgreSQL migration/constraints passed. No UI touched. Next: 2.10.
 
 - 2026-11-01 UTC: Independent service review identified a recovery race; the one-match path now rechecks country, profile and failed state under lock. Database integration coverage remains in step 2.7.
+
+- 2026-11-01 UTC: Split routes and bookability into 2.5 and 2.11 so their tests and commits stay independently reviewable.
