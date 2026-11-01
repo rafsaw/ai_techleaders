@@ -13,7 +13,7 @@ Base: PR #63 (`feat/mentor-stripe-onboarding`)
 | 3 | 3.4 | Expose slot routes | dispatch | done | step-3.4-slot-routes |
 | 3 | 3.5 | Build mentor slot management UI | dispatch | done | step-3.5-mentor-slot-management |
 | 3 | 3.5-review-fix | Correct missing profile conflict | dispatch:cheap | done | step-3.5-review-fix-profile-conflict |
-| 3 | 3.6 | Verify availability flows and document contracts | dispatch | todo | — |
+| 3 | 3.6 | Verify availability flows and document contracts | dispatch | done | step-3.6-availability-integration |
 
 ## Goal
 

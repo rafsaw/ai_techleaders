@@ -39,6 +39,9 @@ Once a surface has consumers outside this repository (a published package, a pub
   - Additive schema (§4): `payout_accounts` in `Migration20261101020604`, with unique profile and nullable Stripe binding, state checks and `down()`. Production rollback preserves the table and Stripe bindings.
   - New lazy Stripe configuration (§5): `STRIPE_SECRET_KEY`, `STRIPE_CONNECT_WEBHOOK_SECRET`, optional `STRIPE_API_URL` and `STRIPE_ONBOARDING_ORIGIN` (default `https://connect.stripe.com`). Unrelated routes and builds do not require these keys.
 
+- **Mentor setup Phase 3 (`.ai/specs/2026-10-18-mentor-setup.md`):** additive mentor slot management at `/mentor/slots` and mentor-only `POST /api/availability/slots` (`{ startsAt }` → 201 `{ id, startsAt, booked }`) and `DELETE /api/availability/slots?id=<uuid>` (`{ id }`). Validation uses the existing 400 envelope; overlap or booked removal returns 409, and an absent or foreign slot returns 404. `LocalTime` remains colocated with the page and is not a shared export.
+  - Additive schema: `availability_slots` in `Migration20261101041447`, including uniqueness and `down()` for disposable environments. Production rollback deploys previous code while preserving the table and slot data; dropping it destroys published slots and requires a separate data decision.
+
 ## Protected surfaces
 
 ### 1. HTTP API envelope and routes (`/api/*`)
