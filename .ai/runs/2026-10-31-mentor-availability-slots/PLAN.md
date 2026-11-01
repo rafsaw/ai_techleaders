@@ -15,6 +15,8 @@ Base: PR #63 (`feat/mentor-stripe-onboarding`)
 | 3 | 3.5-review-fix | Correct missing profile conflict | dispatch:cheap | done | step-3.5-review-fix-profile-conflict |
 | 3 | 3.6 | Verify availability flows and document contracts | dispatch | done | step-3.6-availability-integration |
 
+| 3 | 3.6-review-fix | Update database configuration expectation | inline | done | config-entity-list-fix |
+
 ## Goal
 
 Complete Phase 3 of mentor setup: mentors publish and withdraw concrete slots, with race-safe rules and clear setup status.
@@ -37,6 +39,8 @@ Booking, recurring availability, and public slot selection are future work.
 6. Verify availability flows and document contracts: browser and real-database integration cases, compatibility and spec status after gate.
 
 7. Correct missing profile conflict: align the publish service error with the spec and cover it.
+
+8. Update database configuration expectation: include the new registered entity in its existing assertion.
 
 ## Risks
 
