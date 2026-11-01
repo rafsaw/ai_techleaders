@@ -16,6 +16,7 @@ Base: PR #63 (`feat/mentor-stripe-onboarding`)
 | 3 | 3.6 | Verify availability flows and document contracts | dispatch | done | step-3.6-availability-integration |
 
 | 3 | 3.6-review-fix | Update database configuration expectation | inline | done | config-entity-list-fix |
+| 3 | 3.6-integration-fix | Expect the no-upcoming-slots state after Stripe readiness | dispatch:cheap | done | step-3.6-stripe-no-slots-assertions |
 
 ## Goal
 
