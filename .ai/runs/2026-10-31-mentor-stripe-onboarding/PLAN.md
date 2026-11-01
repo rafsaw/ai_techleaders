@@ -19,9 +19,13 @@ Base: PR #62 (`feat/mentor-profile-setup`). Story: #38; epic: #29. Status: in-pr
 | 2 | 2.6 | Setup UI using approved prototype and Storybook | dispatch (standard) | done | f9a0b1a |
 | 2 | 2.7 | Stripe stub and integration scenarios | dispatch (standard) | done | 086acaf |
 | 2 | 2.8 | Documentation and specification updates | dispatch (economy) | done | 11c873e |
-| 2 | 2.8-review-fix | Fail closed on metadata conflicts and bound webhook input | inline | done | this commit |
+| 2 | 2.8-review-fix | Fail closed on metadata conflicts and bound webhook input | inline | done | fe09f07 |
 | 2 | 2.9 | Manual US and PL Stripe test-mode acceptance | inline | todo | — |
 
 ## Scope and risks
 
 Implement Phase 2 of `.ai/specs/2026-10-18-mentor-setup.md` on PR #62. Preserve Phase 1 behavior and exclude slots and checkout. Test recovery, concurrency, signatures and authorization. A real Stripe test-mode run for both countries is mandatory; availability of credentials and interactive verification remains unconfirmed. Risk-high requires a second reviewer. The stacked base must be reconciled when PR #62 merges.
+
+## Resume blocker
+
+Step 2.9 requires an accessible Stripe test-mode platform and interactive completion for one US and one PL individual. After acceptance, rerun the full final gate and obtain an eligible independent PR review; the authenticated PR author cannot submit an approving or changes-requested review on their own PR.

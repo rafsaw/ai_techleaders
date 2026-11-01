@@ -17,3 +17,5 @@
 - 2026-11-01 UTC: Delegated UI and Stripe integration steps. Checkpoint 2 passed lint, typecheck, build, full unit coverage and nine focused integration scenarios; screenshots retained. The suite used the native disposable harness rather than reusing the shared descriptor; full-suite evidence and Stripe test-mode acceptance remain outstanding. Next: 2.8.
 
 - 2026-11-01 UTC: Independent review found partial metadata reconciliation, unsafe provider-metadata logging and unbounded webhook bodies. Fixed all three; focused unit and PostgreSQL integration regression checks passed. Full integration before these fixes: 159/159; the affected regression passed after rebuilding.
+
+- 2026-11-01 UTC: Checkpoint 3: the independent review fixes passed focused tests and were rechecked. Full integration passed before those fixes (159/159); the affected PostgreSQL case passed after rebuild. Stopped at 2.9: Stripe test-mode access/interactive acceptance not confirmed. GitHub formal review is also outstanding because the authenticated user authored the PR; do not promote the draft.
