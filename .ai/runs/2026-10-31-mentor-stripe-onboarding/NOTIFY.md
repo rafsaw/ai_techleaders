@@ -24,3 +24,5 @@
 - 2026-11-01 UTC: Fresh-context scope review found no contradiction in the amended spec; historical checkpoint wording is explicitly marked superseded.
 
 - 2026-11-01 UTC: User superseded the prior US-only acceptance amendment: automated integration tests against the fake Stripe gateway are the required Phase 2 acceptance evidence. Real Stripe onboarding has not been validated for the US or Poland; validate both separately before production release. Country support, Connect Express architecture and implementation remain unchanged. Step 2.9 now tracks the final-head automated acceptance run; earlier integration evidence predates final security fixes.
+
+- 2026-11-01 UTC: Resume completed with Status: in-progress. Acceptance-scope requirements are synchronized in the spec, issue #38, PR #63 and run artifacts. Commit 40af693 updated the scope; the final-head fake-gateway integration suite and final gate remain todo. Real Stripe onboarding for US and Poland has not been validated and remains a separate pre-production integration validation. PR: https://github.com/rafsaw/ai_techleaders/pull/63
