@@ -17,7 +17,7 @@ Base: PR #63 (`feat/mentor-stripe-onboarding`)
 | 3 | 3.6-review-fix | Update database configuration expectation | inline | done | 420c243 |
 | 3 | 3.6-integration-fix | Expect the no-upcoming-slots state after Stripe readiness | dispatch:cheap | done | 88215eb |
 | 3 | 3.7 | Complete post-gate documentation | inline | done | 77af142 |
-| 3 | 3.8-review-fix | Reject nonexistent local times and verify slot isolation | inline | done | step-3.8-dst-and-isolation |
+| 3 | 3.8-review-fix | Reject nonexistent local times and verify slot isolation | inline | done | e3bb576 |
 
 ## Goal
 
