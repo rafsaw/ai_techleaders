@@ -12,6 +12,7 @@ Base: PR #63 (`feat/mentor-stripe-onboarding`)
 | 3 | 3.3 | Implement slot service and setup counts | dispatch | done | step-3.3-slot-service-and-setup-counts |
 | 3 | 3.4 | Expose slot routes | dispatch | done | step-3.4-slot-routes |
 | 3 | 3.5 | Build mentor slot management UI | dispatch | done | step-3.5-mentor-slot-management |
+| 3 | 3.5-review-fix | Correct missing profile conflict | dispatch:cheap | todo | — |
 | 3 | 3.6 | Verify availability flows and document contracts | dispatch | todo | — |
 
 ## Goal
@@ -34,6 +35,8 @@ Booking, recurring availability, and public slot selection are future work.
 4. Expose slot routes: authenticated POST and DELETE with unit tests.
 5. Build mentor slot management UI: setup checklist, local-time rendering and form with unit tests.
 6. Verify availability flows and document contracts: browser and real-database integration cases, compatibility and spec status after gate.
+
+7. Correct missing profile conflict: align the publish service error with the spec and cover it.
 
 ## Risks
 

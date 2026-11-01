@@ -1,24 +1,25 @@
 # Handoff — mentor availability slots
 
-**Last updated:** 2026-10-31
+**Last updated:** 2026-11-01T04:20:00Z
 **Branch:** feat/mentor-availability-slots
-**PR:** not yet opened
-**Current phase/step:** Phase 3 Step 3.1
-**Last commit:** pending run-folder commit
+**PR:** https://github.com/rafsaw/ai_techleaders/pull/64
+**Current phase/step:** 3.5-review-fix
+**Last commit:** 4d67176 — mentor slot management UI
 
 ## What just happened
-- Planned Phase 3 stacked on PR #63.
+- Steps 3.1–3.5 landed. Typecheck, build and 108 focused tests passed; database migration round-trip passed.
+- A review found the no-profile publish response is 404 instead of 409.
 
 ## Next concrete action
-- Implement Step 3.1, slot validation and ownership.
+- Correct the no-profile conflict and test it, then implement step 3.6 integration and documentation.
 
 ## Blockers / open questions
-- None identified.
+- Browser verification and screenshots await the slot integration fixture.
 
 ## Environment caveats
-- Dev runtime runnable: unknown
-- Browser / UI checks: unknown
-- Database/migration state: unknown
+- Dev runtime runnable: build passed; shared environment not yet provisioned.
+- Browser / UI checks: deferred to integration step.
+- Database/migration state: disposable PostgreSQL round-trip passed.
 
 ## Worktree
 - Path: /tmp/devmentor-mentor-availability-slots
