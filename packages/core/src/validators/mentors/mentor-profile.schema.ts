@@ -38,7 +38,7 @@ const publicWorkLinksSchema = z
 
       try {
         // The URL parser drops tabs and line breaks, and PostgreSQL text cannot hold NUL.
-        if (/\p{Cc}/u.test(link) || new URL(link).protocol !== "https:") throw new Error("not https");
+        if (/\p{Cc}/u.test(link) || !/^https:\/\//iu.test(link) || new URL(link).protocol !== "https:") throw new Error("not https");
       } catch {
         context.addIssue({ code: "custom", message: `Line ${line}: use a full https:// link` });
         return;

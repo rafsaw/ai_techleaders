@@ -61,6 +61,8 @@ describe("mentor profile schema", () => {
   });
 
   it.each([
+    ["https:github.com/x", "Line 1: use a full https:// link"],
+    ["https:/github.com/x", "Line 1: use a full https:// link"],
     ["http://example.com/work", "Line 1: use a full https:// link"],
     ["/relative", "Line 1: use a full https:// link"],
     ["not a url", "Line 1: use a full https:// link"],

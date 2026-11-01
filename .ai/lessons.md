@@ -27,6 +27,13 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-11-01 — QA build identity must include untracked sources
+
+**Context:** A QA launcher could reuse a running dirty build while its descriptor named a clean commit, and Git's tracked diff missed untracked source files.
+**Lesson:** Reuse only when the checkout is clean including untracked files and both the artifact marker and descriptor match the commit. Record no commit for a dirty build.
+**Applies to:** QA environment launchers and commit-pinned evidence.
+
+
 ### 2026-11-01 — A QA descriptor's head must describe the build it serves
 
 **Context:** The E02 QA launcher reused any existing `.next` build but recorded the current `HEAD` as `sourceHead`. After a checkout, it could serve an old build while QA evidence named the new commit, even though `qa-approved` is pinned to a commit.
