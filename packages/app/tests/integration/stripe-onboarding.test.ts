@@ -83,7 +83,7 @@ describe("Stripe Connect onboarding", () => {
     await browser.click("button", "Continue to Stripe");
     await browser.waitForText("Stripe test onboarding");
     await browser.click("button", "Complete");
-    await browser.waitForText("You are bookable.");
+    await browser.waitForText("You are bookable, but you have no upcoming slots, so mentees have nothing to pick.");
     await browser.capture("stripe-ready-setup");
     await browser.command("open", `${baseURL}/mentors/${f.profileId}`);
     expect(await browser.snapshot()).not.toContain("Not taking bookings yet");
@@ -169,7 +169,7 @@ describe("Stripe Connect onboarding", () => {
     await browser.capture("stripe-check-failed");
     await control({});
     await browser.click("link", "Try checking again");
-    await browser.waitForText("You are bookable.");
+    await browser.waitForText("You are bookable, but you have no upcoming slots, so mentees have nothing to pick.");
     expect((await rows(f.profileId))[0]?.status).toBe("ready");
   });
 

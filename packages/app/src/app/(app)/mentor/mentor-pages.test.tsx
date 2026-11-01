@@ -35,7 +35,7 @@ const profile = {
 beforeEach(() => {
   vi.mocked(requireRole).mockReset().mockResolvedValue(principal);
   getOwn.mockReset().mockResolvedValue(null);
-  getSetup.mockReset().mockResolvedValue({ profile: null, publicUrl: null, bookable: false, payout: { status: "not_started", country: null, provisioningState: null } });
+  getSetup.mockReset().mockResolvedValue({ profile: null, publicUrl: null, bookable: false, upcomingSlots: { open: 0, booked: 0 }, payout: { status: "not_started", country: null, provisioningState: null } });
   refresh.mockReset();
   vi.mocked(apiCall).mockReset();
   vi.mocked(navigateFully).mockReset();
@@ -52,11 +52,12 @@ describe("/mentor", () => {
     expect(screen.getByText("Not started")).toBeVisible();
     expect(screen.getByRole("link", { name: "Create your profile" })).toHaveAttribute("href", "/mentor/profile");
     expect(screen.getByText("Payouts with Stripe")).toBeVisible();
-    expect(screen.queryByText("Slots")).not.toBeInTheDocument();
+    expect(screen.getByText("Slots")).toBeVisible();
+    expect(screen.getAllByText("Locked")).toHaveLength(2);
   });
 
   it("shows edit and public-page links after the profile is saved", async () => {
-    getSetup.mockResolvedValue({ profile, publicUrl: "/mentors/profile-id", bookable: false, payout: { status: "not_started", country: null, provisioningState: null } });
+    getSetup.mockResolvedValue({ profile, publicUrl: "/mentors/profile-id", bookable: false, upcomingSlots: { open: 0, booked: 0 }, payout: { status: "not_started", country: null, provisioningState: null } });
     render(await MentorSetupPage({ searchParams: Promise.resolve({}) }));
     expect(screen.getByText("Saved")).toBeVisible();
     expect(screen.getByRole("link", { name: "Edit profile" })).toHaveAttribute("href", "/mentor/profile");

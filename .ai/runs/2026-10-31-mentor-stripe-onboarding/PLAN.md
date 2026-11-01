@@ -24,7 +24,7 @@ Base: PR #62 (`feat/mentor-profile-setup`). Story: #38; epic: #29. Status: in-pr
 
 ## Scope and risks
 
-Implement Phase 2 of `.ai/specs/2026-10-18-mentor-setup.md` on PR #62. Preserve Phase 1 behavior and exclude slots and checkout. Test recovery, concurrency, signatures and authorization. Automated integration tests using the fake Stripe gateway are the required Phase 2 acceptance evidence; rerun the complete integration suite on the final head. Real Stripe onboarding has not been validated for US or Poland and must be separately validated before production release; this does not change supported countries or implementation. Risk-high requires a second reviewer. The stacked base must be reconciled when PR #62 merges.
+Implement Phase 2 of `.ai/specs/implemented/2026-10-18-mentor-setup.md` on PR #62. Preserve Phase 1 behavior and exclude slots and checkout. Test recovery, concurrency, signatures and authorization. Automated integration tests using the fake Stripe gateway are the required Phase 2 acceptance evidence; rerun the complete integration suite on the final head. Real Stripe onboarding has not been validated for US or Poland and must be separately validated before production release; this does not change supported countries or implementation. Risk-high requires a second reviewer. The stacked base must be reconciled when PR #62 merges.
 
 ## Resume blocker
 

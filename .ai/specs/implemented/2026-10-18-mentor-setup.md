@@ -1,11 +1,11 @@
 # E02 — Mentor setup: profile, prices, Stripe onboarding and slots
 
 - Epic: #29 (E02) · Stories: #37 (E02-S01), #38 (E02-S02), #39 (E02-S03) · Task: #47 (E02-S02-T01)
-- Depends on: E01 [`2026-10-17-accounts-and-roles.md`](./implemented/2026-10-17-accounts-and-roles.md) (the `mentor` role, sessions, page guards, `(app)` area). Platform catalog [`2026-10-17-platform-primitives.md`](./2026-10-17-platform-primitives.md) is cited as "platform P*n*/F*n*". **This spec holds the final contracts for P5 (`assertOwner`), P13 (onboarding half) and P17, and builds P14's signature-only `webhookHandler` wrapper.** P14's inbox (event-ID deduplication) stays provisional for E04. The catalog keeps only status and a pointer here, changed in the same PR.
+- Depends on: E01 [`2026-10-17-accounts-and-roles.md`](./2026-10-17-accounts-and-roles.md) (the `mentor` role, sessions, page guards, `(app)` area). Platform catalog [`2026-10-17-platform-primitives.md`](../2026-10-17-platform-primitives.md) is cited as "platform P*n*/F*n*". **This spec holds the final contracts for P5 (`assertOwner`), P13 (onboarding half) and P17, and builds P14's signature-only `webhookHandler` wrapper.** P14's inbox (event-ID deduplication) stays provisional for E04. The catalog keeps only status and a pointer here, changed in the same PR.
 - Design authority: `.ai/specs/product-brief.md` (D03–D06, D12, D16, R01, N01, N02)
 - Research: one shared pass for the three stories and #47 (section "Research"). It is #47's deliverable.
 - Grey prototype (mentor onboarding, source of the questions at the end): `.ai/prototypes/discovery/mentor-onboarding/revision-002/`
-- Status: **approved; implementation in progress** (gate answered by the PO 2026-10-18; joint E01/E02 review revised the same day; grilling decisions G1–G12 applied 2026-10-18). Phase 1 / E02-S01 is implemented by PR #62. Phase 2 code and fake-gateway integration scenarios are implemented on PR #63, stacked on #62; final validation and independent review remain outstanding. Real Stripe integration has not been validated; US and Poland onboarding validation is a separate integration validation required before production release. Phase 3 is not implemented.
+- Status: **implemented on stacked branches** (gate answered by the PO 2026-10-18; joint E01/E02 review and grilling decisions G1–G12 applied 2026-10-18). Phase 1 is on PR #62, Phase 2 on PR #63, and Phase 3 on PR #64. The Phase 3 full local gate passed, including fake-gateway integration scenarios. These branches are not claimed as merged. Real Stripe test-mode onboarding for both US and Poland remains unvalidated and must be validated separately before production release.
 
 ## 📝 TLDR
 
@@ -546,9 +546,8 @@ routes, setup UI and bookability predicate. Its local-stub integration suite
 exercises the nine Phase 2 scenarios, including an SDK request timeout after
 creation, duplicate signed delivery, a webhook binding before the creation
 response, and overlapping starts. This validates our integration against the
-stub, not Stripe's real hosted flow or production configuration. The full
-automated fake-gateway acceptance run on the final head, final gate and independent
-risk-high review remain open. Real Stripe integration has not been validated and
+stub, not Stripe's real hosted flow or production configuration. The Phase 3 full local gate passed, including the automated fake-gateway
+acceptance scenarios. Independent risk-high review remains open. Real Stripe integration has not been validated and
 must be separately validated for US and Poland before production release. See the
 run folder for current evidence and handoff. The application currently shows
 plain-text contact guidance because no real contact destination has been specified.

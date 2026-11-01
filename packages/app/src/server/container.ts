@@ -12,6 +12,7 @@ import {
 import { PostgresRateLimiter, registerDb } from "@devmentor/db";
 
 import { createAppConfig } from "@/server/config";
+import { SlotService } from "@/server/services/availability/slot.service";
 import { ArcticGitHubOAuth } from "@/server/services/auth/adapters/arctic-github-oauth";
 import { AuthSessionService } from "@/server/services/auth/auth-session.service";
 import { BcryptPasswordHasher } from "@/server/services/auth/adapters/bcrypt-password-hasher";
@@ -45,6 +46,7 @@ function buildContainer(): AppContainer {
     // Operator-only invitation management (create/revoke/resend), used by the CLI.
     mentorInvitationService: asClass(MentorInvitationService),
     mentorProfileService: asClass(MentorProfileService),
+    slotService: asClass(SlotService),
     payoutOnboarding: asClass(StripePayoutOnboarding),
     payoutOnboardingService: asClass(PayoutOnboardingService),
     roleService: asClass(RoleService),

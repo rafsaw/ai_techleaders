@@ -1,6 +1,6 @@
 import type { Role } from "../validators/auth/role.schema";
 import type { ResponseCookies } from "./cookies";
-import { ForbiddenError, UnauthorizedError } from "./errors";
+import { ForbiddenError, NotFoundError, UnauthorizedError } from "./errors";
 
 /** The signed-in account behind a request, with its roles as of this request. */
 export interface Principal {
@@ -61,4 +61,9 @@ export function authorize<A extends Access>(access: A, principal: Principal | nu
     throw new ForbiddenError();
   }
   return principal as PrincipalFor<A>;
+}
+
+/** Conceals whether a resource exists when it belongs to another account. */
+export function assertOwner(principal: Principal, ownerUserId: string): void {
+  if (principal.userId !== ownerUserId) throw new NotFoundError();
 }

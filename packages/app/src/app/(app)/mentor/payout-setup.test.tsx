@@ -64,12 +64,16 @@ describe("payout setup", () => {
   });
 
   it("renders the correct bookability and check-failure message without a stale checking banner", async () => {
-    getSetup.mockResolvedValue({ profile: { id: "1" }, publicUrl: "/mentors/1", bookable: true, payout: { ...pending, provisioningState: "provisioned", status: "ready" } });
+    getSetup.mockResolvedValue({ profile: { id: "1" }, publicUrl: "/mentors/1", bookable: true, upcomingSlots: { open: 1, booked: 1 }, payout: { ...pending, provisioningState: "provisioned", status: "ready" } });
     const { unmount } = render(await MentorSetupPage({ searchParams: Promise.resolve({ stripe: "returned" }) }));
     expect(screen.getByText("You are bookable.")).toBeVisible();
     expect(screen.queryByText(/Stripe is checking your details/)).not.toBeInTheDocument();
+    expect(screen.getByText("2 upcoming (1 booked)")).toBeVisible();
     unmount();
+    getSetup.mockResolvedValue({ profile: { id: "1" }, publicUrl: "/mentors/1", bookable: true, upcomingSlots: { open: 0, booked: 0 }, payout: { ...pending, provisioningState: "provisioned", status: "ready" } });
     render(await MentorSetupPage({ searchParams: Promise.resolve({ stripe: "check_failed" }) }));
+    expect(screen.getByText(/You are bookable, but you have no upcoming slots/)).toBeVisible();
+    expect(screen.getByRole("link", { name: "Publish slots" })).toHaveAttribute("href", "/mentor/slots");
     expect(screen.getByRole("link", { name: "Try checking again" })).toHaveAttribute("href", "/api/payments/onboarding/return");
   });
 });

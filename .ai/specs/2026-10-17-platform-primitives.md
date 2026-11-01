@@ -2,7 +2,7 @@
 
 - Companion spec: [`2026-10-17-accounts-and-roles.md`](./implemented/2026-10-17-accounts-and-roles.md) (epic #28), the first consumer. It builds every primitive marked **E01** below, inside its own phases.
 - Design authority: `.ai/specs/product-brief.md` (Now scope), `AGENTS.md` (stack and layer rules), `BACKWARD_COMPATIBILITY.md` (protected surfaces)
-- Status: **draft for review** (PO revisions, accounts design review and platform grilling 2026-10-18). P5 (`assertOwner`), P13 (onboarding half) and P17 have their final design contracts in the E02 spec [`2026-10-18-mentor-setup.md`](./2026-10-18-mentor-setup.md), section "Final primitive contracts"; E02 also builds P14's signature-only `webhookHandler` wrapper, while P14's inbox stays provisional for E04; the E02 Phase 2 branch implements P13 onboarding and the P14 wrapper, subject to its remaining acceptance and review gates; the other E02–E05 candidates remain provisional
+- Status: **draft for review** (PO revisions, accounts design review and platform grilling 2026-10-18). P5 (`assertOwner`), P13 (onboarding half) and P17 have their final design contracts in the E02 spec [`2026-10-18-mentor-setup.md`](./implemented/2026-10-18-mentor-setup.md), section "Final primitive contracts"; E02 also builds P14's signature-only `webhookHandler` wrapper, while P14's inbox stays provisional for E04; stacked E02 branches implement P5 `assertOwner`, P13 onboarding, P14’s wrapper and P17, with the full Phase 3 local gate passed; P5 `assertParticipant`, P13 checkout, P14 inbox and the remaining E02–E05 candidates remain provisional
 
 ## 📝 TLDR
 
@@ -176,13 +176,13 @@ flowchart LR
     sut --> sec
 ```
 
-Takeaway: everything new hangs off the two existing seams, `apiHandler` and the form and API client. Solid blue boxes are built in E01. Dashed boxes represent the original E02–E05 plan; P13 onboarding and P14's wrapper are implemented on the E02 Phase 2 branch, while their acceptance remains open; E02 finalizes P5 (`assertOwner`), P13 onboarding and P17 and builds P14's wrapper, while P14's inbox and the remaining candidates stay provisional. F2/F3 are built in E01 Phase 2; the page-cookie Proxy does no authorization.
+Takeaway: everything new hangs off the two existing seams, `apiHandler` and the form and API client. Solid blue boxes are built in E01. Dashed boxes represent the original E02–E05 plan; P5 `assertOwner`, P13 onboarding, P14’s wrapper and P17 are implemented on stacked E02 branches; P5 `assertParticipant`, P13 checkout, P14’s inbox and the remaining candidates stay provisional. F2/F3 are built in E01 Phase 2; the page-cookie Proxy does no authorization.
 
 **Isomorphism rule (new, written into `AGENTS.md`).** `@devmentor/core`'s `.` entry is server-side and may use `node:crypto`. `@devmentor/core/validators/*` must stay isomorphic, because client components import it. Anything a client needs (role names, the `returnTo` schema) goes in `validators/`.
 
 ## 📝 Primitive catalog — server
 
-Each entry gives the home, the contract (TypeScript shape, abbreviated), what it reuses, and the **first builder**. E02 holds the **final design contracts** for P5 (`assertOwner`), P13 onboarding, P14's `webhookHandler` wrapper and P17; the entries below point to that authority rather than duplicate it. P5 (`assertParticipant`), P13 checkout, P14's inbox, P15, P16 and F6 remain **provisional candidates**. Their consuming feature spec decides whether each abstraction is needed and finalizes its shape. Final design does not mean implemented runtime code.
+Each entry gives the home, the contract (TypeScript shape, abbreviated), what it reuses, and the **first builder**. E02 holds the **final design contracts** for P5 (`assertOwner`), P13 onboarding, P14's `webhookHandler` wrapper and P17; the entries below point to that authority rather than duplicate it. P5 (`assertParticipant`), P13 checkout, P14's inbox, P15, P16 and F6 remain **provisional candidates**. Their consuming feature spec decides whether each abstraction is needed and finalizes its shape. These four E02 contracts are implemented on stacked branches; the provisional candidates are not.
 
 ### P1. Config, a lazily validated env (E01-S01)
 
@@ -274,7 +274,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
 
 ### P5. Access assertions (`assertOwner` final in E02, built in E02-S03; `assertParticipant` provisional, E05)
 
-- **Final E02 contract:** [`2026-10-18-mentor-setup.md`](./2026-10-18-mentor-setup.md), section "Final primitive contracts", is authoritative for `assertOwner` and its home. Its E02 caller is `SlotService.withdraw`; it conceals foreign slots with 404. It is specified, not implemented by this catalog.
+- **Final E02 contract:** [`2026-10-18-mentor-setup.md`](./implemented/2026-10-18-mentor-setup.md), section "Final primitive contracts", is authoritative for `assertOwner` and its home. Its E02 caller is `SlotService.withdraw`; it conceals foreign slots with 404. It is implemented on the E02 Phase 3 branch.
 - **Provisional E05 candidate:**
   ```ts
   assertParticipant(principal, participantUserIds, { conceal: true })  // NotFoundError when conceal
@@ -403,14 +403,14 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
 
 ### P13. Payment and onboarding ports (onboarding half final in E02, built in E02-S02; checkout half provisional, E04-S02)
 
-- **Final E02 contract:** [`2026-10-18-mentor-setup.md`](./2026-10-18-mentor-setup.md), section "Final primitive contracts", is authoritative for the onboarding port, snapshots, creation recovery and adapters. #47's corrected documentation research informs it; the E02 Phase 2 branch implements the onboarding port and adapters, with fake-gateway automated integration tests as the required acceptance evidence. Real Stripe onboarding has not been validated for either US or Poland; validate both separately before production release.
+- **Final E02 contract:** [`2026-10-18-mentor-setup.md`](./implemented/2026-10-18-mentor-setup.md), section "Final primitive contracts", is authoritative for the onboarding port, snapshots, creation recovery and adapters. #47's corrected documentation research informs it; the E02 Phase 2 branch implements the onboarding port and adapters, with fake-gateway automated integration tests as the required acceptance evidence. Real Stripe onboarding has not been validated for either US or Poland; validate both separately before production release.
 - **Status source:** a fresh Stripe account fetch on return, **Check status**, webhook, and immediately after the account ID is bound. The return URL's query string proves nothing. Every successful write stores that fetched snapshot; `last_reconciled_at` is diagnostic only, without an ordering guard or revision column. E04 re-fetches the account with `syncAccount` right before creating a checkout.
 - **Provisional E04 checkout candidate:** `PaymentGateway` (`createCheckout(booking draft) → redirect URL`, `verifyWebhook(rawBody, signature) → event`), under `app/src/server/services/payments/`, behind a port with mock and Stripe adapters. E04 finalizes this separately.
 - Account Links still use P7 navigation routes and their external-origin allowlist; this amendment does not weaken that boundary.
 
 ### P14. Webhook handler and inbox (`webhookHandler` wrapper final in E02, built in E02-S02; inbox provisional, E04-S02)
 
-- **Final E02 contract:** [`2026-10-18-mentor-setup.md`](./2026-10-18-mentor-setup.md), section "Final primitive contracts", is authoritative for `webhookHandler` under `app/src/server/webhooks/`. The E02 Phase 2 branch implements the wrapper and its Connect `account.updated` caller. Acceptance and review remain outstanding.
+- **Final E02 contract:** [`2026-10-18-mentor-setup.md`](./implemented/2026-10-18-mentor-setup.md), section "Final primitive contracts", is authoritative for `webhookHandler` under `app/src/server/webhooks/`. The E02 Phase 2 branch implements the wrapper and its Connect `account.updated` caller. The full Phase 3 local gate passed; independent risk-high review remains open.
 - **Security boundary:** verify the provider signature over the raw body. This is PD3's narrow signature-only exception: no session resolution and no CSRF-header check. Browser callbacks still use P7 and its existing allowlist.
 - **Transaction boundary:** `prepare` fetches external state before the database transaction; `apply` runs inside one transaction; anything that throws answers 500, commits nothing and leaves the delivery retryable. E02's effect is a fetch-and-overwrite, so a repeated delivery is harmless without deduplication. Unknown account IDs attach through trusted metadata to exactly one existing local row under lock; missing, mismatched or multiple matches return 500 and log for the operator. A webhook never creates another local payout row.
 - **Provisional inbox (E04):** E04 adds a unique `(provider, eventId)` row, inserted in the same transaction as the effect, to this wrapper. It deduplicates the **same event ID** only; different events can describe the same payment, so E04 separately needs payment/checkout business uniqueness and atomic slot claiming to guarantee no second booking.
@@ -438,7 +438,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
 
 ### P17. Money (final in E02, built in E02-S01)
 
-- **Final E02 contract:** [`2026-10-18-mentor-setup.md`](./2026-10-18-mentor-setup.md), section "Final primitive contracts", is authoritative for USD money, validators, formatting and their homes.
+- **Final E02 contract:** [`2026-10-18-mentor-setup.md`](./implemented/2026-10-18-mentor-setup.md), section "Final primitive contracts", is authoritative for USD money, validators, formatting and their homes; these are implemented on the E02 Phase 1 branch.
 - **Implemented in E02 Phase 1 (PR #62):** `core/src/validators/money/money.schema.ts` exports the constant-USD `Money` type, whole-dollar price validator, `toCents` and `formatMoney`; the mentor profile API recomputes and persists integer cents.
 - E04 still recomputes checkout amounts on the server from the mentor's per-format price (engineering standards, "money correctness"); it never trusts a client-supplied amount.
 

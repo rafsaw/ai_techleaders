@@ -24,7 +24,7 @@ commitować.
 - `.ai/specs/product-brief.md` (D01–D16, N01–N03, R01–R10)
 - `.ai/specs/backlog.md` (E01–E06, #28–#47)
 - `.ai/specs/2026-10-17-accounts-and-roles.md` (E01: Flow 1–3, UI/UX, Edge cases)
-- `.ai/specs/2026-10-18-mentor-setup.md` (E02: Flow 1–4, UI/UX, Edge cases)
+- `.ai/specs/implemented/2026-10-18-mentor-setup.md` (E02: Flow 1–4, UI/UX, Edge cases)
 - `.ai/specs/2026-10-17-platform-primitives.md` (inwentarz funkcji, F1–F6)
 - `lekcja-06/referencje.md` (R01.1–R02.9, A01–A08, K1–K4, luki)
 - `lekcja-06/tokeny.md` (T1–T8, Z1–Z8, C1–C8, kontrast)
