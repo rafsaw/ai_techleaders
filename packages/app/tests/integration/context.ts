@@ -11,6 +11,8 @@ declare module "vitest" {
     databaseURL: string;
     /** Base URL of the local GitHub stub (OAuth and API). */
     githubStubURL: string;
+    /** Local Stripe Connect stand-in. */
+    stripeStubURL: string;
     /** `SMTP_URL` of the integration Mailpit, as the app under test uses it. */
     smtpURL: string;
     /** Base URL of the integration Mailpit's HTTP API. */
