@@ -1,25 +1,30 @@
 import { BookableStatusLine } from "@devmentor/ui/components/mentors/BookableStatusLine";
-import { SetupChecklist } from "@devmentor/ui/components/mentors/SetupChecklist";
 import type { Metadata } from "next";
 
+import { PayoutSetupChecklist } from "@/app/(app)/mentor/payout-setup";
 import { requireRole } from "@/server/auth/page-guards";
 import { createRequestScope } from "@/server/container";
 
 export const metadata: Metadata = { title: "Mentor setup" };
 
-export default async function MentorSetupPage() {
+export default async function MentorSetupPage({ searchParams }: { searchParams: Promise<{ stripe?: string | string[] }> }) {
   const principal = await requireRole("mentor", { returnTo: "/mentor" });
   const setup = await createRequestScope().cradle.mentorProfileService.getSetup(principal);
+  const stripe = (await searchParams).stripe;
   const profile = setup.profile && setup.publicUrl
     ? { status: "saved" as const, editHref: "/mentor/profile", publicHref: setup.publicUrl }
     : { status: "not-started" as const, createHref: "/mentor/profile" };
+  const status = setup.bookable && setup.publicUrl
+    ? { status: "bookable" as const, publicUrl: setup.publicUrl }
+    : { status: "not-bookable" as const, missing: setup.profile ? ["stripe" as const] : ["profile" as const, "stripe" as const] };
 
   return (
     <main className="mx-auto w-full max-w-content px-page-gutter py-section">
       <div className="flex max-w-text flex-col gap-component">
         <h1 className="text-page-title">Mentor setup</h1>
-        <BookableStatusLine state={{ status: "phase-1" }} />
-        <SetupChecklist profile={profile} />
+        {stripe === "check_failed" ? <p role="alert">We couldn&apos;t reach Stripe to check your status. <a className="underline" href="/api/payments/onboarding/return">Try checking again</a>.</p> : null}
+        <BookableStatusLine state={status} />
+        <PayoutSetupChecklist profile={profile} payout={setup.payout} />
       </div>
     </main>
   );

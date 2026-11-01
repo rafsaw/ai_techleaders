@@ -43,7 +43,7 @@ payout row exists, a **Country** select with the spec's hint, then **Continue to
 | `reconciliation-required` | *Setup interrupted* + note *We need to check an earlier setup attempt.* | **Retry setup** | E02 Flow 1; short label P-S1a, proposal approved by Rafał, after Flow 3 step 3 "Recover an interrupted attempt" (P-C10) |
 | `failed` | *Setup failed* (P-M2, proposal approved by Rafał) | **Contact the DevMentor team** | E02 Flow 1 |
 | `incomplete` | *Incomplete* | **Continue with Stripe** | E02 Flow 1 |
-| `pending` | *Pending* + note *Stripe is checking your details.* | **Check status** (link to the return route) | E02 Flow 1, 3; short label P-S1b, proposal approved by Rafał: the payout status name `pending` from Flow 3 step 6 (P-C10) |
+| `pending` | *Pending* + note *Stripe is checking your details. This can take a few minutes to a few business days.* | **Check status** (link to the return route) | E02 Flow 1, 3; short label P-S1b, proposal approved by Rafał: the payout status name `pending` from Flow 3 step 6 (P-C10) |
 | `blocked` | *Blocked* | **Contact the DevMentor team** | E02 Flow 1 |
 | `ready` | *Confirmed* | — | E02 Flow 1 |
 
@@ -61,13 +61,13 @@ many: not applicable.
 - While a POST runs, the button is disabled with an *-ing* label: *Starting Stripe setup…*, *Retrying setup…*, *Opening Stripe…* (P-C4; wording P-M7, proposal approved by Rafał).
 - A failure keeps the server's message in a destructive `Alert` and leaves the action available (E02 Flow 3 step 6).
 - Country: visible label *Country*, instruction option *Choose a country*, alphabetical, the spec's hint linked with `aria-describedby`; submitting without one shows *Choose a country.* (P-C8; wording P-M6, proposal approved by Rafał).
-- **Check status** and **Contact the DevMentor team** are real links styled with `buttonVariants()` on `<a>`, never `<Button render={…}>`, which would give them `role="button"`. The contact address comes in `contactHref`.
+- **Check status** and, when a destination is configured, **Contact the DevMentor team** are real links styled with `buttonVariants()` on `<a>`, never `<Button render={…}>`, which would give them `role="button"`. The optional contact address comes in `contactHref`; without one, the guidance is plain text.
 - **Contact the DevMentor team** is the action of *Setup failed* and *Blocked* (E02 Flow 1), so it is the primary button when this is the first unfinished item with an action, and `outline` otherwise (Q-SC1).
 
 ## 8. Content
 
 States and actions from E02 Flow 1; hint and conflict message from Flow 3. Where *Contact the
-DevMentor team* leads is not in the spec yet: the page passes it as `contactHref` (PO, 2026-10-21; the address goes into the E02 spec with the `/mentor` pages).
+DevMentor team* leads is not in the spec yet: the page displays plain-text contact guidance until a real destination is agreed.
 
 ## 9. Responsiveness
 

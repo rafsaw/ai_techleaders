@@ -94,3 +94,12 @@ export const LongContentNarrow: Story = {
     await expect(canvasElement.scrollWidth).toBeLessThanOrEqual(canvasElement.clientWidth);
   },
 };
+
+/** Without a configured contact destination, the guidance remains plain text. */
+export const BlockedWithoutContactDestination: Story = {
+  args: { payout: { status: "blocked" }, contactHref: undefined },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("Contact the DevMentor team.")).toBeVisible();
+    await expect(canvas.queryByRole("link", { name: "Contact the DevMentor team" })).toBeNull();
+  },
+};

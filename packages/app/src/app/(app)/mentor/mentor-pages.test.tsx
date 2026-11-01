@@ -11,7 +11,8 @@ import MentorProfilePage, { metadata as profileMetadata } from "@/app/(app)/ment
 import { navigateFully } from "@/app/full-navigation";
 import { requireRole } from "@/server/auth/page-guards";
 
-const { getOwn, getSetup } = vi.hoisted(() => ({ getOwn: vi.fn(), getSetup: vi.fn() }));
+const { getOwn, getSetup, refresh } = vi.hoisted(() => ({ getOwn: vi.fn(), getSetup: vi.fn(), refresh: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
 vi.mock("@/server/auth/page-guards", () => ({ requireRole: vi.fn() }));
 vi.mock("@/server/container", () => ({
   createRequestScope: () => ({ cradle: { mentorProfileService: { getOwn, getSetup } } }),
@@ -34,28 +35,29 @@ const profile = {
 beforeEach(() => {
   vi.mocked(requireRole).mockReset().mockResolvedValue(principal);
   getOwn.mockReset().mockResolvedValue(null);
-  getSetup.mockReset().mockResolvedValue({ profile: null, publicUrl: null, bookable: false });
+  getSetup.mockReset().mockResolvedValue({ profile: null, publicUrl: null, bookable: false, payout: { status: "not_started", country: null, provisioningState: null } });
+  refresh.mockReset();
   vi.mocked(apiCall).mockReset();
   vi.mocked(navigateFully).mockReset();
 });
 
 describe("/mentor", () => {
-  it("guards the page and shows only the Phase 1 profile step before setup starts", async () => {
-    render(await MentorSetupPage());
+  it("guards the page and locks payouts before a profile exists", async () => {
+    render(await MentorSetupPage({ searchParams: Promise.resolve({}) }));
     expect(requireRole).toHaveBeenCalledWith("mentor", { returnTo: "/mentor" });
     expect(getSetup).toHaveBeenCalledWith(principal);
     expect(setupMetadata.title).toBe("Mentor setup");
     expect(screen.getByRole("heading", { level: 1, name: "Mentor setup" })).toBeVisible();
-    expect(screen.getByText("Not bookable yet.")).toBeVisible();
+    expect(screen.getByText("Not bookable yet: finish your profile and Stripe.")).toBeVisible();
     expect(screen.getByText("Not started")).toBeVisible();
     expect(screen.getByRole("link", { name: "Create your profile" })).toHaveAttribute("href", "/mentor/profile");
-    expect(screen.queryByText("Payouts with Stripe")).not.toBeInTheDocument();
+    expect(screen.getByText("Payouts with Stripe")).toBeVisible();
     expect(screen.queryByText("Slots")).not.toBeInTheDocument();
   });
 
   it("shows edit and public-page links after the profile is saved", async () => {
-    getSetup.mockResolvedValue({ profile, publicUrl: "/mentors/profile-id", bookable: false });
-    render(await MentorSetupPage());
+    getSetup.mockResolvedValue({ profile, publicUrl: "/mentors/profile-id", bookable: false, payout: { status: "not_started", country: null, provisioningState: null } });
+    render(await MentorSetupPage({ searchParams: Promise.resolve({}) }));
     expect(screen.getByText("Saved")).toBeVisible();
     expect(screen.getByRole("link", { name: "Edit profile" })).toHaveAttribute("href", "/mentor/profile");
     expect(screen.getByRole("link", { name: "View public page" })).toHaveAttribute("href", "/mentors/profile-id");

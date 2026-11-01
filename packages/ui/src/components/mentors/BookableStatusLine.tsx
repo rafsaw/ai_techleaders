@@ -51,7 +51,7 @@ export function BookableStatusLine({ state, copy = (text) => navigator.clipboard
             size="sm"
             onClick={async () => {
               try {
-                await copy(state.publicUrl);
+                await copy(new URL(state.publicUrl, window.location.origin).href);
                 setCopied("yes");
               } catch {
                 setCopied("failed");
