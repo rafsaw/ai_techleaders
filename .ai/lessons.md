@@ -27,6 +27,37 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-11-01 — QA build identity must include untracked sources
+
+**Context:** A QA launcher could reuse a running dirty build while its descriptor named a clean commit, and Git's tracked diff missed untracked source files.
+**Lesson:** Reuse only when the checkout is clean including untracked files and both the artifact marker and descriptor match the commit. Record no commit for a dirty build.
+**Applies to:** QA environment launchers and commit-pinned evidence.
+
+
+### 2026-11-01 — A QA descriptor's head must describe the build it serves
+
+**Context:** The E02 QA launcher reused any existing `.next` build but recorded the current `HEAD` as `sourceHead`. After a checkout, it could serve an old build while QA evidence named the new commit, even though `qa-approved` is pinned to a commit.
+**Lesson:** When tooling records which commit it is testing, derive that claim from the artifact: store the source head with the build and rebuild on any mismatch or uncommitted tracked change. A recorded PID is a similar claim, so verify it before signalling.
+**Applies to:** `.ai/scripts/test-env-*.sh` and any script that writes commit or process identity into a descriptor.
+
+### 2026-10-31 — Validate route identifiers before typed database lookups
+
+**Context:** E02's public profile route accepted an arbitrary path segment and passed it directly to a PostgreSQL UUID lookup. A malformed profile id could therefore raise a database cast error and return 500 instead of the specified neutral 404.
+**Lesson:** Parse route identifiers at or before the service boundary before querying a typed database column. Map malformed and absent public identifiers to the same not-found result, and cover both a malformed id and an existing row that has become invisible in integration.
+**Applies to:** Dynamic routes and services that query UUID or other strongly typed identifiers.
+
+### 2026-10-31 — Adapt transformed form output back to the API wire shape
+
+**Context:** E02's shared mentor-profile schema turns the public-work textarea string into `string[]`. `CrudForm` correctly handed its parsed output to the page, but sending that array directly made the API's second parse reject it because the protected request contract is a newline-delimited string.
+**Lesson:** When a shared Zod schema's input and output shapes differ, name the API wire shape explicitly and adapt the parsed client output before `apiCall`; do not assume schema output can be parsed again as schema input. Assert the exact request body in the form test and cover the real round trip in integration.
+**Applies to:** `packages/app/src/app/**` forms using transformed schemas, especially `mentor-profile-form.tsx`.
+
+### 2026-10-31 — Pin ORM field names when a camel-case property contains digits
+
+**Context:** The E02 migration created `price_25_cents` and `price_50_cents`, but MikroORM mapped `price25Cents` to `price25cents`; metadata and raw migration tests passed until the production integration path issued the first real insert and PostgreSQL returned `42703`.
+**Lesson:** Do not rely on the naming strategy across letter/digit boundaries. Set `.fieldName(...)` explicitly for numeric property names, assert it in entity metadata tests, and exercise at least one ORM write against the migrated PostgreSQL schema.
+**Applies to:** MikroORM entities and migrations in `packages/db`, especially duration- or version-numbered fields.
+
 ### 2026-10-30 — Put an agent rule where the code it governs loads it
 
 **Context:** The first task-router split filed rules by the package that defines a thing, not where it is used. `orm.em` lived only in `db` and `isAppError` only in `core`, yet app services use both. A text-overlap comparison reported nothing lost because the words still existed somewhere.

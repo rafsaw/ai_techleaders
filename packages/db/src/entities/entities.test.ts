@@ -1,9 +1,10 @@
 import { ROLES } from "@devmentor/core/validators/auth/role.schema";
+import { mentorAreas } from "@devmentor/core/validators/mentors/mentor-profile.schema";
 import { EntitySchema, types } from "@mikro-orm/core";
 import type { EntityManager } from "@mikro-orm/postgresql";
 import { describe, expect, it, vi } from "vitest";
 
-import { AuthSession, EmailConfirmationToken, entities, MentorInvitation, RateLimitBucket, User, UserRole } from "./index";
+import { AuthSession, EmailConfirmationToken, entities, MentorInvitation, MentorProfile, RateLimitBucket, User, UserRole } from "./index";
 
 function meta(entity: (typeof entities)[number]) {
   const schema = EntitySchema.REGISTRY.get(entity);
@@ -13,7 +14,7 @@ function meta(entity: (typeof entities)[number]) {
 
 describe("entity definitions", () => {
   it("lists every entity", () => {
-    expect(entities).toEqual([User, UserRole, AuthSession, EmailConfirmationToken, MentorInvitation, RateLimitBucket]);
+    expect(entities).toEqual([User, UserRole, AuthSession, EmailConfirmationToken, MentorInvitation, MentorProfile, RateLimitBucket]);
   });
 
   it("registers User with its table, primary key, unique email and nullable GitHub columns", () => {
@@ -80,6 +81,17 @@ describe("entity definitions", () => {
       where: "consumed_at is null and revoked_at is null",
     }]);
     expect(Object.keys(m.properties)).not.toContain("note");
+  });
+
+  it("registers MentorProfile with one cascading profile per user and constrained profile fields", () => {
+    const m = meta(MentorProfile);
+    expect(m.tableName).toBe("mentor_profiles");
+    expect(m.properties.user).toMatchObject({ kind: "m:1", fieldName: "user_id", unique: true, deleteRule: "cascade" });
+    expect((m.properties.user!.entity as () => unknown)()).toBe(User);
+    expect(m.properties.area).toMatchObject({ enum: true, items: [...mentorAreas] });
+    expect(m.properties.publicWorkLinks?.array).toBe(true);
+    expect(m.properties.price25Cents).toMatchObject({ type: types.integer, fieldName: "price_25_cents", check: "price_25_cents > 0" });
+    expect(m.properties.price50Cents).toMatchObject({ type: types.integer, fieldName: "price_50_cents", check: "price_50_cents > 0" });
   });
 
   it("registers RateLimitBucket with a unique char(64) key hash, a count and an indexed window end", () => {

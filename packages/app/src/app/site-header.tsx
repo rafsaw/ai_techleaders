@@ -27,6 +27,7 @@ export function AppSiteHeader({ account }: Pick<SiteHeaderProps, "account">) {
   return (
     <SiteHeader
       account={account}
+      mentorSetupHref="/mentor"
       signInHref={signInHref(pathname)}
       signOut={signOut}
       // Only after a successful sign-out: a full navigation renders every

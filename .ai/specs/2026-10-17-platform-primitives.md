@@ -438,7 +438,8 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
 
 ### P17. Money (final in E02, built in E02-S01)
 
-- **Final E02 contract:** [`2026-10-18-mentor-setup.md`](./2026-10-18-mentor-setup.md), section "Final primitive contracts", is authoritative for USD money, validators, formatting and their homes. This is final design, not implementation evidence.
+- **Final E02 contract:** [`2026-10-18-mentor-setup.md`](./2026-10-18-mentor-setup.md), section "Final primitive contracts", is authoritative for USD money, validators, formatting and their homes.
+- **Implemented in E02 Phase 1 (PR #62):** `core/src/validators/money/money.schema.ts` exports the constant-USD `Money` type, whole-dollar price validator, `toCents` and `formatMoney`; the mentor profile API recomputes and persists integer cents.
 - E04 still recomputes checkout amounts on the server from the mentor's per-format price (engineering standards, "money correctness"); it never trusts a client-supplied amount.
 
 ## 📝 Primitive catalog — frontend

@@ -1,9 +1,14 @@
 import { fileURLToPath } from "node:url";
 
 import { ESLint } from "eslint";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 const eslint = new ESLint({ cwd: fileURLToPath(new URL("..", import.meta.url)) });
+
+// Loading the ESLint config can take longer than a test timeout on a busy host.
+beforeAll(async () => {
+  await eslint.calculateConfigForFile("packages/core/src/boundary-fixture.ts");
+}, 60_000);
 
 async function importErrors(filePath: string, dependency: string) {
   const [result] = await eslint.lintText(`import * as dependency from "${dependency}"; void dependency;`, { filePath });

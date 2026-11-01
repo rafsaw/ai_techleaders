@@ -103,7 +103,7 @@ describe("/invite/[token]", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it("names the account that will receive mentor, accepts with the token and fully navigates home only after success", async () => {
+  it("names the account that will receive mentor, accepts with the token and fully navigates to setup only after success", async () => {
     inspect.mockResolvedValue({ status: "valid", displayName: "Ada Nowak", email: "ada@example.com" });
     let finish!: (result: ApiResult<unknown>) => void;
     vi.mocked(apiCall).mockReturnValue(new Promise((resolve) => { finish = resolve; }));
@@ -119,9 +119,8 @@ describe("/invite/[token]", () => {
     });
     expect(navigateFully).not.toHaveBeenCalled();
     finish({ ok: true, data: { id: "user-1", roles: ["mentee", "mentor"] } });
-    // E01 standalone: home with the accepted notice, never the unshipped /mentor.
-    await waitFor(() => expect(navigateFully).toHaveBeenCalledWith("/?invitation=accepted"));
-    expect(INVITATION_ACCEPTED_DESTINATION).toBe("/?invitation=accepted");
+    await waitFor(() => expect(navigateFully).toHaveBeenCalledWith("/mentor"));
+    expect(INVITATION_ACCEPTED_DESTINATION).toBe("/mentor");
   });
 
   it.each([

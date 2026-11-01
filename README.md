@@ -660,11 +660,11 @@ in the repository's GitHub branch protection/ruleset settings.
 Rollback is **code only**: deploy the previous code and keep the database as
 it is. Schema changes for accounts are additive (new nullable `users`
 columns including `password_hash`, the `user_roles`, `auth_sessions`,
-`email_confirmation_tokens`, `rate_limit_buckets` and `mentor_invitations`
+`email_confirmation_tokens`, `rate_limit_buckets`, `mentor_invitations` and `mentor_profiles`
 tables, the nullable `user_roles.invitation_id` and their indexes), so older
 code keeps working with them. Do not run `npm run db:migrate:down` as
 a rollback: its `down()` drops roles, sessions, passwords, confirmation links
-and invitation history and is meant only for disposable databases. Note that code from before the operator gate leaves
+invitation history and mentor profiles and is meant only for disposable databases. Note that code from before the operator gate leaves
 `/backend` and `/api/users` open to everyone, as they were then.
 
 ## Project process

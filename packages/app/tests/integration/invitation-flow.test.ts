@@ -167,13 +167,12 @@ describe("mentor invitations (CLI, Mailpit, browser)", () => {
     await browser.waitForText("This account will receive the mentor role.");
   }
 
-  /** Accept invitation, then the full navigation to home with the one-time notice. */
+  /** Accept invitation, then fully navigate to the first mentor setup step. */
   async function acceptInBrowser(): Promise<void> {
     await markPage();
     await browser.click("button", "Accept invitation");
-    await browser.waitForText("Invitation accepted. You're now a mentor.");
-    // The flag is dropped from the address once shown.
-    await browser.command("wait", "--fn", "location.pathname === '/' && location.search === ''");
+    await browser.waitForText("Mentor setup");
+    await browser.command("wait", "--fn", "location.pathname === '/mentor' && location.search === ''");
     expect(await pageKept()).toBe(false);
   }
 
@@ -208,15 +207,15 @@ describe("mentor invitations (CLI, Mailpit, browser)", () => {
       expect(await browser.visible("button", "Accept invitation")).toBe(true);
     });
 
-    it("accepts once, fully navigates home, keeps the session and shows every role plus mentor without Mentor setup", async () => {
+    it("accepts once, opens mentor setup, keeps the session and shows every role plus the mentor setup link", async () => {
       const before = await sessionCookie();
       await acceptInBrowser();
       expect(await sessionCookie()).toBe(before);
+      expect(await mainText()).toContain("Not started");
       const header = await headerText();
       expect(header).toContain(grace.name);
       expect(header).toContain("Backend");
-      // E02 Phase 1 has not shipped: no link to the unbuilt mentor area.
-      expect(header).not.toContain("Mentor setup");
+      expect(header).toContain("Mentor setup");
 
       const [user] = await query<{ id: string }>("select id from users where email = $1", [grace.email]);
       const [invitation] = await invitationRows(grace.email);
@@ -230,7 +229,53 @@ describe("mentor invitations (CLI, Mailpit, browser)", () => {
       await browser.waitForText(grace.email);
       const account = await mainText();
       for (const role of ["mentee", "mentor", "operator"]) expect(account).toContain(role);
-      expect(await headerText()).not.toContain("Mentor setup");
+      expect(await headerText()).toContain("Mentor setup");
+    });
+
+    it("validates, saves and publicly renders the mentor profile while keeping mentees out of setup", async () => {
+      await browser.command("open", `${baseURL}/mentor`);
+      await browser.click("link", "Create your profile");
+      await browser.waitForText("Create your profile");
+
+      await browser.click("button", "Save");
+      for (const message of ["Choose an area", "Describe what you help with", "Add at least one link"])
+        await browser.waitForText(message);
+
+      await browser.select("Area", "typescript");
+      await browser.fill("Description", "I help teams make TypeScript services safer and easier to change.");
+      await browser.fill("Links to public work", "https://github.com/grace/devmentor\nhttps://example.com/talks/typescript");
+      await browser.fillNumber("Price for 25 minutes (USD)", "40");
+      await browser.fillNumber("Price for 50 minutes (USD)", "70");
+      await browser.click("button", "Save");
+      await browser.waitForText("Saved");
+      expect(await browser.url()).toBe(`${baseURL}/mentor`);
+
+      const [profile] = await query<{
+        id: string; area: string; description: string; public_work_links: string[];
+        price_25_cents: number; price_50_cents: number;
+      }>(`select id, area, description, public_work_links, price_25_cents, price_50_cents
+          from mentor_profiles where user_id = (select id from users where email = $1)`, [grace.email]);
+      expect(profile).toEqual({
+        id: expect.any(String),
+        area: "typescript",
+        description: "I help teams make TypeScript services safer and easier to change.",
+        public_work_links: ["https://github.com/grace/devmentor", "https://example.com/talks/typescript"],
+        price_25_cents: 4_000,
+        price_50_cents: 7_000,
+      });
+
+      const publicPage = await fetch(`${baseURL}/mentors/${profile!.id}`);
+      expect(publicPage.status).toBe(200);
+      const publicHtml = await publicPage.text();
+      const publicText = publicHtml.replace(/<!--.*?-->/gsu, "");
+      for (const visible of [grace.name, "TypeScript", "github.com/grace/devmentor", "example.com/talks/typescript", "25 min", "$40", "50 min", "$70", "Not taking bookings yet", "Text sessions only"])
+        expect(publicText).toContain(visible);
+      expect(publicText).not.toMatch(/rating|review/i);
+      expect((await fetch(`${baseURL}/mentors/not-a-profile-id`)).status).toBe(404);
+
+      const { cookie: menteeCookie } = await githubSession(mallory);
+      const setupAsMentee = await fetch(`${baseURL}/mentor`, { headers: { cookie: menteeCookie }, redirect: "manual" });
+      expect(setupAsMentee.status).toBe(404);
     });
 
     it("cannot grant again when the link is reopened", async () => {
@@ -260,6 +305,26 @@ describe("mentor invitations (CLI, Mailpit, browser)", () => {
       expect(revoke.stdout).toContain(`Invitation revoked: id ${rows[1]!.id}, email ${grace.email}. Its link no longer works.`);
       expectSecretFree(revoke, [second]);
       expect(await rolesOf(grace.email)).toEqual(["mentee", "mentor", "operator"]);
+    });
+
+    it("conceals setup and the retained public profile after the mentor role is removed", async () => {
+      const [profile] = await query<{ id: string }>(
+        `select id from mentor_profiles where user_id = (select id from users where email = $1)`,
+        [grace.email],
+      );
+      await query(
+        `delete from user_roles where user_id = (select id from users where email = $1) and role = 'mentor'`,
+        [grace.email],
+      );
+
+      const setup = await fetch(`${baseURL}/mentor`, {
+        headers: { cookie: await browserCookie() },
+        redirect: "manual",
+      });
+      expect(setup.status).toBe(404);
+      expect((await fetch(`${baseURL}/mentors/${profile!.id}`)).status).toBe(404);
+      expect(await query(`select id from mentor_profiles where id = $1`, [profile!.id]))
+        .toEqual([{ id: profile!.id }]);
     });
   });
 

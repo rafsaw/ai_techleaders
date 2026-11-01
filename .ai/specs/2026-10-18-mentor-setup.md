@@ -5,7 +5,7 @@
 - Design authority: `.ai/specs/product-brief.md` (D03–D06, D12, D16, R01, N01, N02)
 - Research: one shared pass for the three stories and #47 (section "Research"). It is #47's deliverable.
 - Grey prototype (mentor onboarding, source of the questions at the end): `.ai/prototypes/discovery/mentor-onboarding/revision-002/`
-- Status: **draft for review** (gate answered by the PO 2026-10-18; joint E01/E02 review revised the same day; grilling decisions G1–G12 applied 2026-10-18; implementation and the real Stripe test-mode run remain outstanding)
+- Status: **approved; implementation in progress** (gate answered by the PO 2026-10-18; joint E01/E02 review revised the same day; grilling decisions G1–G12 applied 2026-10-18). Phase 1 / E02-S01 is implemented by PR #62; Phases 2–3 and the Phase 2 real Stripe test-mode run remain outstanding.
 
 ## 📝 TLDR
 
@@ -103,8 +103,8 @@ Each story is a user flow, not a CRUD screen. All mentor pages are in the signed
    | Field | Input | Rule (`mentorProfileSchema`) |
    |---|---|---|
    | Area | select: TypeScript, React, Python | one of `typescript \| react \| python` (MD3) |
-   | Description | textarea, plain text | 1–2,000 characters after trim; shown as plain text with line breaks, never as Markdown or HTML |
-   | Links to public work | textarea, one URL per line | 1–5 lines after dropping blank lines. Each must parse as an absolute `https:` URL of at most 2,048 characters, and there are no duplicates. An error names the line ("Line 2: use a full https:// link") |
+   | Description | textarea, plain text | 1–2,000 characters after trim, no NUL character; shown as plain text with line breaks, never as Markdown or HTML |
+   | Links to public work | textarea, one URL per line | 1–5 lines after dropping blank lines. Each must start with `https://` (case-insensitive) and parse as an absolute `https:` URL of at most 2,048 characters with no control characters, and there are no duplicates. An error names the line in the textarea, counting blank lines ("Line 2: use a full https:// link") |
    | Price for 25 minutes (USD) | number | whole dollars, 5–1,000 (MD2) |
    | Price for 50 minutes (USD) | number | whole dollars, 5–1,000. Not constrained against the 25-minute price |
 
@@ -590,7 +590,7 @@ Phases ship in order 1 → 2 → 3 (G5).
 
 | Phase | Story | Ships | Primitives finalized | Done when |
 |---|---|---|---|---|
-| 1 | #37 E02-S01 | Profile + prices, `/mentor` with item 1 and the line "Not bookable yet.", public `/mentors/[id]` (always "Not taking bookings yet"), invitation lands on `/mentor` | P17; `CrudForm` textarea/select | #37 ACs 1–4 pass. |
+| 1 ✅ PR #62 | #37 E02-S01 | Profile + prices, `/mentor` with item 1 and the line "Not bookable yet.", public `/mentors/[id]` (always "Not taking bookings yet"), invitation lands on `/mentor` | P17; `CrudForm` textarea/select | #37 ACs 1–4 pass. |
 | 2 | #47 + #38 E02-S02-T01, E02-S02 | Item 2: Stripe onboarding round trip, webhook, status banners, MD7 bookability on `/mentor` and the public page | P13 onboarding half; P14 `webhookHandler` without inbox | #38 ACs 1–4 and the recovery cases pass with the stub, **and the manual test-mode run is recorded** (G6). #47 may close on the Research deliverable. |
 | 3 | #39 E02-S03 | Item 3: slot publish/list/withdraw, `LocalTime` and the "no upcoming slots" status line | P5 (`assertOwner`) | #39 ACs 1–4 pass; AC 4 uses `booked_at` set through the test database. |
 

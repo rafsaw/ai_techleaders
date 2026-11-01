@@ -10,6 +10,7 @@ export * from "./http/makeCrudRoute";
 export * from "./http/navigationHandler";
 export * from "./http/validation";
 export * from "./logger";
+export * from "./validators/money/money.schema";
 export * from "./security/rate-limiter";
 export * from "./security/tokens";
 export * from "./time/clock";

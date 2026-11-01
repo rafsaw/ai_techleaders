@@ -20,6 +20,7 @@ import { MentorInvitationService } from "@/server/services/auth/mentor-invitatio
 import { PasswordAccountService } from "@/server/services/auth/password-account.service";
 import { RoleService } from "@/server/services/auth/role.service";
 import { UserService } from "@/server/services/auth/user.service";
+import { MentorProfileService } from "@/server/services/mentors/mentor-profile.service";
 import { SmtpEmailSender } from "@/server/services/notifications/adapters/smtp-email-sender";
 
 // The composition root: the only place where dependencies are registered.
@@ -41,6 +42,7 @@ function buildContainer(): AppContainer {
     passwordAccountService: asClass(PasswordAccountService),
     // Operator-only invitation management (create/revoke/resend), used by the CLI.
     mentorInvitationService: asClass(MentorInvitationService),
+    mentorProfileService: asClass(MentorProfileService),
     roleService: asClass(RoleService),
     userService: asClass(UserService),
     // The EmailSender port's SMTP adapter; it reads config.email() on first send.

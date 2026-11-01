@@ -33,7 +33,7 @@ export function MentorProfileHeader({ displayName, area, description, className,
           {AREA_LABELS[area]}
         </span>
       </div>
-      <p className="max-w-text text-body whitespace-pre-line wrap-break-word">{description}</p>
+      <p className="max-w-text text-body whitespace-pre-line wrap-anywhere">{description}</p>
     </div>
   );
 }
