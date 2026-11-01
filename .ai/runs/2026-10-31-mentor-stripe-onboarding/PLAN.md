@@ -6,7 +6,7 @@ Base: PR #62 (`feat/mentor-profile-setup`). Story: #38; epic: #29. Status: in-pr
 
 | Phase | Step | Title | Exec | Status | Commit |
 | --- | --- | --- | --- | --- | --- |
-| 2 | 2.1 | Configuration, port and validation | dispatch (economy) | done | this commit |
+| 2 | 2.1 | Configuration, port and validation | dispatch (economy) | todo | partial: 435343e |
 | 2 | 2.2 | Stripe adapter and security review | inline | todo | — |
 | 2 | 2.3 | Payout schema and migration | dispatch (economy) | todo | — |
 | 2 | 2.4 | Onboarding service and webhook handler | inline | todo | — |
