@@ -125,6 +125,10 @@ values).
 | `GITHUB_CLIENT_SECRET` | `github` | for GitHub sign-in | OAuth App client secret |
 | `GITHUB_OAUTH_URL` | `github` | no (default `https://github.com`) | OAuth endpoint override for test stubs |
 | `GITHUB_API_URL` | `github` | no (default `https://api.github.com`) | API endpoint override for test stubs |
+| `STRIPE_SECRET_KEY` | `stripe` | for payout onboarding | Stripe platform secret key; use a test-mode key locally |
+| `STRIPE_CONNECT_WEBHOOK_SECRET` | `stripe` | for payout onboarding and Connect webhooks | Signing secret for the Connect webhook endpoint |
+| `STRIPE_API_URL` | `stripe` | no | API endpoint override for the integration stub |
+| `STRIPE_ONBOARDING_ORIGIN` | `stripe` | no (default `https://connect.stripe.com`) | Allowed hosted onboarding origin; override only for the integration stub |
 | `SMTP_URL` | `email` | for sending email | `smtp://[user:pass@]host:port` (STARTTLS when offered) or `smtps://…` (TLS); local Mailpit: `smtp://localhost:1025` |
 | `MAIL_FROM` | `email` | for sending email | Sender, e.g. `DevMentor <no-reply@example.com>` (quote it in `.env` files) |
 
@@ -138,6 +142,21 @@ settings → OAuth Apps → New OAuth App. Set the homepage URL to
 `http://localhost:3000` and the authorization callback URL to
 `http://localhost:3000/api/auth/github/callback`, then copy the client id and
 a generated client secret into `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
+
+**Stripe Connect for local payout onboarding.** Use a Stripe test-mode platform
+secret key in `STRIPE_SECRET_KEY`. Forward Connect events with Stripe CLI:
+
+```bash
+stripe listen --forward-connect-to localhost:3000/api/webhooks/stripe/connect
+```
+
+Put the CLI's Connect webhook signing secret in `STRIPE_CONNECT_WEBHOOK_SECRET`.
+Keep both secrets in the ignored environment file, never in the repository or
+logs. Enable **Require at least one bank account** in the Stripe Dashboard for
+the platform's policy. Connected accounts use Stripe's default `full` service
+agreement. The Stripe configuration is lazy: unrelated routes and builds need
+no Stripe keys. The planned Stripe integration tests use a local stub rather
+than real credentials.
 
 Both loaders read files from `packages/app`. Existing `process.env` values
 win over all files. Files are loaded in the order below; for each variable,
@@ -469,7 +488,7 @@ npm run db:seed   # optional: sample user
 │   │           ├── container.ts   DI composition root
 │   │           ├── cradle.ts      Cradle types of the app's services
 │   │           ├── http.ts        apiHandler, makeCrudRoute, navigationHandler bound to the container
-│   │           ├── config.ts      lazily validated env sections (APP_URL/TRUST_PROXY, GITHUB_*, SMTP_URL/MAIL_FROM)
+│   │           ├── config.ts      lazily validated app, GitHub, email and Stripe env sections
 │   │           ├── auth/          page guards, session cookie rules
 │   │           ├── cli/           operator CLI (npm run operator)
 │   │           └── services/<concept>/  domain services

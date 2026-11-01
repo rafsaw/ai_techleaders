@@ -94,6 +94,7 @@ jobs:
 
   integration:
     name: Integration tests (PostgreSQL + agent-browser)
+    # Stripe configuration is lazy; unrelated CI jobs need no Stripe secrets.
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 15
