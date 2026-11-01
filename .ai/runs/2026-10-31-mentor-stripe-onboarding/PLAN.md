@@ -20,7 +20,7 @@ Base: PR #62 (`feat/mentor-profile-setup`). Story: #38; epic: #29. Status: in-pr
 | 2 | 2.7 | Stripe stub and integration scenarios | dispatch (standard) | done | 086acaf |
 | 2 | 2.8 | Documentation and specification updates | dispatch (economy) | done | 11c873e |
 | 2 | 2.8-review-fix | Fail closed on metadata conflicts and bound webhook input | inline | done | fe09f07 |
-| 2 | 2.9 | Automated fake-gateway acceptance evidence | inline | todo | — |
+| 2 | 2.9 | Automated fake-gateway acceptance evidence | inline | done | this commit |
 
 ## Scope and risks
 
@@ -28,4 +28,4 @@ Implement Phase 2 of `.ai/specs/2026-10-18-mentor-setup.md` on PR #62. Preserve 
 
 ## Resume blocker
 
-Step 2.9 requires the complete automated integration suite against the fake Stripe gateway on the final head, recorded as Phase 2 acceptance evidence. The earlier nine-scenario run and full-suite run predate final security fixes; a focused PostgreSQL regression passed after those fixes. Real Stripe onboarding has not been validated for either US or Poland; validate both in a separate integration validation before production release. After the suite, rerun the full final gate and obtain an eligible independent PR review; the authenticated PR author cannot submit an approving or changes-requested review on their own PR.
+Step 2.9 passed the full automated integration suite on code head bee5807: 160 tests across 13 files, including fake Stripe gateway scenarios. Real Stripe onboarding has not been validated for either US or Poland; validate both in a separate integration validation before production release. After the suite, rerun the full final gate and obtain an eligible independent PR review; the authenticated PR author cannot submit an approving or changes-requested review on their own PR.
