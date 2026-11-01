@@ -83,3 +83,10 @@ export class TooManyRequestsError extends AppError {
     super(message, "rate_limited", 429, options);
   }
 }
+
+/** An external provider could not complete a request safely. */
+export class ProviderUnavailableError extends AppError {
+  constructor(message = "Payment provider unavailable", options?: ErrorOptions) {
+    super(message, "provider_unavailable", 502, options);
+  }
+}

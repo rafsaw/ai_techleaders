@@ -83,6 +83,64 @@ describe("app config", () => {
     expect((error as ConfigError).message).not.toContain("hunter2");
   });
 
+  it("reads Stripe configuration lazily with the hosted Connect origin default", () => {
+    const config = createAppConfig({
+      APP_URL: "https://devmentor.test",
+      STRIPE_SECRET_KEY: "sk_test_safe",
+      STRIPE_CONNECT_WEBHOOK_SECRET: "whsec_safe",
+    });
+    expect(config.app().url.origin).toBe("https://devmentor.test");
+    expect(config.stripe()).toEqual({
+      secretKey: "sk_test_safe",
+      connectWebhookSecret: "whsec_safe",
+      onboardingOrigin: "https://connect.stripe.com",
+    });
+  });
+
+  it("parses an optional Stripe API URL and configured onboarding origin", () => {
+    const stripe = createAppConfig({
+      STRIPE_SECRET_KEY: "sk_test_safe",
+      STRIPE_CONNECT_WEBHOOK_SECRET: "whsec_safe",
+      STRIPE_API_URL: "http://127.0.0.1:4020/v1",
+      STRIPE_ONBOARDING_ORIGIN: "http://127.0.0.1:4020/hosted/",
+    }).stripe();
+    expect(stripe).toEqual({
+      secretKey: "sk_test_safe",
+      connectWebhookSecret: "whsec_safe",
+      apiUrl: new URL("http://127.0.0.1:4020/v1"),
+      onboardingOrigin: "http://127.0.0.1:4020",
+    });
+  });
+
+  it("reports missing Stripe keys by name without exposing values", () => {
+    const config = createAppConfig({ APP_URL: "https://devmentor.test", STRIPE_SECRET_KEY: "sk_test_private_value" });
+    expect(config.app().url).toBeInstanceOf(URL);
+    let error: unknown;
+    try {
+      config.stripe();
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error).toBeInstanceOf(ConfigError);
+    expect((error as ConfigError).message).toBe("Invalid configuration: missing STRIPE_CONNECT_WEBHOOK_SECRET");
+    expect((error as ConfigError).message).not.toContain("sk_test_private_value");
+  });
+
+  it.each([
+    { STRIPE_SECRET_KEY: "", STRIPE_CONNECT_WEBHOOK_SECRET: "whsec" },
+    { STRIPE_SECRET_KEY: "sk", STRIPE_CONNECT_WEBHOOK_SECRET: "", STRIPE_API_URL: "ftp://stripe.test" },
+    { STRIPE_SECRET_KEY: "sk", STRIPE_CONNECT_WEBHOOK_SECRET: "whsec", STRIPE_ONBOARDING_ORIGIN: "ftp://stripe.test" },
+  ])("rejects invalid Stripe configuration without including secret values", (env) => {
+    const config = createAppConfig(env);
+    expect(() => config.stripe()).toThrow(ConfigError);
+    try {
+      config.stripe();
+    } catch (error) {
+      expect((error as Error).message).not.toContain("whsec");
+      expect((error as Error).message).not.toContain("sk");
+    }
+  });
+
   it("reads process.env by default", () => {
     vi.stubEnv("APP_URL", "http://localhost:4000");
     expect(createAppConfig().app().url.port).toBe("4000");
