@@ -8,7 +8,7 @@ function setup() {
   const tx = {};
   const cradle = { logger: { error: vi.fn() }, em: { transactional: vi.fn(async (fn: (em: object) => Promise<void>) => { calls.push("transaction"); await fn(tx); }) } } as unknown as Cradle;
   const container = { createScope: () => ({ cradle }) } as unknown as AppContainer;
-  const parse = vi.fn((_cradle: Cradle, _body: string, _signature: string | null) => { calls.push("parse"); return { id: "evt", type: "account.updated" }; });
+  const parse = vi.fn(() => { calls.push("parse"); return { id: "evt", type: "account.updated" }; });
   const prepare = vi.fn(async () => { calls.push("prepare"); return "snapshot"; });
   const apply = vi.fn(async () => { calls.push("apply"); });
   const handler = createWebhookHandler(container);
