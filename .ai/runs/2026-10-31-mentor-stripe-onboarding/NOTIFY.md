@@ -5,3 +5,5 @@
 - 2026-10-31 UTC: Run interrupted before remaining implementation, review and acceptance. Draft remains in progress; resume from step 2.1. Manual US and PL Stripe test-mode access and execution are unconfirmed.
 
 - 2026-11-01 UTC: Resumed by @rafsaw from 2.1 at c2d5bc9. Delegated the remaining configuration documentation; confirmed P13 port signatures and ran focused config and country validation tests.
+
+- 2026-11-01 UTC: Delegated the payout schema and an independent adapter security review. Review identified malformed signed account events; fixed in e0835d7. Split the original 2.4 into the generic signature-only webhook handler (2.4) and onboarding service (2.10), preserving their execution order and separate verifiable commits.
