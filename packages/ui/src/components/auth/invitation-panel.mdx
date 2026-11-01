@@ -103,8 +103,8 @@ words (P-A3, proposal approved by Rafał).
       schema: invitationAcceptSchema,
       values: { token },
       submit: (body, { signal }) => apiCall("/api/auth/invitations/accept", { method: "POST", body, signal }),
-      // E01 standalone: home with the accepted notice; /mentor once E02 Phase 1 ships.
-      onDone: () => window.location.assign("/?invitation=accepted"),
+      // A full navigation to the first mentor setup step.
+      onDone: () => window.location.assign("/mentor"),
     },
   }}
 />
