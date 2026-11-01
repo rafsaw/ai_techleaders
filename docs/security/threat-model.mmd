@@ -1,0 +1,26 @@
+flowchart LR
+  subgraph internet["Untrusted: browser and internet"]
+    mentor["Mentor / other user"]
+    attacker["Unauthenticated caller"]
+  end
+  subgraph app["Application trust boundary"]
+    routes("Session-guarded onboarding routes")
+    hook("Signature-verified webhook")
+    service("Payout onboarding service")
+  end
+  subgraph data["Database trust boundary"]
+    db[("Profiles and payout bindings")]
+  end
+  subgraph provider["Stripe trust boundary"]
+    stripe["Stripe Connect"]
+  end
+  mentor -->|"Session, country (T01, T02, T03)"| routes
+  attacker -->|"Webhook body and signature (T04, T08)"| hook
+  stripe -->|"Signed event (T04, T05)"| hook
+  routes --> service
+  hook -->|"Verified account ID (T04, T05)"| service
+  service -->|"Locks, bindings, state (T01, T05, T06, T07)"| db
+  service -->|"Create, list, fetch, link (T03, T06, T07, T09)"| stripe
+  stripe -->|"Snapshots, hosted URL (T03, T05, T09)"| service
+  classDef boundary stroke-dasharray: 5 5
+  class internet,app,data,provider boundary
