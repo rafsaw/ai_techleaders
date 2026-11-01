@@ -33,6 +33,12 @@ Once a surface has consumers outside this repository (a published package, a pub
   - `CrudForm`'s `CrudField.type` adds `textarea` and `select`, with optional `placeholder` and `options`; existing field descriptors and callbacks are unchanged.
   - Invitation acceptance now fully navigates to `/mentor` instead of the legacy `/?invitation=accepted` notice. `AppSiteHeader` now passes `mentorSetupHref="/mentor"`, so its existing opt-in link appears for mentors. Existing invitation URLs, API responses, sessions and non-mentor headers are unchanged.
 
+- **Mentor setup Phase 2 (`.ai/specs/2026-10-18-mentor-setup.md`):** additive Stripe Connect onboarding and payout state. The code and local-stub integration scenarios exist; real US and PL Stripe test-mode acceptance remains outstanding.
+  - Additive routes (§1): mentor-only `POST /api/payments/onboarding` (`{ country }` to `{ url }`) and GET `/api/payments/onboarding/return` and `/api/payments/onboarding/refresh`; signature-authenticated `POST /api/webhooks/stripe/connect` (§2). New `provider_unavailable` maps to 502.
+  - Additive exports (§3): `ProviderUnavailableError`, the onboarding country validator, `PayoutAccount`, and the `payoutOnboarding` / `payoutOnboardingService` Cradle keys. `PayoutStatus` adds optional error and contact-destination props; existing callers remain valid.
+  - Additive schema (§4): `payout_accounts` in `Migration20261101020604`, with unique profile and nullable Stripe binding, state checks and `down()`. Production rollback preserves the table and Stripe bindings.
+  - New lazy Stripe configuration (§5): `STRIPE_SECRET_KEY`, `STRIPE_CONNECT_WEBHOOK_SECRET`, optional `STRIPE_API_URL` and `STRIPE_ONBOARDING_ORIGIN` (default `https://connect.stripe.com`). Unrelated routes and builds do not require these keys.
+
 ## Protected surfaces
 
 ### 1. HTTP API envelope and routes (`/api/*`)
@@ -40,7 +46,7 @@ Once a surface has consumers outside this repository (a published package, a pub
 The surface:
 
 - The JSON envelope `{ ok: true, data }` / `{ ok: false, error: { code, message, fieldErrors? } }` (`packages/core/src/http/apiHandler.ts`).
-- The error `code` strings and their HTTP status mapping: 400 validation, 401, 403, 404, 409, 429 `rate_limited` (with a `Retry-After` header, in seconds) and 500 `internal_error` (`packages/core/src/http/errors.ts`). The password routes add 401 `invalid_credentials` and 403 `email_not_confirmed` (`packages/app/src/server/services/auth/password-account.service.ts`).
+- The error `code` strings and their HTTP status mapping: 400 validation, 401, 403, 404, 409, 429 `rate_limited` (with a `Retry-After` header, in seconds), 500 `internal_error` and 502 `provider_unavailable` (`packages/core/src/http/errors.ts`). The password routes add 401 `invalid_credentials` and 403 `email_not_confirmed` (`packages/app/src/server/services/auth/password-account.service.ts`).
 - The `makeCrudRoute` conventions: `POST` returns 201, and `PUT` / `DELETE` take `?id=<uuid>`.
 - Every route and method states its access rule (`access` on `apiHandler`, `makeCrudRoute` and `navigationHandler`, platform PD3); it is required and has no default. Loosening a rule (e.g. `user` to `public`) is a security change.
 - The existing routes, their access rules, and their request and response shapes:
@@ -56,6 +62,7 @@ The surface:
   - The confirmation email's link format: `<APP_URL>/confirm-email?token=…[&returnTo=…]`. Links already in inboxes must keep working for their 24 hours.
   - Accounts Phase 3: `POST /api/auth/invitations/accept` `{ token }`, `user` (401 signed out), returns the caller's `AccountDto` with `mentor` added and no redirect field. It fails with 404 `not_found` for an invalid, used, revoked, rotated or expired link, 403 `forbidden` when the account is not the verified invited address (nothing consumed), and 409 `conflict` when the account is already a mentor (nothing consumed).
   - The invitation email's link format: `<APP_URL>/invite/<token>`. Links already in inboxes must keep working for their 14 days. The page and the accept route are the only way to the `mentor` role.
+  - Mentor setup Phase 2: `POST /api/payments/onboarding` takes `{ country }` and returns `{ url }`; the return and refresh GET routes are mentor-only navigation endpoints. `POST /api/webhooks/stripe/connect` accepts a signed raw webhook, verifies its signature without a session, and returns `{ received: true }` on success; invalid signature/body is 400 and processing failure is 500 for retry.
   - Mentor setup Phase 1: `PUT /api/mentors/profile`, mentors only (`{ role: "mentor" }`), takes `{ area, description, publicWorkLinks, price25Dollars, price50Dollars }` and returns the caller's `MentorProfileDto`. It creates on first save and replaces on later saves; validation failures use the existing 400 envelope and field errors.
 
 Breaking changes include renaming or removing an envelope field, changing a `code` string or its status, moving `id` out of the query string, removing a route or method, adding a required request field, or removing or retyping a response DTO field.
@@ -64,7 +71,7 @@ Required path: the server envelope (`core`) and the client twin (`packages/ui/sr
 
 ### 2. CSRF header
 
-The surface: `CSRF_HEADER = "x-devmentor-csrf"`, declared in both `core` (`apiHandler.ts`) and `ui` (`src/api/types.ts`), and required on every non-GET/HEAD/OPTIONS request.
+The surface: `CSRF_HEADER = "x-devmentor-csrf"`, declared in both `core` (`apiHandler.ts`) and `ui` (`src/api/types.ts`), and required on every non-GET/HEAD/OPTIONS request through the shared API handler. The approved signature-only Stripe Connect webhook is the narrow exception: it verifies the raw body and signature and does not resolve a session or require this header.
 
 Breaking changes include renaming the header, changing which methods require it, or letting the two declarations drift apart.
 
@@ -74,10 +81,10 @@ Required path: change both declarations together. Never remove the check without
 
 The surface is the `exports` map of each package and what it exposes:
 
-- `@devmentor/core`: `.` (the DI container, `createApiHandler`, `createMakeCrudRoute`, `createNavigationHandler`, `parseInput`, the `AppError` hierarchy and `isAppError`, `Access`/`Principal`/`PrincipalResolver`, `ResponseCookies`/`readCookie`, `defineConfigSection`/`ConfigError`, `Clock`/`systemClock`/`fixedClock`, `generateToken`/`hashToken`/`isWellFormedToken`, the `RateLimiter` port types, `clientIp`, `TooManyRequestsError`, USD `Money`/`CURRENCY`/`toCents`/`formatMoney`, logger, `registerCore`) and `./validators/*` (isomorphic: client code imports it, so no Node-only APIs). `validators/auth/` includes `return-to.schema` (`parseReturnTo`, `parseInternalRedirect`, `returnToSchema`, `optionalReturnToSchema`), `role.schema`, `email.schema`, `password.schema` (`passwordSchema`, `currentPasswordSchema`), `sign-up.schema`, `sign-in.schema`, `email-confirm.schema`, `account-update.schema` (`displayNameSchema`) and `invitation-accept.schema` (`invitationAcceptSchema`, `INVITATION_INVALID_MESSAGE`). `validators/mentors/mentor-profile.schema` exposes the mentor profile input contract.
-- `@devmentor/db`: `.` (entities including `EmailConfirmationToken`, `RateLimitBucket`, `MentorInvitation` and `MentorProfile`, `registerDb`, the P9 helpers `singleUseTokenProperties`/`inspectSingleUseToken`/`consumeSingleUseToken` with `TokenLookup`/`SingleUseTokenRecord`, `PostgresRateLimiter`, and the re-exported `EntityManager`/`MikroORM` types, `LockMode` and `UniqueConstraintViolationException`) and `./config`.
+- `@devmentor/core`: `.` (the DI container, `createApiHandler`, `createMakeCrudRoute`, `createNavigationHandler`, `parseInput`, the `AppError` hierarchy and `isAppError`, `Access`/`Principal`/`PrincipalResolver`, `ResponseCookies`/`readCookie`, `defineConfigSection`/`ConfigError`, `Clock`/`systemClock`/`fixedClock`, `generateToken`/`hashToken`/`isWellFormedToken`, the `RateLimiter` port types, `clientIp`, `TooManyRequestsError`/`ProviderUnavailableError`, USD `Money`/`CURRENCY`/`toCents`/`formatMoney`, logger, `registerCore`) and `./validators/*` (isomorphic: client code imports it, so no Node-only APIs). `validators/auth/` includes `return-to.schema` (`parseReturnTo`, `parseInternalRedirect`, `returnToSchema`, `optionalReturnToSchema`), `role.schema`, `email.schema`, `password.schema` (`passwordSchema`, `currentPasswordSchema`), `sign-up.schema`, `sign-in.schema`, `email-confirm.schema`, `account-update.schema` (`displayNameSchema`) and `invitation-accept.schema` (`invitationAcceptSchema`, `INVITATION_INVALID_MESSAGE`). `validators/mentors/mentor-profile.schema` exposes the mentor profile input contract; `validators/payments/onboarding-start.schema` exposes the accepted countries and start input.
+- `@devmentor/db`: `.` (entities including `EmailConfirmationToken`, `RateLimitBucket`, `MentorInvitation`, `MentorProfile` and `PayoutAccount`, `registerDb`, the P9 helpers `singleUseTokenProperties`/`inspectSingleUseToken`/`consumeSingleUseToken` with `TokenLookup`/`SingleUseTokenRecord`, `PostgresRateLimiter`, and the re-exported `EntityManager`/`MikroORM` types, `LockMode` and `UniqueConstraintViolationException`) and `./config`.
 - `@devmentor/ui`: `./globals.css`, `./components/*`, `./lib/*`, `./hooks/*`, `./api/*` (moved from `./backend/api/*` in accounts Phase 1; the old path was removed), `./backend/{forms,tables,feedback}/*`, `./forms/*` (`useSchemaForm` with `onSubmit(values, { signal })`; `field-errors` with `toFieldErrors`, `failureMessage` and `RATE_LIMITED_MESSAGE`) and `./frontend/*` (the Tailwind public kit). The auth domain components' props are part of it, including `SiteHeader`'s optional `mentorSetupHref` and `InvitationPanel`'s `InvitationState`/`InvitationAction`. Public pages may import only the Tailwind-only domain components listed in `tailwindDomainComponents` in `eslint.config.mjs`, so making one of them depend on shadcn, backend panels or Base UI breaks its public consumers.
-- The `Cradle` interface keys added through declaration merging (`em`, `logger`, `clock`, `config`, `principalResolver`, `userService`, `roleService`, `authSessionService`, `githubOAuth`, `githubSignInService`, `emailSender`, `rateLimiter`, `passwordHasher`, `passwordAccountService`, `mentorInvitationService`, `mentorProfileService`, …).
+- The `Cradle` interface keys added through declaration merging (`em`, `logger`, `clock`, `config`, `principalResolver`, `userService`, `roleService`, `authSessionService`, `githubOAuth`, `githubSignInService`, `emailSender`, `rateLimiter`, `passwordHasher`, `passwordAccountService`, `mentorInvitationService`, `mentorProfileService`, `payoutOnboarding`, `payoutOnboardingService`, …).
 
 Breaking changes include removing or renaming an export path or a named export, changing a function signature or a component's props incompatibly, or renaming or retyping a `Cradle` key.
 
@@ -85,7 +92,7 @@ Required path: update every importer in the monorepo in the same PR (`npm run ty
 
 ### 4. Database schema and migrations
 
-The surface is the PostgreSQL schema as defined by the committed migrations in `packages/db/src/migrations/` (today `users` with the nullable `password_hash`, `user_roles` with the nullable `invitation_id` (mentor rows only, `user_roles_invitation_mentor_check`), `auth_sessions`, `email_confirmation_tokens`, `rate_limit_buckets`, `mentor_invitations` with its partial unique open-email index, and `mentor_profiles` with one row per user, checked area and positive integer-cent prices), plus the `baseProperties` columns every entity inherits.
+The surface is the PostgreSQL schema as defined by the committed migrations in `packages/db/src/migrations/` (today `users` with the nullable `password_hash`, `user_roles` with the nullable `invitation_id` (mentor rows only, `user_roles_invitation_mentor_check`), `auth_sessions`, `email_confirmation_tokens`, `rate_limit_buckets`, `mentor_invitations` with its partial unique open-email index, `mentor_profiles` with one row per user, checked area and positive integer-cent prices, and `payout_accounts` with unique profile and Stripe account bindings and checked states), plus the `baseProperties` columns every entity inherits.
 
 Breaking changes include dropping or renaming a table or column, narrowing a type, adding a `NOT NULL` column without a default, adding a uniqueness constraint over existing data, or editing an already-applied migration.
 
@@ -103,7 +110,7 @@ Schema changes are `risk-high`.
 The surface:
 
 - `DATABASE_URL`, `DB_POOL_MIN`, `DB_POOL_MAX` and `DB_DEBUG` (read in `packages/db/src/config.ts`, documented in `packages/app/.env.example`).
-- `APP_URL`, `TRUST_PROXY` (`true`/`false`, default `false`), `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_OAUTH_URL`, `GITHUB_API_URL`, `SMTP_URL` (`smtp://` or `smtps://`) and `MAIL_FROM` (lazily validated sections in `packages/app/src/server/config.ts`). Changing the `TRUST_PROXY` default, or how `X-Forwarded-For` is accepted, is a `security` change.
+- `APP_URL`, `TRUST_PROXY` (`true`/`false`, default `false`), `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_OAUTH_URL`, `GITHUB_API_URL`, `SMTP_URL` (`smtp://` or `smtps://`), `MAIL_FROM`, `STRIPE_SECRET_KEY`, `STRIPE_CONNECT_WEBHOOK_SECRET`, `STRIPE_API_URL` and `STRIPE_ONBOARDING_ORIGIN` (lazily validated sections in `packages/app/src/server/config.ts`). Changing the `TRUST_PROXY` default, or how `X-Forwarded-For` is accepted, is a `security` change.
 - `.env*` loading from `packages/app`, shared by Next.js and the MikroORM CLI.
 - `.ai/agentic.config.json`.
 

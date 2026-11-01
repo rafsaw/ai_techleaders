@@ -5,13 +5,13 @@
 - Design authority: `.ai/specs/product-brief.md` (D03–D06, D12, D16, R01, N01, N02)
 - Research: one shared pass for the three stories and #47 (section "Research"). It is #47's deliverable.
 - Grey prototype (mentor onboarding, source of the questions at the end): `.ai/prototypes/discovery/mentor-onboarding/revision-002/`
-- Status: **approved; implementation in progress** (gate answered by the PO 2026-10-18; joint E01/E02 review revised the same day; grilling decisions G1–G12 applied 2026-10-18). Phase 1 / E02-S01 is implemented by PR #62; Phases 2–3 and the Phase 2 real Stripe test-mode run remain outstanding.
+- Status: **approved; implementation in progress** (gate answered by the PO 2026-10-18; joint E01/E02 review revised the same day; grilling decisions G1–G12 applied 2026-10-18). Phase 1 / E02-S01 is implemented by PR #62. Phase 2 code and local-stub integration scenarios are implemented on PR #63, stacked on #62; independent review, final validation and the real US and PL Stripe test-mode acceptance remain outstanding. Phase 3 is not implemented.
 
 ## 📝 TLDR
 
-**Today:** an invited mentor (E01) holds the `mentor` role and can do nothing with it. There is no profile, no price, no payout account and no schedule, so nobody can find or pay them.
+**Baseline before E02:** an invited mentor (E01) holds the `mentor` role but has no profile, price, payout account or schedule. Phase 1 adds the profile; the Phase 2 branch adds payout onboarding. Slots and checkout remain future work.
 
-**Proposed (future behavior):**
+**Target behavior (all phases):**
 
 - A mentor works from one setup page, **Mentor setup** (`/mentor`). It is a checklist (profile, payouts with Stripe, slots) with a single "bookable / not bookable yet" line on top.
 - **Profile first.** It holds one area, links to public work, a plain description and a USD price for each of the two formats. Saving it publishes the public page `/mentors/<id>`, which never shows ratings.
@@ -205,7 +205,7 @@ Provisioning state is mapped separately and takes precedence over payout status 
 
 ## 📝 Research
 
-This is the single shared pass for #37, #38, #39 and #47, checked 2026-10-18. **Documentation-verified only: no real Stripe test-mode onboarding run has been performed.** The CI stub is an application test double, not evidence of Stripe behavior. Scheduler claims come from Cal.com `main` (code read) and vendor help pages; the Stripe sources and the outstanding test-mode run are below.
+This is the single shared pass for #37, #38, #39 and #47, checked 2026-10-18. **Documentation research plus local-stub integration evidence:** the Phase 2 branch exercises nine scenarios using its own HTTP stub, a real migrated PostgreSQL database and a browser. No real Stripe test-mode onboarding run has been performed. The stub is an application test double, not evidence of Stripe behavior. Scheduler claims come from Cal.com `main` (code read) and vendor help pages; the Stripe sources and the outstanding test-mode run are below.
 
 | Leader / source | What we adopt | Complexity we skip |
 |---|---|---|
@@ -467,11 +467,11 @@ type SlotDto = { id: string; startsAt: string /* ISO UTC */; booked: boolean };
   - The checkout half (`PaymentGateway`) stays provisional for E04.
 - **P14 webhook handler, without the inbox** (G10). `app/src/server/webhooks/webhook-handler.ts`:
   ```ts
-  webhookHandler<E, D>({
+  createWebhookHandler(container)<E, D>({
     provider: string,
     parse: (cradle, rawBody: string, signature: string | null) => E & { id: string; type: string },  // throws ValidationError → 400
     prepare?: (cradle, event: E) => Promise<D>,                     // outside any transaction: external calls go here
-    apply: (em, cradle, event: E, prepared: D) => Promise<void>,    // inside one em.transactional
+    apply: (em, cradle, event: E, prepared: D | undefined) => Promise<void>, // inside one em.transactional
   })
   ```
   The order: read the raw body (no CSRF check, no session); `parse` (invalid → 400; configuration/unexpected failures → logged 500); `prepare`; `apply` in one transaction; success → 200 `{ received: true }`; anything that throws → logged 500, nothing committed, the provider retries. There is no event-ID deduplication: E02's effect is a fetch-and-overwrite, so a repeat is harmless. E04 adds the inbox insert (`provider`, `event_id`) to this wrapper when it finalizes P14.
@@ -535,6 +535,29 @@ type SlotDto = { id: string; startsAt: string /* ISO UTC */; booked: boolean };
 | The mentor's laptop is set to the wrong time zone | Times are published in that zone; the label on the form names it, which is the only safeguard (MD6, accepted). |
 | Remove races with E04's booking claim | The conditional delete and the conditional claim touch the same row; exactly one wins. The loser sees 409 "booked" or E04's "slot is gone". |
 | Removing someone else's slot by id | 404, which does not reveal it exists (P5). |
+
+### Phase 2 implementation notes (2026-10-31)
+
+PR #63 implements the Connect adapter, payout table, onboarding and webhook
+routes, setup UI and bookability predicate. Its local-stub integration suite
+exercises the nine Phase 2 scenarios, including an SDK request timeout after
+creation, duplicate signed delivery, a webhook binding before the creation
+response, and overlapping starts. This validates our integration against the
+stub, not Stripe's real hosted flow or production configuration. The recorded
+US and PL Stripe test-mode acceptance, final gate, independent risk-high
+review and live release conditions remain open; see the run folder for the
+current evidence and handoff. The application currently shows plain-text
+contact guidance because no real contact destination has been specified.
+
+The implemented `config.stripe().onboardingOrigin` is an origin **string**,
+not a `URL` object; `apiUrl` remains an optional `URL`. The webhook wrapper is
+exposed as `createWebhookHandler(container)(options)`; its optional `prepare`
+means the `apply` prepared argument can be `undefined`. The validation and
+transaction boundaries above are unchanged. Operational reconciliation and
+wrong-country replacement are documented in the README's Stripe payout
+reconciliation runbook. E04 must re-fetch with `syncAccount` before checkout,
+add the P14 inbox, enforce payment/checkout business uniqueness, and claim a
+slot atomically.
 
 ## 📝 Risks & Impact Review
 

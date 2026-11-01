@@ -155,8 +155,61 @@ Keep both secrets in the ignored environment file, never in the repository or
 logs. Enable **Require at least one bank account** in the Stripe Dashboard for
 the platform's policy. Connected accounts use Stripe's default `full` service
 agreement. The Stripe configuration is lazy: unrelated routes and builds need
-no Stripe keys. The planned Stripe integration tests use a local stub rather
-than real credentials.
+no Stripe keys. The Stripe integration tests use a local stub rather than
+real credentials; stub results do not establish real Stripe behavior.
+
+### Stripe payout reconciliation (operator runbook)
+
+The app commits one payout row before contacting Stripe. A `pending` or
+`reconciliation_required` row is recoverable through **Retry setup**: the
+app exhausts the connected-account listing and compares both local metadata
+IDs before binding one match or, after a complete zero-match listing, retrying
+with the same row and idempotency key. A partial listing or provider error is
+not evidence of zero matches. `failed` requires an operator to resolve its
+cause before returning the row to `reconciliation_required`; a blocked
+payout requires operator review. Do not delete a row or mint a new key merely
+because a request failed or timed out.
+
+For multiple matches, conflicting bindings, mismatched metadata or country:
+
+1. Stop retries for the affected mentor while investigating and account for
+   requests and webhook deliveries already in flight. Use the Stripe Dashboard
+   for the correct test or live platform account and a restricted database
+   session. Record the local payout row ID, profile ID, account IDs, stored
+   country, provisioning state and status; do not record identity or bank
+   details, Account Link URLs, webhook bodies, secrets or tokens.
+2. Inspect **all** connected-account pages and match both `payout_account_id`
+   and `mentor_profile_id` metadata against the existing row. Check each
+   candidate's country and existing local bindings. Resolve the conflict in
+   the Dashboard and database by hand only after establishing the authoritative
+   account and handling any duplicate or orphan; never choose a match
+   arbitrarily. Keep the row unresolved if the facts cannot be established.
+3. After the conflict is resolved, preserve the existing local row and key.
+   If a previously `failed` cause has been corrected, an authorized operator
+   may set its unbound row to `reconciliation_required` and have the mentor
+   retry. The app will list first and sync the resulting binding. Check stored
+   state and a fresh status check; `last_reconciled_at` is diagnostic, not an
+   authorization or ordering field. There is no reconciliation CLI command.
+
+**Wrong country.** Stripe account country cannot be changed. First resolve
+any unfinished or ambiguous creation and inventory all matching accounts as
+above. Coordinate with the mentor, review any financial obligations and
+references, and close the old Stripe account through the Dashboard only when
+it is safe to do so. Preserve the relevant audit record. After the account is
+closed and no in-flight request or dependent record can use the old binding,
+an authorized operator replaces the local payout row in the database; the
+mentor then starts again with the correct country, creating a new row and key.
+Never perform this replacement while the prior creation or ownership remains
+uncertain. This is a deliberate exception to ordinary retry recovery, not a
+way to clear an error; the application has no country-change screen.
+
+Before live use, configure a **Connect** webhook endpoint at
+`/api/webhooks/stripe/connect` for `account.updated` and its corresponding
+signing secret, and enable the bank-account requirement. A founder must
+acknowledge the platform's responsibility for losses and fees, and a tax
+advisor must assess the platform's reporting obligations before live payouts.
+Phase 2 also requires a recorded real Stripe test-mode acceptance run for one
+US and one PL individual; the local stub does not satisfy that requirement.
 
 Both loaders read files from `packages/app`. Existing `process.env` values
 win over all files. Files are loaded in the order below; for each variable,
@@ -653,7 +706,8 @@ npm run test:integration
 The suite allocates a disposable PostgreSQL instance, applies committed
 migrations, chooses an available app port, and cleans up the browser, app,
 and container. It never uses your `.env` database. GitHub is replaced by a
-local stub (`packages/app/tests/integration/github-stub.ts`), and outbound
+local stub (`packages/app/tests/integration/github-stub.ts`), Stripe Connect uses
+a local HTTP stub (`packages/app/tests/integration/stripe-stub.ts`), and outbound
 email goes to a disposable Mailpit container whose inbox the tests read over
 its HTTP API (`packages/app/tests/integration/mailpit.ts`). It covers the
 public home, GitHub sign-in, the account page and sign-out, operator
@@ -663,7 +717,9 @@ handling, running `npm run db:seed` twice without creating a duplicate,
 and email accounts: sign-up with the message read from Mailpit, sign-in
 refused before confirming, resend, replaced/expired/tampered links,
 confirmation with a full navigation, password sign-in, and the
-per-address rate limits. Logs, screenshots, accessibility snapshots, and
+per-address rate limits. Stripe scenarios cover onboarding, webhook retries,
+link refresh, ambiguous creation and concurrent recovery against the stub.
+Logs, screenshots, accessibility snapshots, and
 JUnit results are saved in `test-results/integration/`.
 
 GitHub Actions runs Build, Lint, Typecheck, Unit tests (100% coverage),
@@ -680,10 +736,11 @@ Rollback is **code only**: deploy the previous code and keep the database as
 it is. Schema changes for accounts are additive (new nullable `users`
 columns including `password_hash`, the `user_roles`, `auth_sessions`,
 `email_confirmation_tokens`, `rate_limit_buckets` and `mentor_invitations`
-tables, the nullable `user_roles.invitation_id` and their indexes), so older
+tables, `mentor_profiles`, `payout_accounts`, the nullable
+`user_roles.invitation_id` and their indexes), so older
 code keeps working with them. Do not run `npm run db:migrate:down` as
 a rollback: its `down()` drops roles, sessions, passwords, confirmation links
-and invitation history and is meant only for disposable databases. Note that code from before the operator gate leaves
+and invitation history or payout bindings and is meant only for disposable databases. Note that code from before the operator gate leaves
 `/backend` and `/api/users` open to everyone, as they were then.
 
 ## Project process
