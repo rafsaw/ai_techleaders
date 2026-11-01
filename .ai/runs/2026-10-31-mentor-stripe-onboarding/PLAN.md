@@ -8,6 +8,7 @@ Base: PR #62 (`feat/mentor-profile-setup`). Story: #38; epic: #29. Status: in-pr
 | --- | --- | --- | --- | --- | --- |
 | 2 | 2.1 | Configuration, port and validation | dispatch (economy) | done | 09b119d (after 435343e) |
 | 2 | 2.2 | Stripe adapter and security review | inline | done | ab33cc7 |
+| 2 | 2.2-review-fix | Reject malformed signed account events | inline | done | this commit |
 | 2 | 2.3 | Payout schema and migration | dispatch (economy) | done | this commit |
 | 2 | 2.4 | Onboarding service and webhook handler | inline | todo | — |
 | 2 | 2.5 | Routes and bookability | inline | todo | — |

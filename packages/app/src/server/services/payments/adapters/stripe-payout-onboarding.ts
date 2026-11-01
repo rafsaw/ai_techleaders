@@ -97,7 +97,10 @@ export class StripePayoutOnboarding implements PayoutOnboarding {
     }
     if (!event || typeof event.id !== "string" || typeof event.type !== "string") throw new ValidationError({ body: ["Invalid Stripe webhook"] });
     const object = event.data?.object;
-    const accountId = event.type === "account.updated" && object && "id" in object && typeof object.id === "string" ? object.id : null;
-    return { id: event.id, type: event.type, accountId };
+    if (event.type === "account.updated") {
+      if (!object || typeof object !== "object" || !("id" in object) || typeof object.id !== "string" || !object.id) throw new ValidationError({ body: ["Invalid Stripe webhook"] });
+      return { id: event.id, type: event.type, accountId: object.id };
+    }
+    return { id: event.id, type: event.type, accountId: null };
   }
 }

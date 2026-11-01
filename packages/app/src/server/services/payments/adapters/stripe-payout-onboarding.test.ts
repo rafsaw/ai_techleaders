@@ -87,6 +87,10 @@ describe("Stripe payout onboarding", () => {
     expect(() => adapter.parseWebhook("bad", "signature")).toThrowError(expect.objectContaining({ status: 400 }));
     mocks.verify.mockImplementation(() => { throw new Error("internal"); });
     expect(() => adapter.parseWebhook("{}", "signature")).toThrow("internal");
+    for (const object of [undefined, null, "primitive", {}, { id: 1 }, { id: "" }]) {
+      mocks.verify.mockReturnValue({ id: "evt", type: "account.updated", data: { object } });
+      expect(() => adapter.parseWebhook("{}", "signature")).toThrowError(expect.objectContaining({ status: 400 }));
+    }
     mocks.verify.mockReturnValue({});
     expect(() => adapter.parseWebhook("{}", "signature")).toThrowError(expect.objectContaining({ status: 400 }));
   });
