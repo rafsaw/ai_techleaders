@@ -5,7 +5,7 @@
 - Design authority: `.ai/specs/product-brief.md` (D03–D06, D12, D16, R01, N01, N02)
 - Research: one shared pass for the three stories and #47 (section "Research"). It is #47's deliverable.
 - Grey prototype (mentor onboarding, source of the questions at the end): `.ai/prototypes/discovery/mentor-onboarding/revision-002/`
-- Status: **approved; implementation in progress** (gate answered by the PO 2026-10-18; joint E01/E02 review revised the same day; grilling decisions G1–G12 applied 2026-10-18). Phase 1 / E02-S01 is implemented by PR #62. Phase 2 code and local-stub integration scenarios are implemented on PR #63, stacked on #62; independent review, final validation and the real US and PL Stripe test-mode acceptance remain outstanding. Phase 3 is not implemented.
+- Status: **approved; implementation in progress** (gate answered by the PO 2026-10-18; joint E01/E02 review revised the same day; grilling decisions G1–G12 applied 2026-10-18). Phase 1 / E02-S01 is implemented by PR #62. Phase 2 code and local-stub integration scenarios are implemented on PR #63, stacked on #62; independent review, final validation and the real US Stripe test-mode acceptance remain outstanding; Poland verification is deferred to a separate geographic-expansion validation. Phase 3 is not implemented.
 
 ## 📝 TLDR
 
@@ -45,7 +45,9 @@ The PO answered the gate on 2026-10-18 (gate.Q0–Q7) and accepted the proposed 
 | MD11 | **Slot rules.** All are checked on the server:<br>• the start is at least 2 hours after now, with no product-imposed upper horizon<br>• the start is a whole minute<br>• the start is not within 50 minutes of another of the mentor's slots<br>• a slot is removable only while not booked<br>• the booked state is a nullable `booked_at` column that E04 sets atomically | The lead time follows D16. `booked_at` gives E04 a race-safe one-slot claim and lets this spec refuse removal of booked slots before bookings exist. |
 | MD12 | **Provisioning and payout readiness are separate.** Provisioning is `pending`, `provisioned`, `reconciliation_required` or `failed`. Commit the local row before any Stripe call. Creation errors are classified (G9). **A retry always lists connected accounts first** (G8): one metadata match attaches; a **complete zero-match listing permits the retry to create**, using the same row and retained idempotency key after committing `pending`. | Zero matches is ordinary automated recovery, not an operator case. Partial/failed listings never count as zero. Multiple matches, conflicting IDs or mismatched metadata fail closed; log safe IDs for manual Stripe Dashboard/database reconciliation (D12), with no new command. |
 
-**Grilling, 2026-10-18 (PO answers).**
+**Acceptance-scope amendment, 2026-11-01 (owner-directed):** G6 now requires one US individual only; the original US-and-PL acceptance requirement is superseded. Poland onboarding verification is deferred to a separate geographic-expansion validation and is not a Phase 2 acceptance gate. This decision changes acceptance scope only: MD8 country support, Stripe Connect Express architecture and implementation are unchanged. No real Stripe test-mode run has yet been performed.
+
+**Grilling, 2026-10-18 (PO answers; G6 amended 2026-11-01).**
 
 | Id | Decision | Changes |
 |---|---|---|
@@ -54,7 +56,7 @@ The PO answered the gate on 2026-10-18 (gate.Q0–Q7) and accepted the proposed 
 | G3 | Four payout statuses: `ready`, `pending`, `incomplete`, `blocked`. A ready mentor gets no extra Stripe action. | payout mapping, Flow 1, Flow 3, data model |
 | G4 | `last_reconciled_at` stays as a diagnostic column. One sentence (MD9) says E04 re-fetches with `syncAccount` right before creating a checkout. The `freshPayout` parameter and the repeated money-safety paragraphs are removed. | MD9, Architecture, Risks |
 | G5 | Phases ship in a fixed order, 1 → 2 → 3. Each phase renders only the checklist items it ships; there are no *Coming soon* states. | Flow 1, Phasing |
-| G6 | Phase 2 acceptance includes one manual Stripe test-mode run with one US and one PL individual, recorded in the run log. | Research, Phase 2 step 9 |
+| G6 | Phase 2 acceptance includes one manual Stripe test-mode run with one US individual mentor, recorded in the run log. Poland onboarding verification is deferred to a separate geographic-expansion validation and is not required for Phase 2 acceptance. | Research, Phase 2 step 9 |
 | G7 | Phases 1 and 3 stay as written. | none |
 | G8 | Recovery of a `pending` or `reconciliation_required` row always starts with the complete metadata listing. There is no replay-safety branch and no reasoning about key-retention windows. | MD12, Flow 3 step 3 |
 | G9 | Creation errors: `StripeInvalidRequestError` (a 4xx other than 409/429) → `failed`; `idempotency_key_in_use` → 409, row unchanged; everything else (timeout, connection error, 5xx, 429, unknown) → `reconciliation_required`. | MD12, Flow 3 step 2, P13 |
@@ -254,7 +256,7 @@ This is the single shared pass for #37, #38, #39 and #47, checked 2026-10-18. **
 - [Hosted onboarding](https://docs.stripe.com/connect/hosted-onboarding) and [external payout accounts](https://docs.stripe.com/connect/payouts-bank-accounts): Account Link behavior, incremental/upfront collection, Express update-link limits and the bank-account Dashboard setting.
 - [Verification requirements](https://docs.stripe.com/connect/required-verification-information), [verification states](https://docs.stripe.com/connect/handling-api-verification), [cross-border payouts](https://docs.stripe.com/connect/cross-border-payouts), [destination charges](https://docs.stripe.com/connect/destination-charges?platform=web&ui=stripe-hosted), [Connect testing](https://docs.stripe.com/connect/testing) and the [stable v2 Account Links reference](https://docs.stripe.com/api/v2/core/account-links/create).
 
-**#47 completion and evidence.** This Research section is the documentation deliverable and may close #47 when merged, explicitly labelled documentation-verified. **Phase 2 acceptance additionally requires one manual Stripe test-mode run** (G6) with one US and one PL individual: complete, abandon and resume, expired link, and a signed `account.updated` that makes the account ready; check the no-prefill payload, the `full` agreement and the bank-account requirement on the way. Record safe outcomes and mapping discrepancies in the run log; never store keys, raw webhook bodies, bank/identity data or Account Link URLs. Passing the stub does not satisfy this run.
+**#47 completion and evidence.** This Research section is the documentation deliverable and may close #47 when merged, explicitly labelled documentation-verified. **Phase 2 acceptance additionally requires one manual Stripe test-mode run** (G6) with one US individual mentor: complete, abandon and resume, expired link, and a signed `account.updated` that makes the account ready; check the no-prefill payload, the `full` agreement and the bank-account requirement on the way. Record safe outcomes and mapping discrepancies in the run log; never store keys, raw webhook bodies, bank/identity data or Account Link URLs. Passing the stub does not satisfy this run. Poland onboarding verification is deferred to a separate geographic-expansion validation, outside the Phase 2 acceptance gate.
 
 **Unverified (carried as risks, not blockers to specification):**
 - which side pays the 1% conversion fee on a cross-border transfer
@@ -545,7 +547,7 @@ exercises the nine Phase 2 scenarios, including an SDK request timeout after
 creation, duplicate signed delivery, a webhook binding before the creation
 response, and overlapping starts. This validates our integration against the
 stub, not Stripe's real hosted flow or production configuration. The recorded
-US and PL Stripe test-mode acceptance, final gate, independent risk-high
+US Stripe test-mode acceptance, final gate, independent risk-high
 review and live release conditions remain open; see the run folder for the
 current evidence and handoff. The application currently shows plain-text
 contact guidance because no real contact destination has been specified.
@@ -615,7 +617,7 @@ Phases ship in order 1 → 2 → 3 (G5).
 | Phase | Story | Ships | Primitives finalized | Done when |
 |---|---|---|---|---|
 | 1 ✅ PR #62 | #37 E02-S01 | Profile + prices, `/mentor` with item 1 and the line "Not bookable yet.", public `/mentors/[id]` (always "Not taking bookings yet"), invitation lands on `/mentor` | P17; `CrudForm` textarea/select | #37 ACs 1–4 pass. |
-| 2 | #47 + #38 E02-S02-T01, E02-S02 | Item 2: Stripe onboarding round trip, webhook, status banners, MD7 bookability on `/mentor` and the public page | P13 onboarding half; P14 `webhookHandler` without inbox | #38 ACs 1–4 and the recovery cases pass with the stub, **and the manual test-mode run is recorded** (G6). #47 may close on the Research deliverable. |
+| 2 | #47 + #38 E02-S02-T01, E02-S02 | Item 2: Stripe onboarding round trip, webhook, status banners, MD7 bookability on `/mentor` and the public page | P13 onboarding half; P14 `webhookHandler` without inbox | #38 ACs 1–4 and the recovery cases pass with the stub, **and the manual US individual test-mode run is recorded** (G6). Poland verification is deferred to separate geographic-expansion validation. #47 may close on the Research deliverable. |
 | 3 | #39 E02-S03 | Item 3: slot publish/list/withdraw, `LocalTime` and the "no upcoming slots" status line | P5 (`assertOwner`) | #39 ACs 1–4 pass; AC 4 uses `booked_at` set through the test database. |
 
 Each phase needs E01 Phase 3 (the `mentor` role) merged first. Every phase ends with the full gate:
@@ -702,7 +704,7 @@ Each step leaves the app working and names its tests. Unit tests are colocated; 
      7. the webhook arrives before the ID is persisted → it attaches through metadata
      8. a failed return → **Try checking again** fetches again
      9. concurrent starts → one row and one account
-9. **Manual Stripe test-mode run (Phase 2 acceptance, G6).** One US and one PL individual, as described under Research "#47 completion and evidence". Record only safe results in the Phase 2 run log. Passing the stub is not a substitute.
+9. **Manual Stripe test-mode run (Phase 2 acceptance, G6).** One US individual mentor, as described under Research "#47 completion and evidence". Defer Poland onboarding verification to a separate geographic-expansion validation; it is not a Phase 2 gate. Record only safe results in the Phase 2 run log. Passing the stub is not a substitute.
 10. **Documentation:**
     - `README.md`: Stripe configuration, the bank-account setting, and the D12 runbook for manual Stripe Dashboard/database reconciliation and wrong-country replacement
     - `BACKWARD_COMPATIBILITY.md`: new env/routes/error code; platform catalog: canonical links and status only

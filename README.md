@@ -209,7 +209,9 @@ signing secret, and enable the bank-account requirement. A founder must
 acknowledge the platform's responsibility for losses and fees, and a tax
 advisor must assess the platform's reporting obligations before live payouts.
 Phase 2 also requires a recorded real Stripe test-mode acceptance run for one
-US and one PL individual; the local stub does not satisfy that requirement.
+US individual mentor; the local stub does not satisfy that requirement. Poland
+onboarding verification is deferred to separate geographic-expansion validation
+and is not a Phase 2 acceptance gate.
 
 Both loaders read files from `packages/app`. Existing `process.env` values
 win over all files. Files are loaded in the order below; for each variable,

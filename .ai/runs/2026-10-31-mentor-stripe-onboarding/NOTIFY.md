@@ -19,3 +19,6 @@
 - 2026-11-01 UTC: Independent review found partial metadata reconciliation, unsafe provider-metadata logging and unbounded webhook bodies. Fixed all three; focused unit and PostgreSQL integration regression checks passed. Full integration before these fixes: 159/159; the affected regression passed after rebuilding.
 
 - 2026-11-01 UTC: Checkpoint 3: the independent review fixes passed focused tests and were rechecked. Full integration passed before those fixes (159/159); the affected PostgreSQL case passed after rebuild. Stopped at 2.9: Stripe test-mode access/interactive acceptance not confirmed. GitHub formal review is also outstanding because the authenticated user authored the PR; do not promote the draft.
+
+- 2026-11-01 UTC: Acceptance scope amended by user direction: G6 and step 2.9 require one US individual mentor only; Poland onboarding verification moves to separate geographic-expansion validation and does not gate Phase 2. No real US run has been recorded. Architecture, implementation and supported countries remain unchanged. Earlier US/PL notes are historical and superseded by this entry.
+- 2026-11-01 UTC: Fresh-context scope review found no contradiction in the amended spec; historical checkpoint wording is explicitly marked superseded.

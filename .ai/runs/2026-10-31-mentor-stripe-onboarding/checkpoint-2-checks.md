@@ -1,5 +1,7 @@
 # Checkpoint 2 — onboarding flow and Stripe stub
 
+> Acceptance-scope update (2026-11-01): historical US/PL wording below is superseded. Phase 2 requires one real US individual test-mode run; Poland is deferred to separate geographic-expansion validation.
+
 Steps 2.10, 2.5, 2.11, 2.6, 2.3-review-fix and 2.7; commits 79b4a8c through 086acaf. Includes the onboarding service, routes, setup UI, bookability, migration assertion and local Stripe stub.
 
 - `npm run lint`, `npm run typecheck` and `npm run build`: passed.

@@ -1,5 +1,7 @@
 # Checkpoint 3 — review fixes and outstanding acceptance
 
+> Acceptance-scope update (2026-11-01): historical US/PL wording below is superseded. Phase 2 requires one real US individual test-mode run; Poland is deferred to separate geographic-expansion validation.
+
 Steps 2.8 and 2.8-review-fix. The independent review found three major issues: partial Stripe metadata matches could permit duplicate creation, provider metadata could reach logs, and webhook request bodies were unbounded. Commit fe09f07 fixes these; the reviewer rechecked those fixes and reported no remaining issue in those paths. An authoritative GitHub approval/request-changes review remains outstanding: the authenticated user is the PR author and cannot submit such a review on their own PR.
 
 - `npm run lint`, `npm run typecheck`, `npm run test:coverage` and `npm run build`: passed after the code fixes; 2,015 unit tests passed and every covered file reached 100% on all four measures.
