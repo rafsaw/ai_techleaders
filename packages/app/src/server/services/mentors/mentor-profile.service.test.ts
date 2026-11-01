@@ -1,4 +1,4 @@
-import { NotFoundError, type Principal } from "@devmentor/core";
+import { fixedClock, NotFoundError, type Principal } from "@devmentor/core";
 import {
   MentorProfile,
   UniqueConstraintViolationException,
@@ -55,9 +55,10 @@ function setup() {
   };
   const em = {
     findOne: vi.fn(),
+    find: vi.fn().mockResolvedValue([]),
     transactional: vi.fn((callback: (transaction: unknown) => unknown) => callback(tx)),
   };
-  return { existing, tx, em, service: new MentorProfileService({ em: em as unknown as EntityManager }) };
+  return { existing, tx, em, service: new MentorProfileService({ em: em as unknown as EntityManager, clock: fixedClock("2026-10-31T00:00:00Z") }) };
 }
 
 describe("MentorProfileService", () => {
@@ -183,4 +184,12 @@ it("publishes ready payout bookability on the public profile", async () => {
   const s = setup();
   s.em.findOne.mockResolvedValueOnce(s.existing).mockResolvedValueOnce({ role: "mentor" }).mockResolvedValueOnce({ provisioningState: "provisioned", status: "ready" });
   expect((await s.service.getPublic(PROFILE_ID)).bookable).toBe(true);
+});
+
+it("counts only future open and booked slots in setup", async () => {
+  const s = setup();
+  s.em.findOne.mockResolvedValueOnce(s.existing).mockResolvedValueOnce(null);
+  s.em.find.mockResolvedValueOnce([{ bookedAt: null }, { bookedAt: new Date("2026-10-31T01:00:00Z") }, { bookedAt: null }]);
+  expect((await s.service.getSetup(principal)).upcomingSlots).toEqual({ open: 2, booked: 1 });
+  expect(s.em.find).toHaveBeenCalledWith(expect.any(Function), { mentorProfile: "profile-id", startsAt: { $gt: new Date("2026-10-31T00:00:00Z") } });
 });

@@ -3,6 +3,7 @@ import {
   NotFoundError,
   toCents,
   type Money,
+  type Cradle,
   type Principal,
 } from "@devmentor/core";
 import {
@@ -11,6 +12,7 @@ import {
   type MentorProfileInput,
 } from "@devmentor/core/validators/mentors/mentor-profile.schema";
 import {
+  AvailabilitySlot,
   MentorProfile,
   PayoutAccount,
   UniqueConstraintViolationException,
@@ -35,7 +37,7 @@ export type PublicMentorProfileDto = MentorProfileDto & {
 export type MentorSetupDto = {
   profile: MentorProfileDto | null;
   payout: { status: "not_started" | "incomplete" | "pending" | "ready" | "blocked"; country: string | null; provisioningState: "pending" | "provisioned" | "reconciliation_required" | "failed" | null };
-  upcomingSlots: { open: 0; booked: 0 };
+  upcomingSlots: { open: number; booked: number };
   bookable: boolean;
   publicUrl: string | null;
 };
@@ -66,9 +68,11 @@ function values(input: MentorProfileInput) {
 /** Profile persistence and Phase 1's single source of public visibility/setup state. */
 export class MentorProfileService {
   private readonly em: EntityManager;
+  private readonly clock: Cradle["clock"];
 
-  constructor({ em }: { em: EntityManager }) {
+  constructor({ em, clock }: { em: EntityManager; clock: Cradle["clock"] }) {
     this.em = em;
+    this.clock = clock;
   }
 
   async getOwn(principal: Principal): Promise<MentorProfileDto | null> {
@@ -100,10 +104,12 @@ export class MentorProfileService {
   async getSetup(principal: Principal): Promise<MentorSetupDto> {
     const profile = await this.getOwn(principal);
     const payout = profile ? await this.em.findOne(PayoutAccount, { mentorProfile: profile.id }) : null;
+    const slots = profile ? await this.em.find(AvailabilitySlot, { mentorProfile: profile.id, startsAt: { $gt: this.clock.now() } }) : [];
+    const booked = slots.filter((slot) => slot.bookedAt !== null).length;
     return {
       profile,
       payout: payout ? { status: payout.status, country: payout.country, provisioningState: payout.provisioningState } : { status: "not_started", country: null, provisioningState: null },
-      upcomingSlots: { open: 0, booked: 0 },
+      upcomingSlots: { open: slots.length - booked, booked },
       bookable: !!profile && principal.roles.includes("mentor") && payout?.provisioningState === "provisioned" && payout.status === "ready",
       publicUrl: profile ? `/mentors/${profile.id}` : null,
     };

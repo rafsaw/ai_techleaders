@@ -1,5 +1,6 @@
 import type { RateLimiter } from "@devmentor/core";
 
+import type { SlotService } from "@/server/services/availability/slot.service";
 import type { AppConfig } from "@/server/config";
 import type { AuthSessionService } from "@/server/services/auth/auth-session.service";
 import type { GitHubOAuth } from "@/server/services/auth/github-oauth.port";
@@ -25,6 +26,7 @@ declare module "@devmentor/core" {
     passwordAccountService: PasswordAccountService;
     mentorInvitationService: MentorInvitationService;
     mentorProfileService: MentorProfileService;
+    slotService: SlotService;
     payoutOnboarding: PayoutOnboarding;
     payoutOnboardingService: PayoutOnboardingService;
     roleService: RoleService;
