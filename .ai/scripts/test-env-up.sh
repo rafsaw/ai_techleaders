@@ -6,6 +6,8 @@
 #   2026-10-31 repair: silence expected connection refusals during the bounded application readiness poll
 #   2026-10-31 repair: record the installed browser binary's actual version instead of the provider target version
 #   2026-10-31 repair: tear down the recorded environment before a forced restart
+#   2026-11-01 repair: rebuild unless the production build came from the current clean head
+#   2026-11-01 repair: recover the bootstrap lock when its owner process is gone
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
@@ -39,14 +41,32 @@ fi
 
 LOCK="$QA_DIR/test-env.lock"
 if ! mkdir "$LOCK" 2>/dev/null; then
-  echo "Another test-environment bootstrap owns $LOCK" >&2
-  exit 1
+  LOCK_OWNER=$(cat "$LOCK/owner" 2>/dev/null || true)
+  if [ -n "$LOCK_OWNER" ] && kill -0 "$LOCK_OWNER" 2>/dev/null; then
+    echo "Test-environment bootstrap $LOCK_OWNER owns $LOCK" >&2
+    exit 1
+  fi
+  rm -f "$LOCK/owner"
+  rmdir "$LOCK"
+  mkdir "$LOCK"
 fi
-trap 'rmdir "$LOCK" 2>/dev/null || true' EXIT INT TERM
+echo "$$" > "$LOCK/owner"
+release_lock() {
+  rm -f "$LOCK/owner"
+  rmdir "$LOCK" 2>/dev/null || true
+}
+trap release_lock EXIT INT TERM
 
 cd "$ROOT"
-if [ "$FORCE_REBUILD" -eq 1 ] || [ ! -s packages/app/.next/BUILD_ID ]; then
+# `sourceHead` below claims which commit is being served, so reuse a build only when it came from
+# this clean head. Uncommitted tracked changes always rebuild.
+BUILD_SOURCE="packages/app/.next/BUILD_SOURCE"
+SOURCE_STATE=$(git rev-parse HEAD)
+git diff --quiet HEAD || SOURCE_STATE=dirty
+if [ "$FORCE_REBUILD" -eq 1 ] || [ ! -s packages/app/.next/BUILD_ID ] || [ "$SOURCE_STATE" = dirty ] \
+  || [ "$(cat "$BUILD_SOURCE" 2>/dev/null || true)" != "$SOURCE_STATE" ]; then
   npm run build
+  echo "$SOURCE_STATE" > "$BUILD_SOURCE"
 fi
 
 free_port() {
@@ -70,7 +90,7 @@ cleanup_failed() {
     docker rm -f "$PG_CONTAINER" "$MAIL_CONTAINER" >/dev/null 2>&1 || true
   fi
 }
-trap 'cleanup_failed; rmdir "$LOCK" 2>/dev/null || true' EXIT INT TERM
+trap 'cleanup_failed; release_lock' EXIT INT TERM
 
 docker run -d --rm --name "$PG_CONTAINER" \
   -e POSTGRES_DB=devmentor_qa -e POSTGRES_USER=integration -e POSTGRES_PASSWORD="$PG_PASSWORD" \
