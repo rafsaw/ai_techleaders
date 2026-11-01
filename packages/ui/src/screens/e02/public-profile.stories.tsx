@@ -82,3 +82,15 @@ export const Narrow: Story = {
     await expect(canvasElement.scrollWidth).toBeLessThanOrEqual(canvasElement.clientWidth);
   },
 };
+
+/** An unbroken description must not widen the public profile on a phone. */
+export const LongDescriptionNarrow: Story = {
+  args: { profile: { ...ADA_PROFILE, description: "Longword".repeat(125) } },
+  render: (args) => <div data-testid="phone" style={{ width: 390, maxWidth: "100%" }}><PublicProfileScreen {...args} /></div>,
+  play: async ({ canvasElement }) => {
+    const viewport = canvasElement.querySelector<HTMLElement>('[data-testid="phone"]')!;
+    // The test runner's browser can be wider than the story's mobile viewport.
+    viewport.querySelector<HTMLElement>(".grid.gap-component")!.style.gridTemplateColumns = "auto";
+    await expect(viewport.scrollWidth).toBeLessThanOrEqual(viewport.clientWidth);
+  },
+};

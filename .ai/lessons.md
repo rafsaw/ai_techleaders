@@ -27,6 +27,19 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-11-01 — QA build identity must include untracked sources
+
+**Context:** A QA launcher could reuse a running dirty build while its descriptor named a clean commit, and Git's tracked diff missed untracked source files.
+**Lesson:** Reuse only when the checkout is clean including untracked files and both the artifact marker and descriptor match the commit. Record no commit for a dirty build.
+**Applies to:** QA environment launchers and commit-pinned evidence.
+
+
+### 2026-11-01 — A QA descriptor's head must describe the build it serves
+
+**Context:** The E02 QA launcher reused any existing `.next` build but recorded the current `HEAD` as `sourceHead`. After a checkout, it could serve an old build while QA evidence named the new commit, even though `qa-approved` is pinned to a commit.
+**Lesson:** When tooling records which commit it is testing, derive that claim from the artifact: store the source head with the build and rebuild on any mismatch or uncommitted tracked change. A recorded PID is a similar claim, so verify it before signalling.
+**Applies to:** `.ai/scripts/test-env-*.sh` and any script that writes commit or process identity into a descriptor.
+
 ### 2026-10-31 — Validate route identifiers before typed database lookups
 
 **Context:** E02's public profile route accepted an arbitrary path segment and passed it directly to a PostgreSQL UUID lookup. A malformed profile id could therefore raise a database cast error and return 500 instead of the specified neutral 404.

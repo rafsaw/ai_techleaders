@@ -61,6 +61,8 @@ describe("mentor profile schema", () => {
   });
 
   it.each([
+    ["https:github.com/x", "Line 1: use a full https:// link"],
+    ["https:/github.com/x", "Line 1: use a full https:// link"],
     ["http://example.com/work", "Line 1: use a full https:// link"],
     ["/relative", "Line 1: use a full https:// link"],
     ["not a url", "Line 1: use a full https:// link"],
@@ -73,6 +75,25 @@ describe("mentor profile schema", () => {
     expect(messages({ publicWorkLinks: long }, "publicWorkLinks")).toEqual(["Line 1: use at most 2,048 characters"]);
     expect(messages({ publicWorkLinks: "https://example.com/work\nhttps://example.com/work" }, "publicWorkLinks"))
       .toEqual(["Line 2: remove the duplicate link"]);
+  });
+
+  it("names the textarea line, counting the blank lines it drops", () => {
+    expect(messages({ publicWorkLinks: "https://example.com/work\n\n\nnot-a-url" }, "publicWorkLinks"))
+      .toEqual(["Line 4: use a full https:// link"]);
+    expect(messages({ publicWorkLinks: "\nhttps://example.com/work\n\nhttps://example.com/work" }, "publicWorkLinks"))
+      .toEqual(["Line 4: remove the duplicate link"]);
+  });
+
+  it.each(["https://example.com/\u0000", "https://example.com/a\tb", "https://example.com/a\rb"])(
+    "rejects control characters inside a link %#",
+    (publicWorkLinks) => {
+      expect(messages({ publicWorkLinks }, "publicWorkLinks")).toEqual(["Line 1: use a full https:// link"]);
+    },
+  );
+
+  it("rejects NUL in the description but keeps line breaks", () => {
+    expect(messages({ description: "a\u0000b" }, "description")).toEqual(["Remove the unsupported character"]);
+    expect(mentorProfileSchema.parse({ ...valid, description: "first\nsecond" }).description).toBe("first\nsecond");
   });
 
   it.each([

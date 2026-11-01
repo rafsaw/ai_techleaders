@@ -105,8 +105,8 @@ Each story is a user flow, not a CRUD screen. All mentor pages are in the signed
    | Field | Input | Rule (`mentorProfileSchema`) |
    |---|---|---|
    | Area | select: TypeScript, React, Python | one of `typescript \| react \| python` (MD3) |
-   | Description | textarea, plain text | 1–2,000 characters after trim; shown as plain text with line breaks, never as Markdown or HTML |
-   | Links to public work | textarea, one URL per line | 1–5 lines after dropping blank lines. Each must parse as an absolute `https:` URL of at most 2,048 characters, and there are no duplicates. An error names the line ("Line 2: use a full https:// link") |
+   | Description | textarea, plain text | 1–2,000 characters after trim, no NUL character; shown as plain text with line breaks, never as Markdown or HTML |
+   | Links to public work | textarea, one URL per line | 1–5 lines after dropping blank lines. Each must start with `https://` (case-insensitive) and parse as an absolute `https:` URL of at most 2,048 characters with no control characters, and there are no duplicates. An error names the line in the textarea, counting blank lines ("Line 2: use a full https:// link") |
    | Price for 25 minutes (USD) | number | whole dollars, 5–1,000 (MD2) |
    | Price for 50 minutes (USD) | number | whole dollars, 5–1,000. Not constrained against the 25-minute price |
 

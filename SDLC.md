@@ -135,6 +135,18 @@ The one hard rule of this process: **a PR carrying `needs-qa` must not merge unt
 - **Self-QA exception**: when no QA reviewer has capacity in time, any engineer — or `om-auto-qa-pr --self-qa-signoff` — may sign off instead, on a `risk-low` or `risk-medium` PR only. The evidence attached to the PR names the scenario exercised, the environment, the test data, the observed result, the negative cases tried, and the `QA head:` line. Then apply both `qa-approved` (so the gate passes) and `qa-self-verified` (so the exception is auditable). No evidence, no `qa-approved`.
 - **No self-QA on `risk-high`.** A PR labeled `risk-high`, or one whose diff touches auth, sessions, data scoping, money, schema migrations, or shared contracts (the `risk-high` inference above), needs a QA reviewer, or a maintainer's explicit exception stated on the PR; `om-auto-qa-pr` withholds the sign-off on such a PR and posts the evidence only. A change to auth or money also needs a second person's review regardless of the QA path.
 
+### Solo-project exception
+
+This exception applies only to this solo educational project, including its future lessons, and only while no second human reviewer is available. It does not change the process for team projects. The maintainer must declare it on each PR with this comment: `Solo exception: no second human reviewer is available.`
+
+On a declared PR, these replace the second person's review and the QA reviewer:
+
+- **Fresh-context AI review.** A new agent session with no access to the authoring conversation runs `om-code-review` on the final head, changes no code, and posts an approve verdict ending with `Review head: <sha>`. AI review is not a second human approval; this project accepts it in place of one.
+- **Evidence-based self-QA.** The maintainer exercises the final head in a real browser, posts the self-QA evidence with `QA head: <sha>`, and then applies `qa-approved` and `qa-self-verified`.
+- **Passing CI.** Every CI check must pass on the final head.
+
+A later push requires all three again. All other gates still apply, including the `risk-high` evidence.
+
 ## The claim protocol
 
 Before mutating an issue or PR, an agent claims it with all three signals: it assigns itself, adds the `in-progress` label, and posts a claim comment saying what it is doing. Any agent that finds an existing claim backs off instead of colliding. A PR carrying `in-progress` is also skipped by the merge tooling.

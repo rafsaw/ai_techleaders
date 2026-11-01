@@ -6,6 +6,8 @@
 #   2026-10-31 repair: silence expected connection refusals during the bounded application readiness poll
 #   2026-10-31 repair: record the installed browser binary's actual version instead of the provider target version
 #   2026-10-31 repair: tear down the recorded environment before a forced restart
+#   2026-11-01 repair: rebuild unless the production build came from the current clean head
+#   2026-11-01 repair: recover the bootstrap lock when its owner process is gone
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
@@ -19,15 +21,24 @@ for arg in "$@"; do
   [ "$arg" = "--force-rebuild" ] && FORCE_REBUILD=1
 done
 mkdir -p "$QA_DIR"
+BUILD_SOURCE="$ROOT/packages/app/.next/BUILD_SOURCE"
+source_state() {
+  if [ -n "$(git -C "$ROOT" status --porcelain --untracked-files=normal)" ]; then
+    printf 'dirty\n'
+  else
+    git -C "$ROOT" rev-parse HEAD
+  fi
+}
 
 if [ -f "$DESCRIPTOR" ]; then
-  if [ "$FORCE" -eq 0 ]; then
+  if [ "$FORCE" -eq 0 ] && [ "$FORCE_REBUILD" -eq 0 ]; then
     STATUS=$(jq -r '.status // empty' "$DESCRIPTOR" 2>/dev/null || true)
     APP_PID=$(jq -r '.app.pid // empty' "$DESCRIPTOR" 2>/dev/null || true)
     BASE_URL=$(jq -r '.baseUrl // empty' "$DESCRIPTOR" 2>/dev/null || true)
     SOURCE_HEAD=$(jq -r '.sourceHead // empty' "$DESCRIPTOR" 2>/dev/null || true)
-    CURRENT_HEAD=$(git -C "$ROOT" rev-parse HEAD)
-    if [ "$STATUS" = "running" ] && [ "$SOURCE_HEAD" = "$CURRENT_HEAD" ] \
+    CURRENT_HEAD=$(source_state)
+    if [ "$STATUS" = "running" ] && [ "$CURRENT_HEAD" != dirty ] && [ "$SOURCE_HEAD" = "$CURRENT_HEAD" ] \
+      && [ "$(cat "$BUILD_SOURCE" 2>/dev/null || true)" = "$CURRENT_HEAD" ] \
       && [ -n "$APP_PID" ] && kill -0 "$APP_PID" 2>/dev/null \
       && curl -fsS --max-time 3 "$BASE_URL" | grep -q DevMentor; then
       printf 'TEST_ENV_STATUS=running\nTEST_ENV_BASE_URL=%s\nTEST_ENV_DESCRIPTOR=.ai/qa/test-env.json\nTEST_ENV_REUSED=1\nBROWSER_PROVIDER=agent-browser\nBROWSER_INSTALLED=1\n' "$BASE_URL"
@@ -39,14 +50,32 @@ fi
 
 LOCK="$QA_DIR/test-env.lock"
 if ! mkdir "$LOCK" 2>/dev/null; then
-  echo "Another test-environment bootstrap owns $LOCK" >&2
-  exit 1
+  LOCK_OWNER=$(cat "$LOCK/owner" 2>/dev/null || true)
+  if [ -n "$LOCK_OWNER" ] && kill -0 "$LOCK_OWNER" 2>/dev/null; then
+    echo "Test-environment bootstrap $LOCK_OWNER owns $LOCK" >&2
+    exit 1
+  fi
+  rm -f "$LOCK/owner"
+  rmdir "$LOCK"
+  mkdir "$LOCK"
 fi
-trap 'rmdir "$LOCK" 2>/dev/null || true' EXIT INT TERM
+echo "$$" > "$LOCK/owner"
+release_lock() {
+  rm -f "$LOCK/owner"
+  rmdir "$LOCK" 2>/dev/null || true
+}
+trap release_lock EXIT INT TERM
 
 cd "$ROOT"
-if [ "$FORCE_REBUILD" -eq 1 ] || [ ! -s packages/app/.next/BUILD_ID ]; then
+# `sourceHead` below claims which commit is being served, so reuse a build only when it came from
+# this clean head. Tracked and untracked changes always rebuild.
+SOURCE_STATE=$(source_state)
+if [ "$FORCE_REBUILD" -eq 1 ] || [ ! -s packages/app/.next/BUILD_ID ] || [ "$SOURCE_STATE" = dirty ] \
+  || [ "$(cat "$BUILD_SOURCE" 2>/dev/null || true)" != "$SOURCE_STATE" ]; then
+  rm -f "$BUILD_SOURCE"
   npm run build
+  [ "$(source_state)" = "$SOURCE_STATE" ] || SOURCE_STATE=dirty
+  echo "$SOURCE_STATE" > "$BUILD_SOURCE"
 fi
 
 free_port() {
@@ -70,7 +99,7 @@ cleanup_failed() {
     docker rm -f "$PG_CONTAINER" "$MAIL_CONTAINER" >/dev/null 2>&1 || true
   fi
 }
-trap 'cleanup_failed; rmdir "$LOCK" 2>/dev/null || true' EXIT INT TERM
+trap 'cleanup_failed; release_lock' EXIT INT TERM
 
 docker run -d --rm --name "$PG_CONTAINER" \
   -e POSTGRES_DB=devmentor_qa -e POSTGRES_USER=integration -e POSTGRES_PASSWORD="$PG_PASSWORD" \
@@ -102,7 +131,8 @@ done
 BROWSER_BIN=$(command -v agent-browser 2>/dev/null || printf '%s/node_modules/.bin/agent-browser' "$ROOT")
 "$BROWSER_BIN" doctor --json >/dev/null
 BROWSER_VERSION=$("$BROWSER_BIN" --version 2>/dev/null || echo unknown)
-SOURCE_HEAD=$(git rev-parse HEAD)
+SOURCE_HEAD=$SOURCE_STATE
+[ "$(source_state)" = "$SOURCE_STATE" ] || SOURCE_HEAD=dirty
 STARTED_AT=$(date -u +%FT%TZ)
 jq -n \
   --arg runId "$RUN_ID" --arg baseUrl "$BASE_URL" --arg sourceHead "$SOURCE_HEAD" \
@@ -110,7 +140,7 @@ jq -n \
   --arg databaseUrl "$DATABASE_URL" --arg smtpUrl "$SMTP_URL" --arg mailpitUrl "http://127.0.0.1:$MAIL_HTTP_PORT" \
   --arg browserCommand "$BROWSER_BIN" --arg browserVersion "$BROWSER_VERSION" --arg startedAt "$STARTED_AT" \
   --argjson appPid "$APP_PID" --argjson appPort "$APP_PORT" --argjson pgPort "$PG_PORT" \
-  '{version:1,runId:$runId,status:"running",mode:"ephemeral",baseUrl:$baseUrl,sourceHead:$sourceHead,startedByThisRepo:true,
+  '{version:1,runId:$runId,status:"running",mode:"ephemeral",baseUrl:$baseUrl,sourceHead:(if $sourceHead == "dirty" then null else $sourceHead end),startedByThisRepo:true,
     startScript:".ai/scripts/test-env-up.sh",stopScript:".ai/scripts/test-env-down.sh",
     app:{startCommand:"npm run start -w @devmentor/app",port:$appPort,healthPath:"/",pid:$appPid},
     services:[{type:"postgres",host:"127.0.0.1",port:$pgPort,container:$pgContainer,url:$databaseUrl,env:{DATABASE_URL:$databaseUrl}},

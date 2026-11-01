@@ -56,6 +56,8 @@ Ship Phase 1 of E02 so an invited mentor can create and edit a validated public 
 - [x] 1.6 Route invitation acceptance to `/mentor`, enable the mentor-only header link, and add the Phase 1 browser journey plus denied-role coverage. — 0537871
 - [x] 1.7 Update protected-contract documentation and the autonomous run record, then run the full project and UI validation gates. — 89cac92
 
+- [x] Post-review fix: require explicit HTTPS links, preserve profiles on rollback, and ensure QA build identity. — 110876f
+
 ## Outcome
 
 Phase 1 of E02 is implemented on PR #62. Invited mentors now land on a mentor setup dashboard, can create and replace their public profile and USD text-session prices, and can revisit the profile editor. Anonymous visitors can view profiles for users who still hold the mentor role; Phase 1 profiles remain explicitly not bookable.
