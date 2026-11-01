@@ -1,22 +1,22 @@
 # Mentor availability slots — Phase 3
 
-Source spec: .ai/specs/2026-10-18-mentor-setup.md
+Source spec: .ai/specs/implemented/2026-10-18-mentor-setup.md
 Base: PR #63 (`feat/mentor-stripe-onboarding`)
 
 ## Tasks
 
 | Phase | Step | Title | Exec | Status | Commit |
 |-------|------|-------|------|--------|--------|
-| 3 | 3.1 | Validate slot instants and ownership | dispatch:cheap | done | step-3.1-slot-validation-and-owner |
-| 3 | 3.2 | Persist availability slots | dispatch | done | step-3.2-slot-persistence |
-| 3 | 3.3 | Implement slot service and setup counts | dispatch | done | step-3.3-slot-service-and-setup-counts |
-| 3 | 3.4 | Expose slot routes | dispatch | done | step-3.4-slot-routes |
-| 3 | 3.5 | Build mentor slot management UI | dispatch | done | step-3.5-mentor-slot-management |
-| 3 | 3.5-review-fix | Correct missing profile conflict | dispatch:cheap | done | step-3.5-review-fix-profile-conflict |
-| 3 | 3.6 | Verify availability flows and document contracts | dispatch | done | step-3.6-availability-integration |
-
-| 3 | 3.6-review-fix | Update database configuration expectation | inline | done | config-entity-list-fix |
-| 3 | 3.6-integration-fix | Expect the no-upcoming-slots state after Stripe readiness | dispatch:cheap | done | step-3.6-stripe-no-slots-assertions |
+| 3 | 3.1 | Validate slot instants and ownership | dispatch:cheap | done | 28b5a47 |
+| 3 | 3.2 | Persist availability slots | dispatch | done | f65c63b |
+| 3 | 3.3 | Implement slot service and setup counts | dispatch | done | ba8f943 |
+| 3 | 3.4 | Expose slot routes | dispatch | done | d01164b |
+| 3 | 3.5 | Build mentor slot management UI | dispatch | done | 4d67176 |
+| 3 | 3.5-review-fix | Correct missing profile conflict | dispatch:cheap | done | 805c1b6 |
+| 3 | 3.6 | Verify availability flows and document contracts | dispatch | done | ee6415a |
+| 3 | 3.6-review-fix | Update database configuration expectation | inline | done | 420c243 |
+| 3 | 3.6-integration-fix | Expect the no-upcoming-slots state after Stripe readiness | dispatch:cheap | done | 88215eb |
+| 3 | 3.7 | Complete post-gate documentation | inline | done | step-3.7-post-gate-documentation |
 
 ## Goal
 

@@ -1,25 +1,23 @@
 # Handoff — mentor availability slots
 
-**Last updated:** 2026-11-01T04:20:00Z
+**Last updated:** 2026-11-01T04:41:20Z
 **Branch:** feat/mentor-availability-slots
 **PR:** https://github.com/rafsaw/ai_techleaders/pull/64
-**Current phase/step:** 3.5-review-fix
-**Last commit:** 4d67176 — mentor slot management UI
+**Current phase/step:** 3.7 post-gate documentation
+**Last implementation commit:** 88215eb — Stripe readiness no-slots assertion
 
 ## What just happened
-- Steps 3.1–3.5 landed. Typecheck, build and 108 focused tests passed; database migration round-trip passed.
-- A review found the no-profile publish response is 404 instead of 409.
+- Steps 3.1–3.6 and follow-up fixes were implemented. The full local gate passed: lint, typecheck, 2,059 unit tests with 100% coverage, build, 163 integration tests, token checks and both Storybook themes.
+- The Phase 3 spec moved to `.ai/specs/implemented/2026-10-18-mentor-setup.md`; the platform catalog and status paths reflect the stacked branches.
 
 ## Next concrete action
-- Correct the no-profile conflict and test it, then implement step 3.6 integration and documentation.
+- Complete the independent review and PR workflow. PRs #62–#64 are stacked; no merge is claimed here.
 
 ## Blockers / open questions
-- Browser verification and screenshots await the slot integration fixture.
+- Real Stripe test-mode onboarding for both US and Poland has not been validated and must be separately validated before production release.
 
 ## Environment caveats
-- Dev runtime runnable: build passed; shared environment not yet provisioned.
-- Browser / UI checks: deferred to integration step.
-- Database/migration state: disposable PostgreSQL round-trip passed.
+- The migration round-trip passed on disposable PostgreSQL; integration tests passed against the test environment.
 
 ## Worktree
 - Path: /tmp/devmentor-mentor-availability-slots

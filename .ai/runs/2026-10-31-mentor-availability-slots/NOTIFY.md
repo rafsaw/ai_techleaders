@@ -11,3 +11,8 @@
 - Delegated steps 3.1 (cheap), 3.2–3.5 (standard) sequentially; used a cheap read-only agent for architecture, UI and integration reconnaissance.
 - Browser screenshots deferred: shared environment and slot integration fixture not yet provisioned; step 3.6 will exercise the UI.
 - Queued fix-forward for no-profile response (404 versus specified 409).
+
+## 2026-11-01T04:41:20Z — post-gate documentation
+- Full local gate passed: lint, typecheck, 2,059 unit tests with 100% coverage, build, 163 integration tests, token checks and both Storybook themes.
+- Moved the completed spec and updated status, references and plan commit IDs. Branches remain stacked; no merge is claimed.
+- Real Stripe test-mode onboarding for US and Poland remains unvalidated and is required separately before production release.
