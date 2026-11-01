@@ -11,7 +11,7 @@ Base: PR #63 (`feat/mentor-stripe-onboarding`)
 | 3 | 3.2 | Persist availability slots | dispatch | done | step-3.2-slot-persistence |
 | 3 | 3.3 | Implement slot service and setup counts | dispatch | done | step-3.3-slot-service-and-setup-counts |
 | 3 | 3.4 | Expose slot routes | dispatch | done | step-3.4-slot-routes |
-| 3 | 3.5 | Build mentor slot management UI | dispatch | todo | — |
+| 3 | 3.5 | Build mentor slot management UI | dispatch | done | step-3.5-mentor-slot-management |
 | 3 | 3.6 | Verify availability flows and document contracts | dispatch | todo | — |
 
 ## Goal

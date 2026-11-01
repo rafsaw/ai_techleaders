@@ -15,7 +15,7 @@ export default async function MentorSetupPage({ searchParams }: { searchParams: 
     ? { status: "saved" as const, editHref: "/mentor/profile", publicHref: setup.publicUrl }
     : { status: "not-started" as const, createHref: "/mentor/profile" };
   const status = setup.bookable && setup.publicUrl
-    ? { status: "bookable" as const, publicUrl: setup.publicUrl }
+    ? (setup.upcomingSlots.open === 0 ? { status: "no-slots" as const } : { status: "bookable" as const, publicUrl: setup.publicUrl })
     : { status: "not-bookable" as const, missing: setup.profile ? ["stripe" as const] : ["profile" as const, "stripe" as const] };
 
   return (
@@ -24,7 +24,7 @@ export default async function MentorSetupPage({ searchParams }: { searchParams: 
         <h1 className="text-page-title">Mentor setup</h1>
         {stripe === "check_failed" ? <p role="alert">We couldn&apos;t reach Stripe to check your status. <a className="underline" href="/api/payments/onboarding/return">Try checking again</a>.</p> : null}
         <BookableStatusLine state={status} />
-        <PayoutSetupChecklist profile={profile} payout={setup.payout} />
+        <PayoutSetupChecklist profile={profile} payout={setup.payout} slots={!setup.profile ? { status: "locked" } : setup.upcomingSlots.open + setup.upcomingSlots.booked === 0 ? { status: "none", manageHref: "/mentor/slots" } : { status: "some", upcoming: setup.upcomingSlots.open + setup.upcomingSlots.booked, booked: setup.upcomingSlots.booked, manageHref: "/mentor/slots" }} />
       </div>
     </main>
   );

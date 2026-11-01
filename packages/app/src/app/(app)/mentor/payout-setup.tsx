@@ -5,7 +5,7 @@ import { onboardingCountries } from "@devmentor/core/validators/payments/onboard
 import { apiCall } from "@devmentor/ui/api/apiCall";
 import { Alert, AlertTitle } from "@devmentor/ui/components/alert";
 import { buttonVariants } from "@devmentor/ui/components/button";
-import { SetupChecklist, type ProfileSetup } from "@devmentor/ui/components/mentors/SetupChecklist";
+import { SetupChecklist, type ProfileSetup, type SlotsSetup } from "@devmentor/ui/components/mentors/SetupChecklist";
 import type { PayoutSetup } from "@devmentor/ui/components/payments/PayoutStatus";
 import { useRouter } from "next/navigation";
 
@@ -33,7 +33,7 @@ export function payoutSetup(profile: ProfileSetup, payout: MentorSetupDto["payou
   }
 }
 
-export function PayoutSetupChecklist({ profile, payout }: { profile: ProfileSetup; payout: MentorSetupDto["payout"] }) {
+export function PayoutSetupChecklist({ profile, payout, slots }: { profile: ProfileSetup; payout: MentorSetupDto["payout"]; slots?: SlotsSetup }) {
   const router = useRouter();
   const [error, setError] = useState<string>();
   const state = payoutSetup(profile, payout);
@@ -44,7 +44,7 @@ export function PayoutSetupChecklist({ profile, payout }: { profile: ProfileSetu
         <a className={buttonVariants({ variant: "outline" })} href={checkStatusHref}>Check status</a>
       ) : null}
       {payout.country ? <p>Country: {names.of(payout.country)}</p> : null}
-      <SetupChecklist profile={profile} payouts={{
+      <SetupChecklist profile={profile} slots={slots} payouts={{
         payout: state,
         startOnboarding: async (body) => {
           setError(undefined);
