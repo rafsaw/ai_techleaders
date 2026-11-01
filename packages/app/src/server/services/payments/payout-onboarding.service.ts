@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { ConflictError, ProviderUnavailableError, type Clock, type Logger, type Principal } from "@devmentor/core";
+import { ConflictError, isAppError, ProviderUnavailableError, type Clock, type Logger, type Principal } from "@devmentor/core";
 import type { OnboardingCountry } from "@devmentor/core/validators/payments/onboarding-start.schema";
 import { LockMode, MentorProfile, PayoutAccount, UniqueConstraintViolationException, type EntityManager } from "@devmentor/db";
 
@@ -67,7 +67,7 @@ export class PayoutOnboardingService {
     let row = await em.findOne(PayoutAccount, { stripeAccountId: snapshot.accountId }, { lockMode: LockMode.PESSIMISTIC_WRITE, populate: ["mentorProfile"] });
     if (!row && snapshot.metadata.payoutAccountId) row = await em.findOne(PayoutAccount, { id: snapshot.metadata.payoutAccountId }, { lockMode: LockMode.PESSIMISTIC_WRITE, populate: ["mentorProfile"] });
     if (!row || !this.matches(row, snapshot) || (row.stripeAccountId && row.stripeAccountId !== snapshot.accountId)) {
-      this.deps.logger.error("Stripe account reconciliation conflict", { accountId: snapshot.accountId, payoutAccountId: snapshot.metadata.payoutAccountId });
+      this.deps.logger.error("Stripe account reconciliation conflict", row ? { payoutAccountId: row.id } : undefined);
       throw new Error("Stripe account reconciliation conflict");
     }
     row.stripeAccountId = snapshot.accountId;
@@ -101,7 +101,7 @@ export class PayoutOnboardingService {
       await this.locked(id, async (row, em) => {
         if (recovery && (row.country !== recovery.country || row.mentorProfile.id !== recovery.mentorProfileId || (!row.stripeAccountId && row.provisioningState === "failed"))) throw contact();
         if (row.stripeAccountId && row.stripeAccountId !== accountId) {
-          this.deps.logger.error("Stripe account reconciliation conflict", { accountId, payoutAccountId: id });
+          this.deps.logger.error("Stripe account reconciliation conflict", { payoutAccountId: id });
           throw contact();
         }
         if (!row.stripeAccountId) {
@@ -113,7 +113,7 @@ export class PayoutOnboardingService {
     } catch (error) {
       if (!(error instanceof UniqueConstraintViolationException)) throw error;
       await this.markUnresolved(id, "reconciliation_required");
-      this.deps.logger.error("Stripe account reconciliation conflict", { accountId, payoutAccountId: id });
+      this.deps.logger.error("Stripe account reconciliation conflict", { payoutAccountId: id });
       throw contact();
     }
   }
@@ -140,7 +140,15 @@ export class PayoutOnboardingService {
   }
 
   private async recover(id: string, mentorProfileId: string, country: OnboardingCountry): Promise<void> {
-    const accounts = await this.deps.payoutOnboarding.findAccounts({ payoutAccountId: id, mentorProfileId });
+    let accounts: PayoutAccountSnapshot[];
+    try {
+      accounts = await this.deps.payoutOnboarding.findAccounts({ payoutAccountId: id, mentorProfileId });
+    } catch (error) {
+      if (!isAppError(error) || error.code !== "conflict") throw error;
+      await this.markUnresolved(id, "reconciliation_required");
+      this.deps.logger.error("Stripe account reconciliation conflict", { payoutAccountId: id });
+      throw contact();
+    }
     const match = accounts[0];
     if (accounts.length > 1 || (match && (match.country !== country || match.metadata.payoutAccountId !== id || match.metadata.mentorProfileId !== mentorProfileId))) {
       await this.markUnresolved(id, "reconciliation_required");

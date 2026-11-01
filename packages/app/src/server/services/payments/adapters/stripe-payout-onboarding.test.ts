@@ -60,6 +60,10 @@ describe("Stripe payout onboarding", () => {
   it("exhausts account pages and fails closed on listing errors", async () => {
     mocks.list.mockReturnValue((async function* () { yield account({ id: "other", metadata: {} }); yield account(); yield account({ id: "acct_2" }); })());
     await expect(adapter.findAccounts(input)).resolves.toEqual([expect.objectContaining({ accountId: "acct_1", status: "ready" }), expect.objectContaining({ accountId: "acct_2" })]);
+    for (const metadata of [{ payout_account_id: "p1" }, { mentor_profile_id: "m1" }]) {
+      mocks.list.mockReturnValue((async function* () { yield account({ metadata }); })());
+      await expect(adapter.findAccounts(input)).rejects.toMatchObject({ status: 409 });
+    }
     mocks.list.mockReturnValue((async function* () { yield account(); throw new Error("partial"); })());
     await expect(adapter.findAccounts(input)).rejects.toMatchObject({ status: 502 });
   });

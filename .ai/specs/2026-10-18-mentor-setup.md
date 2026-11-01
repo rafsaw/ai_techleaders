@@ -403,7 +403,7 @@ Every JSON route uses the existing envelope. Schemas live in `core/src/validator
 | `POST /api/payments/onboarding` | `onboardingStartSchema` `{ country: OnboardingCountry }` | 200 `{ url: string }` (Stripe origin only) | 400; 401; 403; 409 `conflict`: no profile ("Save your profile first"), provisioning `failed` or needing manual reconciliation, payout `blocked`, or key in use ("already starting"); 502 `provider_unavailable`: ambiguous creation or an incomplete/failed account listing. The page then re-reads setup state (Flow 3 step 6) |
 | `GET /api/payments/onboarding/return` | — | 303 → `/mentor?stripe=returned` | 303 → `/mentor?stripe=check_failed` (Stripe error); `/mentor` without a provisioned account; sign-in with `returnTo=/mentor` (signed out); `/error` for non-mentors (P7 default) |
 | `GET /api/payments/onboarding/refresh` | — | 303 → Stripe Account Link | 303 → `/mentor` (no provisioned account, or payout `blocked`) or `/mentor?stripe=check_failed` |
-| `POST /api/webhooks/stripe/connect` | raw Stripe event + `Stripe-Signature` | 200 `{ received: true }` (account stored or attached; other event types ignored) | 400 bad signature; 500 on provider, metadata, binding or transaction failure, so Stripe retries |
+| `POST /api/webhooks/stripe/connect` | raw Stripe event + `Stripe-Signature` | 200 `{ received: true }` (account stored or attached; other event types ignored) | 400 bad signature; 413 body over 1 MiB; 500 on provider, metadata, binding or transaction failure, so Stripe retries |
 | `POST /api/availability/slots` | `slotCreateSchema` `{ startsAt: ISO datetime with offset }` | 201 `SlotDto` | 400 `startsAt` (lead time, whole minute); 401; 403; 409 `conflict` (overlap, or no profile) |
 | `DELETE /api/availability/slots?id=` | uuid | 200 `{ id }` | 404 unknown or foreign; 409 booked |
 
@@ -456,6 +456,7 @@ type SlotDto = { id: string; startsAt: string /* ISO UTC */; booked: boolean };
     // no prefill; idempotency_key_in_use throws ConflictError (409)
     findAccounts(input: { payoutAccountId: string; mentorProfileId: string }): Promise<PayoutAccountSnapshot[]>;
     // exhausts GET /v1/accounts pages and matches both metadata IDs exactly; throws on an incomplete listing
+    // a match on only one ID is a reconciliation conflict, never a zero-match result
     createOnboardingLink(accountId: string, urls: { returnUrl: URL; refreshUrl: URL }): Promise<URL>;
     fetchAccount(accountId: string): Promise<PayoutAccountSnapshot>;
     parseWebhook(rawBody: string, signature: string | null): { id: string; type: string; accountId: string | null };
@@ -474,7 +475,7 @@ type SlotDto = { id: string; startsAt: string /* ISO UTC */; booked: boolean };
     apply: (em, cradle, event: E, prepared: D | undefined) => Promise<void>, // inside one em.transactional
   })
   ```
-  The order: read the raw body (no CSRF check, no session); `parse` (invalid → 400; configuration/unexpected failures → logged 500); `prepare`; `apply` in one transaction; success → 200 `{ received: true }`; anything that throws → logged 500, nothing committed, the provider retries. There is no event-ID deduplication: E02's effect is a fetch-and-overwrite, so a repeat is harmless. E04 adds the inbox insert (`provider`, `event_id`) to this wrapper when it finalizes P14.
+  The order: read at most 1 MiB of raw body (413 when exceeded, including streamed bodies; review hardening added 2026-11-01; no CSRF check, no session); `parse` (invalid → 400; configuration/unexpected failures → logged 500); `prepare`; `apply` in one transaction; success → 200 `{ received: true }`; anything that throws → logged 500, nothing committed, the provider retries. There is no event-ID deduplication: E02's effect is a fetch-and-overwrite, so a repeat is harmless. E04 adds the inbox insert (`provider`, `event_id`) to this wrapper when it finalizes P14.
 - **P17 money.** `core/src/validators/money/money.schema.ts`, isomorphic:
   ```ts
   CURRENCY = "USD"; type Money = { amountMinor: number; currency: "USD" };

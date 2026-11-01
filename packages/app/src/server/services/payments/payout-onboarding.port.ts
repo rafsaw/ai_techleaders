@@ -22,6 +22,7 @@ export interface PayoutOnboarding {
     payoutAccountId: string;
     mentorProfileId: string;
   }): Promise<AccountCreationResult>;
+  /** Returns exact matches; partial metadata matches throw ConflictError after a complete listing. */
   findAccounts(input: { payoutAccountId: string; mentorProfileId: string }): Promise<PayoutAccountSnapshot[]>;
   createOnboardingLink(accountId: string, urls: { returnUrl: URL; refreshUrl: URL }): Promise<URL>;
   fetchAccount(accountId: string): Promise<PayoutAccountSnapshot>;

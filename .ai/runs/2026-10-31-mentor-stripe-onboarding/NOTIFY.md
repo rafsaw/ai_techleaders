@@ -15,3 +15,5 @@
 - 2026-11-01 UTC: Split routes and bookability into 2.5 and 2.11 so their tests and commits stay independently reviewable.
 
 - 2026-11-01 UTC: Delegated UI and Stripe integration steps. Checkpoint 2 passed lint, typecheck, build, full unit coverage and nine focused integration scenarios; screenshots retained. The suite used the native disposable harness rather than reusing the shared descriptor; full-suite evidence and Stripe test-mode acceptance remain outstanding. Next: 2.8.
+
+- 2026-11-01 UTC: Independent review found partial metadata reconciliation, unsafe provider-metadata logging and unbounded webhook bodies. Fixed all three; focused unit and PostgreSQL integration regression checks passed. Full integration before these fixes: 159/159; the affected regression passed after rebuilding.

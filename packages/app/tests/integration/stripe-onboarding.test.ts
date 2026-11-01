@@ -133,6 +133,20 @@ describe("Stripe Connect onboarding", () => {
     expect((await rows(f.profileId))[0]?.provisioning_state).toBe("provisioned");
   });
 
+  it("fails closed when an existing account has only one matching metadata ID", async () => {
+    const f = await fixture(); await startLink(f.cookie);
+    const [row] = await rows(f.profileId);
+    const before = await fetch(`${stripeURL}/__stub/accounts`).then((r) => r.json()) as unknown[];
+    const response = await fetch(`${stripeURL}/__stub/metadata`, { method: "POST", body: JSON.stringify({ accountId: row!.stripe_account_id, metadata: { payout_account_id: row!.id } }) });
+    expect(response.status).toBe(200);
+    await query("update payout_accounts set stripe_account_id = null, provisioning_state = 'reconciliation_required', status = 'incomplete' where id = $1", [row!.id]);
+    expect((await start(f.cookie)).status).toBe(409);
+    expect((await rows(f.profileId))[0]?.provisioning_state).toBe("reconciliation_required");
+    const all = await fetch(`${stripeURL}/__stub/accounts`).then((r) => r.json()) as { id: string }[];
+    expect(all.filter((account) => account.id === row!.stripe_account_id)).toHaveLength(1);
+    expect(all).toHaveLength(before.length);
+  });
+
   it("attaches a webhook delivered before create returns", async () => {
     const f = await fixture(); await control({ mode: "webhook-before-create" });
     await startLink(f.cookie);

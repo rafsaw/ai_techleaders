@@ -55,3 +55,24 @@ describe("webhook handler", () => {
     if (stage !== "apply") expect(s.cradle.em.transactional).not.toHaveBeenCalled();
   });
 });
+
+
+describe("webhook body limits", () => {
+  it("rejects advertised or streamed oversized bodies before signature verification", async () => {
+    const s = setup();
+    const handler = s.handler({ provider: "stripe", parse: s.parse, apply: s.apply });
+    const advertised = new Request("http://localhost/hook", { method: "POST", headers: { "content-length": "1048577" }, body: "x" });
+    expect((await handler(advertised)).status).toBe(413);
+    const streamed = new ReadableStream({ start(controller) { controller.enqueue(new Uint8Array(1048576)); controller.enqueue(new Uint8Array(1)); controller.close(); } });
+    const chunked = new Request("http://localhost/hook", { method: "POST", body: streamed, duplex: "half" } as RequestInit);
+    expect((await handler(chunked)).status).toBe(413);
+    expect(s.parse).not.toHaveBeenCalled();
+  });
+
+  it("allows an empty request body to reach signature verification", async () => {
+    const s = setup();
+    const handler = s.handler({ provider: "stripe", parse: s.parse, apply: s.apply });
+    expect((await handler(new Request("http://localhost/hook", { method: "POST" }))).status).toBe(200);
+    expect(s.parse).toHaveBeenCalledWith(s.cradle, "", null);
+  });
+});

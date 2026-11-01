@@ -66,6 +66,13 @@ export async function startStripeStub({ webhookSecret, appURL, databaseURL }: { 
       if (route === "GET /__stub/state") return send(res, 200, { createHeld: !!releaseCreate });
       if (route === "POST /__stub/release") { releaseCreate?.(); releaseCreate = undefined; return send(res, 200, { ok: true }); }
       if (route === "GET /__stub/accounts") return send(res, 200, [...accounts.values()]);
+      if (route === "POST /__stub/metadata") {
+        const control = JSON.parse(await body(req)) as { accountId: string; metadata: Record<string, string> };
+        const account = accounts.get(control.accountId);
+        if (!account) return send(res, 404, {});
+        account.metadata = control.metadata;
+        return send(res, 200, { ok: true });
+      }
       if (route === "POST /__stub/event") {
         const control = JSON.parse(await body(req)) as { accountId: string; ready?: boolean };
         const account = accounts.get(control.accountId);

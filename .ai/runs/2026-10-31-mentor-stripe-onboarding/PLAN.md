@@ -18,7 +18,8 @@ Base: PR #62 (`feat/mentor-profile-setup`). Story: #38; epic: #29. Status: in-pr
 | 2 | 2.11 | Bookability and setup state | inline | done | 804a17d |
 | 2 | 2.6 | Setup UI using approved prototype and Storybook | dispatch (standard) | done | f9a0b1a |
 | 2 | 2.7 | Stripe stub and integration scenarios | dispatch (standard) | done | 086acaf |
-| 2 | 2.8 | Documentation and specification updates | dispatch (economy) | done | this commit |
+| 2 | 2.8 | Documentation and specification updates | dispatch (economy) | done | 11c873e |
+| 2 | 2.8-review-fix | Fail closed on metadata conflicts and bound webhook input | inline | done | this commit |
 | 2 | 2.9 | Manual US and PL Stripe test-mode acceptance | inline | todo | — |
 
 ## Scope and risks

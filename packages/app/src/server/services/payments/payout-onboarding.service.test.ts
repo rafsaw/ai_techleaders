@@ -1,4 +1,4 @@
-import { fixedClock, ProviderUnavailableError, type Logger, type Principal } from "@devmentor/core";
+import { ConflictError, fixedClock, ProviderUnavailableError, type Logger, type Principal } from "@devmentor/core";
 import { MentorProfile, PayoutAccount, UniqueConstraintViolationException, type EntityManager } from "@devmentor/db";
 import { describe, expect, it, vi } from "vitest";
 
@@ -194,4 +194,18 @@ it("handles an account ID already bound elsewhere as a reconciliation conflict",
   });
   await expect(s.service.start(principal, "US")).rejects.toMatchObject({ status: 409 });
   expect(s.row?.stripeAccountId).toBeNull();
+});
+
+it("marks partial metadata matches for manual reconciliation without creating", async () => {
+  const s = setup(); s.row = s.makeRow(); s.port.findAccounts.mockRejectedValue(new ConflictError());
+  await expect(s.service.start(principal, "US")).rejects.toMatchObject({ status: 409 });
+  expect(s.row?.provisioningState).toBe("reconciliation_required");
+  expect(s.port.createAccount).not.toHaveBeenCalled();
+});
+
+it("never logs provider-controlled metadata on reconciliation failure", async () => {
+  const s = setup(); s.row = s.makeRow();
+  const secret = "sensitive-provider-metadata";
+  await expect(s.service.attachAndStore(s.em as unknown as EntityManager, snapshot({ metadata: { payoutAccountId: secret, mentorProfileId: secret } }))).rejects.toThrow("reconciliation conflict");
+  expect(JSON.stringify(s.logger.error.mock.calls)).not.toContain(secret);
 });

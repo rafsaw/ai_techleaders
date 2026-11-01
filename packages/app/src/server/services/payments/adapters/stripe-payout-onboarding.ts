@@ -54,15 +54,20 @@ export class StripePayoutOnboarding implements PayoutOnboarding {
 
   async findAccounts(input: Parameters<PayoutOnboarding["findAccounts"]>[0]): Promise<PayoutAccountSnapshot[]> {
     const stripe = this.client();
+    const matches: PayoutAccountSnapshot[] = [];
+    let mismatchedMetadata = false;
     try {
-      const matches: PayoutAccountSnapshot[] = [];
       for await (const account of stripe.accounts.list({ limit: 100 })) {
-        if (account.metadata?.payout_account_id === input.payoutAccountId && account.metadata?.mentor_profile_id === input.mentorProfileId) matches.push(snapshot(account));
+        const payoutMatches = account.metadata?.payout_account_id === input.payoutAccountId;
+        const mentorMatches = account.metadata?.mentor_profile_id === input.mentorProfileId;
+        if (payoutMatches && mentorMatches) matches.push(snapshot(account));
+        else if (payoutMatches || mentorMatches) mismatchedMetadata = true;
       }
-      return matches;
     } catch {
       throw new ProviderUnavailableError();
     }
+    if (mismatchedMetadata) throw new ConflictError("Contact the DevMentor team about Stripe setup");
+    return matches;
   }
 
   async createOnboardingLink(accountId: string, urls: { returnUrl: URL; refreshUrl: URL }): Promise<URL> {
