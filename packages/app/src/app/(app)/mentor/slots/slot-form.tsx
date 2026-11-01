@@ -10,7 +10,17 @@ import { useSchemaForm } from "@devmentor/ui/forms/useSchemaForm";
 import { unlessSessionExpired } from "@/app/session-expiry";
 import type { SlotDto } from "@/server/services/availability/slot.service";
 
-const schema = z.object({ startsAt: z.string().min(1, "Choose a start time") });
+// Date silently shifts nonexistent wall times forward at a daylight-saving transition.
+export function isExistingLocalTime(value: string): boolean {
+  if (!value) return true; // The required check owns the empty-field message.
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const local = `${String(date.getFullYear()).padStart(4, "0")}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return local === value.slice(0, 16);
+}
+
+const schema = z.object({ startsAt: z.string().min(1, "Choose a start time").refine(isExistingLocalTime, "This time does not exist in your time zone. Choose another time.") });
 const fields = [{ name: "startsAt" }] as const;
 
 export function SlotForm({ timeZone, onPublished }: { timeZone: string; onPublished: (slot: SlotDto) => void }) {

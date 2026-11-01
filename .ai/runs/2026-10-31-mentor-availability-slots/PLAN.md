@@ -16,7 +16,8 @@ Base: PR #63 (`feat/mentor-stripe-onboarding`)
 | 3 | 3.6 | Verify availability flows and document contracts | dispatch | done | ee6415a |
 | 3 | 3.6-review-fix | Update database configuration expectation | inline | done | 420c243 |
 | 3 | 3.6-integration-fix | Expect the no-upcoming-slots state after Stripe readiness | dispatch:cheap | done | 88215eb |
-| 3 | 3.7 | Complete post-gate documentation | inline | done | step-3.7-post-gate-documentation |
+| 3 | 3.7 | Complete post-gate documentation | inline | done | 77af142 |
+| 3 | 3.8-review-fix | Reject nonexistent local times and verify slot isolation | inline | done | step-3.8-dst-and-isolation |
 
 ## Goal
 
@@ -42,6 +43,8 @@ Booking, recurring availability, and public slot selection are future work.
 7. Correct missing profile conflict: align the publish service error with the spec and cover it.
 
 8. Update database configuration expectation: include the new registered entity in its existing assertion.
+
+9. Reject nonexistent local times and verify slot isolation: avoid silently shifting a daylight-saving gap and prove mentor isolation with PostgreSQL.
 
 ## Risks
 

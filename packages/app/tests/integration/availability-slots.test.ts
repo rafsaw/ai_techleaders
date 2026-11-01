@@ -69,3 +69,15 @@ it("serializes overlapping concurrent publishes", async () => {
   const responses = await Promise.all([first!, second!]); expect(responses.map((r) => r.status).sort()).toEqual([201, 409]);
   expect(await query("select id from availability_slots where mentor_profile_id = $1", [f.profileId])).toHaveLength(1);
 });
+it("keeps another mentor's slots private and refuses withdrawal", async () => {
+  const owner = await fixture();
+  const other = await fixture();
+  const response = await publish(owner.cookie, instant(600));
+  expect(response.status).toBe(201);
+  const { data } = await response.json() as { data: { id: string } };
+  const otherPage = await fetch(`${base}/mentor/slots`, { headers: { cookie: other.cookie } });
+  expect(otherPage.status).toBe(200);
+  expect(await otherPage.text()).not.toContain(data.id);
+  expect((await remove(other.cookie, data.id)).status).toBe(404);
+  expect(await query("select id from availability_slots where id = $1", [data.id])).toHaveLength(1);
+});

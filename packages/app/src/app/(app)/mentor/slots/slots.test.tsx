@@ -7,6 +7,7 @@ import { requireRole } from "@/server/auth/page-guards";
 import { LocalTime } from "./local-time";
 import Page, { metadata } from "./page";
 import { SlotManager } from "./slot-manager";
+import { isExistingLocalTime } from "./slot-form";
 
 const { listUpcoming } = vi.hoisted(() => ({ listUpcoming: vi.fn() }));
 vi.mock("@/server/auth/page-guards", () => ({ requireRole: vi.fn() }));
@@ -17,6 +18,24 @@ const booked = { id: "b", startsAt: "2030-01-02T12:00:00.000Z", booked: true };
 beforeEach(() => { vi.clearAllMocks(); });
 
 describe("mentor slots", () => {
+  it("rejects invalid local values before converting them", () => {
+    expect(isExistingLocalTime("")).toBe(true);
+    expect(isExistingLocalTime("invalid")).toBe(false);
+  });
+  it("rejects a nonexistent local time at the spring clock change", async () => {
+    const oldZone = process.env.TZ;
+    process.env.TZ = "America/New_York";
+    try {
+      render(<SlotManager initialSlots={[]} />);
+      fireEvent.change(screen.getByLabelText(/Start time/), { target: { value: "2030-03-10T02:30" } });
+      fireEvent.click(screen.getByRole("button", { name: "Publish slot" }));
+      expect(await screen.findByText("This time does not exist in your time zone. Choose another time.")).toBeVisible();
+      expect(apiCall).not.toHaveBeenCalled();
+    } finally {
+      if (oldZone === undefined) delete process.env.TZ;
+      else process.env.TZ = oldZone;
+    }
+  });
   it("guards and loads the server page", async () => {
     vi.mocked(requireRole).mockResolvedValue({ userId: "u", sessionId: "s", displayName: "A", roles: ["mentor"] });
     listUpcoming.mockResolvedValue([first, booked]);
