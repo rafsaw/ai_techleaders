@@ -33,7 +33,7 @@ export class SlotService {
     try {
       return await this.em.transactional(async (em) => {
         const profile = await em.findOne(MentorProfile, { user: principal.userId }, { lockMode: LockMode.PESSIMISTIC_WRITE });
-        if (!profile) throw new NotFoundError("Mentor profile not found");
+        if (!profile) throw new ConflictError("Save your profile first");
         if (start.getTime() < this.clock.now().getTime() + MIN_LEAD_MINUTES * 60_000) {
           throw new ValidationError({ startsAt: ["Pick a time at least 2 hours from now. Mentees need 2 hours' notice."] });
         }

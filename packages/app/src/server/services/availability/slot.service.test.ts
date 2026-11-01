@@ -42,12 +42,14 @@ describe("SlotService", () => {
     expect(em.transactional).toHaveBeenCalledWith(expect.any(Function), { clear: true });
   });
 
-  it("rejects a start one minute short and a missing profile", async () => {
+  it("rejects a start one minute short and requires a profile before publishing", async () => {
     const s = setup();
     await expect(s.service.publish(principal, "2026-10-31T01:59:00Z")).rejects.toEqual(new ValidationError({ startsAt: ["Pick a time at least 2 hours from now. Mentees need 2 hours' notice."] }));
     expect(s.tx.findOne).toHaveBeenCalledOnce();
     const missing = setup(); missing.tx.findOne.mockReset().mockResolvedValue(null);
-    await expect(missing.service.publish(principal, start)).rejects.toEqual(new NotFoundError("Mentor profile not found"));
+    await expect(missing.service.publish(principal, start)).rejects.toEqual(new ConflictError("Save your profile first"));
+    expect(missing.tx.create).not.toHaveBeenCalled();
+    expect(missing.tx.persist).not.toHaveBeenCalled();
   });
 
   it.each([-49, 49])("reports the existing slot at offset %i minutes", async (offset) => {
