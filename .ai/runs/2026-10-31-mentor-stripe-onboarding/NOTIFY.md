@@ -22,3 +22,5 @@
 
 - 2026-11-01 UTC: Acceptance scope amended by user direction: G6 and step 2.9 require one US individual mentor only; Poland onboarding verification moves to separate geographic-expansion validation and does not gate Phase 2. No real US run has been recorded. Architecture, implementation and supported countries remain unchanged. Earlier US/PL notes are historical and superseded by this entry.
 - 2026-11-01 UTC: Fresh-context scope review found no contradiction in the amended spec; historical checkpoint wording is explicitly marked superseded.
+
+- 2026-11-01 UTC: User superseded the prior US-only acceptance amendment: automated integration tests against the fake Stripe gateway are the required Phase 2 acceptance evidence. Real Stripe onboarding has not been validated for the US or Poland; validate both separately before production release. Country support, Connect Express architecture and implementation remain unchanged. Step 2.9 now tracks the final-head automated acceptance run; earlier integration evidence predates final security fixes.

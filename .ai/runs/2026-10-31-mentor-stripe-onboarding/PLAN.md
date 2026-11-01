@@ -20,12 +20,12 @@ Base: PR #62 (`feat/mentor-profile-setup`). Story: #38; epic: #29. Status: in-pr
 | 2 | 2.7 | Stripe stub and integration scenarios | dispatch (standard) | done | 086acaf |
 | 2 | 2.8 | Documentation and specification updates | dispatch (economy) | done | 11c873e |
 | 2 | 2.8-review-fix | Fail closed on metadata conflicts and bound webhook input | inline | done | fe09f07 |
-| 2 | 2.9 | Manual US individual Stripe test-mode acceptance | inline | todo | — |
+| 2 | 2.9 | Automated fake-gateway acceptance evidence | inline | todo | — |
 
 ## Scope and risks
 
-Implement Phase 2 of `.ai/specs/2026-10-18-mentor-setup.md` on PR #62. Preserve Phase 1 behavior and exclude slots and checkout. Test recovery, concurrency, signatures and authorization. A real Stripe test-mode run for one US individual mentor is mandatory; Poland onboarding verification is deferred to separate geographic-expansion validation and is not a Phase 2 gate; availability of credentials and interactive verification remains unconfirmed. Risk-high requires a second reviewer. The stacked base must be reconciled when PR #62 merges.
+Implement Phase 2 of `.ai/specs/2026-10-18-mentor-setup.md` on PR #62. Preserve Phase 1 behavior and exclude slots and checkout. Test recovery, concurrency, signatures and authorization. Automated integration tests using the fake Stripe gateway are the required Phase 2 acceptance evidence; rerun the complete integration suite on the final head. Real Stripe onboarding has not been validated for US or Poland and must be separately validated before production release; this does not change supported countries or implementation. Risk-high requires a second reviewer. The stacked base must be reconciled when PR #62 merges.
 
 ## Resume blocker
 
-Step 2.9 requires an accessible Stripe test-mode platform and interactive completion for one US individual mentor. Poland onboarding verification is deferred to separate geographic-expansion validation and does not block Phase 2 acceptance. After acceptance, rerun the full final gate and obtain an eligible independent PR review; the authenticated PR author cannot submit an approving or changes-requested review on their own PR.
+Step 2.9 requires the complete automated integration suite against the fake Stripe gateway on the final head, recorded as Phase 2 acceptance evidence. The earlier nine-scenario run and full-suite run predate final security fixes; a focused PostgreSQL regression passed after those fixes. Real Stripe onboarding has not been validated for either US or Poland; validate both in a separate integration validation before production release. After the suite, rerun the full final gate and obtain an eligible independent PR review; the authenticated PR author cannot submit an approving or changes-requested review on their own PR.

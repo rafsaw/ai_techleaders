@@ -208,10 +208,12 @@ Before live use, configure a **Connect** webhook endpoint at
 signing secret, and enable the bank-account requirement. A founder must
 acknowledge the platform's responsibility for losses and fees, and a tax
 advisor must assess the platform's reporting obligations before live payouts.
-Phase 2 also requires a recorded real Stripe test-mode acceptance run for one
-US individual mentor; the local stub does not satisfy that requirement. Poland
-onboarding verification is deferred to separate geographic-expansion validation
-and is not a Phase 2 acceptance gate.
+Phase 2 acceptance is evidenced by automated integration tests using the
+fake Stripe gateway; these test DevMentor's integration behavior but do not
+validate Stripe's real hosted flow or configuration. Real Stripe onboarding has
+not been validated for either US or Poland. Validate both separately before
+production release; this does not change supported countries or the Connect
+Express implementation.
 
 Both loaders read files from `packages/app`. Existing `process.env` values
 win over all files. Files are loaded in the order below; for each variable,
