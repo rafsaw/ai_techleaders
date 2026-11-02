@@ -21,6 +21,9 @@ spec in `.ai/specs/`. Background and rationale are in `README.md` and
 Read what the task needs, plus the `AGENTS.md` of every unit you touch. Paths in
 a nested `AGENTS.md` resolve from that file, or else from the repo root.
 
+Before executing any skill, check for and apply its local
+override at `.ai/skills/<skill-name>/SKILL.md`, if present.
+
 | Task | Read |
 | ---- | ---- |
 | Bug fix | `.ai/lessons.md`, `.ai/AGENTS.md` |

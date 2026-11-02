@@ -74,9 +74,11 @@ export async function startStripeStub({ webhookSecret, appURL, databaseURL }: { 
         return send(res, 200, { ok: true });
       }
       if (route === "POST /__stub/event") {
-        const control = JSON.parse(await body(req)) as { accountId: string; ready?: boolean };
+        const control = JSON.parse(await body(req)) as { accountId: string; ready?: boolean; revoke?: boolean };
         const account = accounts.get(control.accountId);
         if (!account) return send(res, 404, {});
+        // A previously ready account stops meeting Stripe's requirements (e.g. an expired document).
+        if (control.revoke) Object.assign(account, { payouts_enabled: false, capabilities: { transfers: "inactive" }, requirements: { past_due: ["individual.verification.document"], currently_due: ["individual.verification.document"], pending_verification: [], disabled_reason: "requirements.past_due" } });
         if (control.ready) Object.assign(account, { details_submitted: true, payouts_enabled: true, capabilities: { transfers: "active" }, requirements: { past_due: [], currently_due: [], pending_verification: [], disabled_reason: null } });
         return send(res, 200, { status: await deliver(account.id) });
       }
