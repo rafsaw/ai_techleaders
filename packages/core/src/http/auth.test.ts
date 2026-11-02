@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it, vi } from "vitest";
 
 import {
-  type Access, asValue, authorize, ConfigError, createApiHandler, createAppContainer, createMakeCrudRoute,
+  type Access, asValue, assertOwner, authorize, ConfigError, createApiHandler, createAppContainer, createMakeCrudRoute,
   CSRF_HEADER, ForbiddenError, NotFoundError, type Principal, type PrincipalFor, type PrincipalResolver,
   ResponseCookies, UnauthorizedError,
 } from "../index";
@@ -58,6 +58,16 @@ describe("authorize", () => {
     expectTypeOf<PrincipalFor<"optional">>().toEqualTypeOf<Principal | null>();
     expectTypeOf<PrincipalFor<"user">>().toEqualTypeOf<Principal>();
     expectTypeOf<PrincipalFor<{ role: "operator" }>>().toEqualTypeOf<Principal>();
+  });
+});
+
+describe("assertOwner", () => {
+  it("allows the owning principal", () => {
+    expect(() => assertOwner(mentee, mentee.userId)).not.toThrow();
+  });
+
+  it("conceals a foreign resource with NotFoundError", () => {
+    expect(() => assertOwner(mentee, "u-else")).toThrow(NotFoundError);
   });
 });
 

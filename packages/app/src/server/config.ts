@@ -38,6 +38,20 @@ const emailSection = z
   })
   .transform((env) => ({ smtpUrl: env.SMTP_URL, from: env.MAIL_FROM }));
 
+const stripeSection = z
+  .object({
+    STRIPE_SECRET_KEY: z.string().trim().min(1),
+    STRIPE_CONNECT_WEBHOOK_SECRET: z.string().trim().min(1),
+    STRIPE_API_URL: httpUrl.optional(),
+    STRIPE_ONBOARDING_ORIGIN: httpUrl.default("https://connect.stripe.com"),
+  })
+  .transform((env) => ({
+    secretKey: env.STRIPE_SECRET_KEY,
+    connectWebhookSecret: env.STRIPE_CONNECT_WEBHOOK_SECRET,
+    ...(env.STRIPE_API_URL ? { apiUrl: new URL(env.STRIPE_API_URL) } : {}),
+    onboardingOrigin: new URL(env.STRIPE_ONBOARDING_ORIGIN).origin,
+  }));
+
 /**
  * Application configuration, one lazily validated section per concern. A
  * section is read on first use, so `next build` and pages that do not need it
@@ -47,6 +61,7 @@ export interface AppConfig {
   app: () => z.output<typeof appSection>;
   github: () => z.output<typeof githubSection>;
   email: () => z.output<typeof emailSection>;
+  stripe: () => z.output<typeof stripeSection>;
 }
 
 export function createAppConfig(source: EnvSource = process.env): AppConfig {
@@ -54,5 +69,6 @@ export function createAppConfig(source: EnvSource = process.env): AppConfig {
     app: defineConfigSection(appSection, source),
     github: defineConfigSection(githubSection, source),
     email: defineConfigSection(emailSection, source),
+    stripe: defineConfigSection(stripeSection, source),
   };
 }

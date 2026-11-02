@@ -4,7 +4,7 @@ import { z } from "zod";
 import {
   AppError, asValue, ConflictError, createApiHandler, createAppContainer,
   createMakeCrudRoute, CSRF_HEADER, ForbiddenError, isAppError, NotFoundError, parseInput,
-  readJsonBody, ResponseCookies, TooManyRequestsError, UnauthorizedError, ValidationError,
+  ProviderUnavailableError, readJsonBody, ResponseCookies, TooManyRequestsError, UnauthorizedError, ValidationError,
 } from "../index";
 
 function setup() {
@@ -44,7 +44,14 @@ describe("domain errors", () => {
       name: "TooManyRequestsError", retryAfterMs: undefined,
     });
     expect(new TooManyRequestsError(1500, "custom", { cause })).toMatchObject({ retryAfterMs: 1500, message: "custom", cause });
+    expect(new ProviderUnavailableError()).toMatchObject({
+      message: "Payment provider unavailable", code: "provider_unavailable", status: 502, name: "ProviderUnavailableError",
+    });
+    expect(new ProviderUnavailableError("Stripe is unavailable", { cause })).toMatchObject({
+      message: "Stripe is unavailable", code: "provider_unavailable", status: 502, cause,
+    });
     expect(isAppError(new TooManyRequestsError())).toBe(true);
+    expect(isAppError(new ProviderUnavailableError())).toBe(true);
   });
 });
 

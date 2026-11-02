@@ -4,7 +4,7 @@ import { EntitySchema, types } from "@mikro-orm/core";
 import type { EntityManager } from "@mikro-orm/postgresql";
 import { describe, expect, it, vi } from "vitest";
 
-import { AuthSession, EmailConfirmationToken, entities, MentorInvitation, MentorProfile, RateLimitBucket, User, UserRole } from "./index";
+import { AvailabilitySlot, AuthSession, EmailConfirmationToken, entities, MentorInvitation, MentorProfile, PayoutAccount, RateLimitBucket, User, UserRole } from "./index";
 
 function meta(entity: (typeof entities)[number]) {
   const schema = EntitySchema.REGISTRY.get(entity);
@@ -14,7 +14,7 @@ function meta(entity: (typeof entities)[number]) {
 
 describe("entity definitions", () => {
   it("lists every entity", () => {
-    expect(entities).toEqual([User, UserRole, AuthSession, EmailConfirmationToken, MentorInvitation, MentorProfile, RateLimitBucket]);
+    expect(entities).toEqual([AvailabilitySlot, User, UserRole, AuthSession, EmailConfirmationToken, MentorInvitation, MentorProfile, PayoutAccount, RateLimitBucket]);
   });
 
   it("registers User with its table, primary key, unique email and nullable GitHub columns", () => {
@@ -92,6 +92,30 @@ describe("entity definitions", () => {
     expect(m.properties.publicWorkLinks?.array).toBe(true);
     expect(m.properties.price25Cents).toMatchObject({ type: types.integer, fieldName: "price_25_cents", check: "price_25_cents > 0" });
     expect(m.properties.price50Cents).toMatchObject({ type: types.integer, fieldName: "price_50_cents", check: "price_50_cents > 0" });
+  });
+
+  it("registers slots with a restricted profile and unique ordered start time", () => {
+    const m = meta(AvailabilitySlot);
+    expect(m.tableName).toBe("availability_slots");
+    expect(m.uniques).toEqual([{ properties: ["mentorProfile", "startsAt"] }]);
+    expect(m.properties.mentorProfile).toMatchObject({ kind: "m:1", fieldName: "mentor_profile_id", deleteRule: "restrict" });
+    expect((m.properties.mentorProfile!.entity as () => unknown)()).toBe(MentorProfile);
+    expect(m.properties.startsAt).toMatchObject({ fieldName: "starts_at", type: types.datetime });
+    expect(m.properties.startsAt?.nullable).toBeFalsy();
+    expect(m.properties.bookedAt).toMatchObject({ fieldName: "booked_at", type: types.datetime, nullable: true });
+  });
+
+  it("registers a unique restricted profile binding and constrained payout state", () => {
+    const m = meta(PayoutAccount);
+    expect(m.tableName).toBe("payout_accounts");
+    expect(m.properties.mentorProfile).toMatchObject({ kind: "m:1", fieldName: "mentor_profile_id", unique: true, deleteRule: "restrict" });
+    expect((m.properties.mentorProfile!.entity as () => unknown)()).toBe(MentorProfile);
+    expect(m.properties.stripeAccountId).toMatchObject({ unique: true, nullable: true, length: 64 });
+    expect(m.properties.country).toMatchObject({ columnType: "char(2)" });
+    expect(m.properties.provisioningState).toMatchObject({ enum: true, items: ["pending", "provisioned", "reconciliation_required", "failed"], default: "pending" });
+    expect(m.properties.status).toMatchObject({ enum: true, items: ["incomplete", "pending", "ready", "blocked"], default: "incomplete" });
+    expect(m.properties.lastReconciledAt?.nullable).toBe(true);
+    expect(m.checks).toEqual([{ name: "payout_accounts_provisioned_id_check", expression: "(provisioning_state = 'provisioned') = (stripe_account_id is not null)" }]);
   });
 
   it("registers RateLimitBucket with a unique char(64) key hash, a count and an indexed window end", () => {

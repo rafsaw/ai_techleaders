@@ -13,6 +13,7 @@ import type { TestProject } from "vitest/node";
 
 import { integrationResultsDirectory, browserExecutable, repositoryRoot } from "./context";
 import { startGitHubStub, type GitHubStub } from "./github-stub";
+import { startStripeStub } from "./stripe-stub";
 import { INTEGRATION_MAIL_FROM, startMailpit, type StartedMailpit } from "./mailpit";
 
 const execute = promisify(execFile);
@@ -80,6 +81,7 @@ export default async function setup(project: TestProject) {
   let migrations: ChildProcess | undefined;
   let githubStub: GitHubStub | undefined;
   let mailpit: StartedMailpit | undefined;
+  let stripeStub: Awaited<ReturnType<typeof startStripeStub>> | undefined;
   let browserReady = false;
   let cleanupPromise: Promise<void> | undefined;
   const serverLog = createWriteStream(join(artifactsDirectory, "server.log"), { flags: "w" });
@@ -102,6 +104,7 @@ export default async function setup(project: TestProject) {
     if (migrations) await safely("migrations", () => stopServer(migrations!));
     if (server) await safely("server", () => stopServer(server!));
     if (githubStub) await safely("github-stub", () => githubStub!.close());
+    if (stripeStub) await safely("stripe-stub", () => stripeStub!.close());
     serverLog.end();
     migrationsLog.end();
     postgresStream?.destroy();
@@ -141,6 +144,8 @@ export default async function setup(project: TestProject) {
     postgresStream = await postgres.logs();
     postgresStream.pipe(postgresLog, { end: false });
     const baseURL = `http://127.0.0.1:${await availablePort()}`;
+    const webhookSecret = `whsec_${randomUUID()}`;
+    stripeStub = await startStripeStub({ webhookSecret, appURL: baseURL, databaseURL: postgres.getConnectionUri() });
     const githubClient = { clientId: "integration-client", clientSecret: randomUUID() };
     githubStub = await startGitHubStub(githubClient);
     const environment: NodeJS.ProcessEnv = {
@@ -157,6 +162,10 @@ export default async function setup(project: TestProject) {
       GITHUB_CLIENT_SECRET: githubClient.clientSecret,
       GITHUB_OAUTH_URL: githubStub.url,
       GITHUB_API_URL: githubStub.url,
+      STRIPE_SECRET_KEY: "sk_test_integration",
+      STRIPE_CONNECT_WEBHOOK_SECRET: webhookSecret,
+      STRIPE_API_URL: stripeStub.url,
+      STRIPE_ONBOARDING_ORIGIN: stripeStub.url,
       SMTP_URL: mailpit.smtpURL,
       MAIL_FROM: INTEGRATION_MAIL_FROM,
     };
@@ -192,6 +201,7 @@ export default async function setup(project: TestProject) {
     project.provide("baseURL", baseURL);
     project.provide("databaseURL", environment.DATABASE_URL!);
     project.provide("githubStubURL", githubStub.url);
+    project.provide("stripeStubURL", stripeStub.url);
     project.provide("smtpURL", mailpit.smtpURL);
     project.provide("mailpitURL", mailpit.apiURL);
     project.provide("browserSession", browserSession);

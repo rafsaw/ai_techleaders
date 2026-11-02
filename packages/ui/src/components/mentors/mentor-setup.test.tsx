@@ -34,6 +34,13 @@ describe("BookableStatusLine", () => {
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Could not copy."));
   });
 
+  it("copies a shareable absolute URL when the public path is relative", async () => {
+    const copy = vi.fn().mockResolvedValue(undefined);
+    render(<BookableStatusLine state={{ status: "bookable", publicUrl: "/mentors/1" }} copy={copy} />);
+    fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
+    await waitFor(() => expect(copy).toHaveBeenCalledWith(`${window.location.origin}/mentors/1`));
+  });
+
   it("uses the clipboard by default", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
@@ -156,9 +163,9 @@ describe("PayoutStatus", () => {
     const { rerender } = render(<PayoutStatus payout={{ status: "reconciliation-required" }} {...props} />);
     expect(screen.getByText("We need to check an earlier setup attempt.")).toHaveAttribute("data-slot", "card-description");
     rerender(<PayoutStatus payout={{ status: "pending", checkStatusHref: "/r" }} {...props} />);
-    expect(screen.getByText("Stripe is checking your details.")).toHaveAttribute("data-slot", "card-description");
+    expect(screen.getByText("Stripe is checking your details. This can take a few minutes to a few business days.")).toHaveAttribute("data-slot", "card-description");
     rerender(<PayoutStatus payout={{ status: "ready" }} {...props} />);
-    expect(document.querySelector("[data-slot=card-description]")).toBeNull();
+    expect(screen.getByText("Stripe confirmed your account.")).toHaveAttribute("data-slot", "card-description");
   });
 
   it("asks for a country before the first POST and follows the Stripe link", async () => {

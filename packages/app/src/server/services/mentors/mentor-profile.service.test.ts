@@ -1,4 +1,4 @@
-import { NotFoundError, type Principal } from "@devmentor/core";
+import { fixedClock, NotFoundError, type Principal } from "@devmentor/core";
 import {
   MentorProfile,
   UniqueConstraintViolationException,
@@ -55,9 +55,10 @@ function setup() {
   };
   const em = {
     findOne: vi.fn(),
+    find: vi.fn().mockResolvedValue([]),
     transactional: vi.fn((callback: (transaction: unknown) => unknown) => callback(tx)),
   };
-  return { existing, tx, em, service: new MentorProfileService({ em: em as unknown as EntityManager }) };
+  return { existing, tx, em, service: new MentorProfileService({ em: em as unknown as EntityManager, clock: fixedClock("2026-10-31T00:00:00Z") }) };
 }
 
 describe("MentorProfileService", () => {
@@ -144,7 +145,7 @@ describe("MentorProfileService", () => {
 
   it("derives Phase 1 setup state with and without a profile", async () => {
     const { em, existing, service } = setup();
-    em.findOne.mockResolvedValueOnce(existing).mockResolvedValueOnce(null);
+    em.findOne.mockResolvedValueOnce(existing).mockResolvedValueOnce(null).mockResolvedValueOnce(null);
     await expect(service.getSetup(principal)).resolves.toEqual({
       profile: dto,
       payout: { status: "not_started", country: null, provisioningState: null },
@@ -155,8 +156,40 @@ describe("MentorProfileService", () => {
     await expect(service.getSetup(principal)).resolves.toMatchObject({ profile: null, publicUrl: null, bookable: false });
   });
 
-  it("keeps bookability false until payout state ships in Phase 2", async () => {
-    const { service } = setup();
+  it("requires an existing profile before checking bookability", async () => {
+    const { em, service } = setup();
+    em.findOne.mockResolvedValue(null);
     await expect(service.isBookable("profile-id")).resolves.toBe(false);
   });
+});
+
+
+it("requires mentor, provisioned and ready for bookability", async () => {
+  const s = setup();
+  s.em.findOne.mockResolvedValueOnce(s.existing).mockResolvedValueOnce(null);
+  expect(await s.service.isBookable("profile-id")).toBe(false);
+  for (const [provisioningState, status, expected] of [["pending", "ready", false], ["reconciliation_required", "ready", false], ["failed", "ready", false], ["provisioned", "incomplete", false], ["provisioned", "pending", false], ["provisioned", "blocked", false], ["provisioned", "ready", true]] as const) {
+    s.em.findOne.mockResolvedValueOnce(s.existing).mockResolvedValueOnce({ role: "mentor" }).mockResolvedValueOnce({ provisioningState, status });
+    expect(await s.service.isBookable("profile-id")).toBe(expected);
+    s.em.findOne.mockResolvedValueOnce(s.existing).mockResolvedValueOnce({ provisioningState, status, country: "US" });
+    expect((await s.service.getSetup(principal)).bookable).toBe(expected);
+  }
+  s.em.findOne.mockResolvedValueOnce(s.existing).mockResolvedValueOnce({ provisioningState: "provisioned", status: "ready", country: "US" });
+  expect((await s.service.getSetup({ ...principal, roles: ["mentee"] })).bookable).toBe(false);
+  s.em.findOne.mockResolvedValueOnce(s.existing).mockResolvedValueOnce({ role: "mentor" }).mockResolvedValueOnce(null);
+  expect(await s.service.isBookable("profile-id")).toBe(false);
+});
+
+it("publishes ready payout bookability on the public profile", async () => {
+  const s = setup();
+  s.em.findOne.mockResolvedValueOnce(s.existing).mockResolvedValueOnce({ role: "mentor" }).mockResolvedValueOnce({ provisioningState: "provisioned", status: "ready" });
+  expect((await s.service.getPublic(PROFILE_ID)).bookable).toBe(true);
+});
+
+it("counts only future open and booked slots in setup", async () => {
+  const s = setup();
+  s.em.findOne.mockResolvedValueOnce(s.existing).mockResolvedValueOnce(null);
+  s.em.find.mockResolvedValueOnce([{ bookedAt: null }, { bookedAt: new Date("2026-10-31T01:00:00Z") }, { bookedAt: null }]);
+  expect((await s.service.getSetup(principal)).upcomingSlots).toEqual({ open: 2, booked: 1 });
+  expect(s.em.find).toHaveBeenCalledWith(expect.any(Function), { mentorProfile: "profile-id", startsAt: { $gt: new Date("2026-10-31T00:00:00Z") } });
 });

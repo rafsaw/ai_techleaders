@@ -1,17 +1,17 @@
 # E02 — Mentor setup: profile, prices, Stripe onboarding and slots
 
 - Epic: #29 (E02) · Stories: #37 (E02-S01), #38 (E02-S02), #39 (E02-S03) · Task: #47 (E02-S02-T01)
-- Depends on: E01 [`2026-10-17-accounts-and-roles.md`](./implemented/2026-10-17-accounts-and-roles.md) (the `mentor` role, sessions, page guards, `(app)` area). Platform catalog [`2026-10-17-platform-primitives.md`](./2026-10-17-platform-primitives.md) is cited as "platform P*n*/F*n*". **This spec holds the final contracts for P5 (`assertOwner`), P13 (onboarding half) and P17, and builds P14's signature-only `webhookHandler` wrapper.** P14's inbox (event-ID deduplication) stays provisional for E04. The catalog keeps only status and a pointer here, changed in the same PR.
+- Depends on: E01 [`2026-10-17-accounts-and-roles.md`](./2026-10-17-accounts-and-roles.md) (the `mentor` role, sessions, page guards, `(app)` area). Platform catalog [`2026-10-17-platform-primitives.md`](../2026-10-17-platform-primitives.md) is cited as "platform P*n*/F*n*". **This spec holds the final contracts for P5 (`assertOwner`), P13 (onboarding half) and P17, and builds P14's signature-only `webhookHandler` wrapper.** P14's inbox (event-ID deduplication) stays provisional for E04. The catalog keeps only status and a pointer here, changed in the same PR.
 - Design authority: `.ai/specs/product-brief.md` (D03–D06, D12, D16, R01, N01, N02)
 - Research: one shared pass for the three stories and #47 (section "Research"). It is #47's deliverable.
 - Grey prototype (mentor onboarding, source of the questions at the end): `.ai/prototypes/discovery/mentor-onboarding/revision-002/`
-- Status: **approved; implementation in progress** (gate answered by the PO 2026-10-18; joint E01/E02 review revised the same day; grilling decisions G1–G12 applied 2026-10-18). Phase 1 / E02-S01 is implemented by PR #62; Phases 2–3 and the Phase 2 real Stripe test-mode run remain outstanding.
+- Status: **implemented on stacked branches** (gate answered by the PO 2026-10-18; joint E01/E02 review and grilling decisions G1–G12 applied 2026-10-18). Phase 1 is on PR #62, Phase 2 on PR #63, and Phase 3 on PR #64. The Phase 3 full local gate passed, including fake-gateway integration scenarios. These branches are not claimed as merged. Real Stripe test-mode onboarding for both US and Poland remains unvalidated and must be validated separately before production release.
 
 ## 📝 TLDR
 
-**Today:** an invited mentor (E01) holds the `mentor` role and can do nothing with it. There is no profile, no price, no payout account and no schedule, so nobody can find or pay them.
+**Baseline before E02:** an invited mentor (E01) holds the `mentor` role but has no profile, price, payout account or schedule. Phase 1 adds the profile; the Phase 2 branch adds payout onboarding. Slots and checkout remain future work.
 
-**Proposed (future behavior):**
+**Target behavior (all phases):**
 
 - A mentor works from one setup page, **Mentor setup** (`/mentor`). It is a checklist (profile, payouts with Stripe, slots) with a single "bookable / not bookable yet" line on top.
 - **Profile first.** It holds one area, links to public work, a plain description and a USD price for each of the two formats. Saving it publishes the public page `/mentors/<id>`, which never shows ratings.
@@ -45,7 +45,9 @@ The PO answered the gate on 2026-10-18 (gate.Q0–Q7) and accepted the proposed 
 | MD11 | **Slot rules.** All are checked on the server:<br>• the start is at least 2 hours after now, with no product-imposed upper horizon<br>• the start is a whole minute<br>• the start is not within 50 minutes of another of the mentor's slots<br>• a slot is removable only while not booked<br>• the booked state is a nullable `booked_at` column that E04 sets atomically | The lead time follows D16. `booked_at` gives E04 a race-safe one-slot claim and lets this spec refuse removal of booked slots before bookings exist. |
 | MD12 | **Provisioning and payout readiness are separate.** Provisioning is `pending`, `provisioned`, `reconciliation_required` or `failed`. Commit the local row before any Stripe call. Creation errors are classified (G9). **A retry always lists connected accounts first** (G8): one metadata match attaches; a **complete zero-match listing permits the retry to create**, using the same row and retained idempotency key after committing `pending`. | Zero matches is ordinary automated recovery, not an operator case. Partial/failed listings never count as zero. Multiple matches, conflicting IDs or mismatched metadata fail closed; log safe IDs for manual Stripe Dashboard/database reconciliation (D12), with no new command. |
 
-**Grilling, 2026-10-18 (PO answers).**
+**Acceptance-scope amendment, 2026-11-01 (owner-directed):** G6 requires automated integration tests using the fake Stripe gateway as Phase 2 acceptance evidence. Real Stripe onboarding validation for both the US and Poland is deferred to a separate integration validation before production release; neither geography has been validated against real Stripe. This decision changes acceptance scope only: MD8 country support, Stripe Connect Express architecture and implementation are unchanged.
+
+**Grilling, 2026-10-18 (PO answers; G6 amended 2026-11-01).**
 
 | Id | Decision | Changes |
 |---|---|---|
@@ -54,7 +56,7 @@ The PO answered the gate on 2026-10-18 (gate.Q0–Q7) and accepted the proposed 
 | G3 | Four payout statuses: `ready`, `pending`, `incomplete`, `blocked`. A ready mentor gets no extra Stripe action. | payout mapping, Flow 1, Flow 3, data model |
 | G4 | `last_reconciled_at` stays as a diagnostic column. One sentence (MD9) says E04 re-fetches with `syncAccount` right before creating a checkout. The `freshPayout` parameter and the repeated money-safety paragraphs are removed. | MD9, Architecture, Risks |
 | G5 | Phases ship in a fixed order, 1 → 2 → 3. Each phase renders only the checklist items it ships; there are no *Coming soon* states. | Flow 1, Phasing |
-| G6 | Phase 2 acceptance includes one manual Stripe test-mode run with one US and one PL individual, recorded in the run log. | Research, Phase 2 step 9 |
+| G6 | Phase 2 acceptance is evidenced by automated integration tests using the fake Stripe gateway, covering the onboarding, recovery, webhook and readiness scenarios in Phase 2 step 8. Real Stripe onboarding validation for both the US and Poland is a separate integration validation required before production release; real Stripe behavior has not yet been validated. | Research, Phase 2 step 9 |
 | G7 | Phases 1 and 3 stay as written. | none |
 | G8 | Recovery of a `pending` or `reconciliation_required` row always starts with the complete metadata listing. There is no replay-safety branch and no reasoning about key-retention windows. | MD12, Flow 3 step 3 |
 | G9 | Creation errors: `StripeInvalidRequestError` (a 4xx other than 409/429) → `failed`; `idempotency_key_in_use` → 409, row unchanged; everything else (timeout, connection error, 5xx, 429, unknown) → `reconciliation_required`. | MD12, Flow 3 step 2, P13 |
@@ -205,7 +207,7 @@ Provisioning state is mapped separately and takes precedence over payout status 
 
 ## 📝 Research
 
-This is the single shared pass for #37, #38, #39 and #47, checked 2026-10-18. **Documentation-verified only: no real Stripe test-mode onboarding run has been performed.** The CI stub is an application test double, not evidence of Stripe behavior. Scheduler claims come from Cal.com `main` (code read) and vendor help pages; the Stripe sources and the outstanding test-mode run are below.
+This is the single shared pass for #37, #38, #39 and #47, checked 2026-10-18. **Documentation research plus local-stub integration evidence:** the Phase 2 branch exercises nine scenarios using its own HTTP stub, a real migrated PostgreSQL database and a browser. No real Stripe test-mode onboarding run has been performed. The stub is an application test double, not evidence of Stripe behavior. Scheduler claims come from Cal.com `main` (code read) and vendor help pages; the Stripe sources and the outstanding test-mode run are below.
 
 | Leader / source | What we adopt | Complexity we skip |
 |---|---|---|
@@ -254,7 +256,7 @@ This is the single shared pass for #37, #38, #39 and #47, checked 2026-10-18. **
 - [Hosted onboarding](https://docs.stripe.com/connect/hosted-onboarding) and [external payout accounts](https://docs.stripe.com/connect/payouts-bank-accounts): Account Link behavior, incremental/upfront collection, Express update-link limits and the bank-account Dashboard setting.
 - [Verification requirements](https://docs.stripe.com/connect/required-verification-information), [verification states](https://docs.stripe.com/connect/handling-api-verification), [cross-border payouts](https://docs.stripe.com/connect/cross-border-payouts), [destination charges](https://docs.stripe.com/connect/destination-charges?platform=web&ui=stripe-hosted), [Connect testing](https://docs.stripe.com/connect/testing) and the [stable v2 Account Links reference](https://docs.stripe.com/api/v2/core/account-links/create).
 
-**#47 completion and evidence.** This Research section is the documentation deliverable and may close #47 when merged, explicitly labelled documentation-verified. **Phase 2 acceptance additionally requires one manual Stripe test-mode run** (G6) with one US and one PL individual: complete, abandon and resume, expired link, and a signed `account.updated` that makes the account ready; check the no-prefill payload, the `full` agreement and the bank-account requirement on the way. Record safe outcomes and mapping discrepancies in the run log; never store keys, raw webhook bodies, bank/identity data or Account Link URLs. Passing the stub does not satisfy this run.
+**#47 completion and evidence.** This Research section is the documentation deliverable and may close #47 when merged, explicitly labelled documentation-verified. **Phase 2 acceptance requires automated integration tests using the fake Stripe gateway** (G6), covering completion/readiness, pending status updated by a signed webhook, abandon and resume on the same account, expired-link refresh without account creation, duplicate delivery, timeout recovery without duplicate creation, webhook binding before the create response, failed-return status retry and concurrent starts. These tests validate DevMentor's integration behavior against the fake gateway; they do not validate Stripe's real hosted flow or configuration. Before production release, separately validate real Stripe onboarding for both US and Poland and record safe outcomes and mapping discrepancies; neither has yet been validated. Never store keys, raw webhook bodies, bank/identity data or Account Link URLs.
 
 **Unverified (carried as risks, not blockers to specification):**
 - which side pays the 1% conversion fee on a cross-border transfer
@@ -403,7 +405,7 @@ Every JSON route uses the existing envelope. Schemas live in `core/src/validator
 | `POST /api/payments/onboarding` | `onboardingStartSchema` `{ country: OnboardingCountry }` | 200 `{ url: string }` (Stripe origin only) | 400; 401; 403; 409 `conflict`: no profile ("Save your profile first"), provisioning `failed` or needing manual reconciliation, payout `blocked`, or key in use ("already starting"); 502 `provider_unavailable`: ambiguous creation or an incomplete/failed account listing. The page then re-reads setup state (Flow 3 step 6) |
 | `GET /api/payments/onboarding/return` | — | 303 → `/mentor?stripe=returned` | 303 → `/mentor?stripe=check_failed` (Stripe error); `/mentor` without a provisioned account; sign-in with `returnTo=/mentor` (signed out); `/error` for non-mentors (P7 default) |
 | `GET /api/payments/onboarding/refresh` | — | 303 → Stripe Account Link | 303 → `/mentor` (no provisioned account, or payout `blocked`) or `/mentor?stripe=check_failed` |
-| `POST /api/webhooks/stripe/connect` | raw Stripe event + `Stripe-Signature` | 200 `{ received: true }` (account stored or attached; other event types ignored) | 400 bad signature; 500 on provider, metadata, binding or transaction failure, so Stripe retries |
+| `POST /api/webhooks/stripe/connect` | raw Stripe event + `Stripe-Signature` | 200 `{ received: true }` (account stored or attached; other event types ignored) | 400 bad signature; 413 body over 1 MiB; 500 on provider, metadata, binding or transaction failure, so Stripe retries |
 | `POST /api/availability/slots` | `slotCreateSchema` `{ startsAt: ISO datetime with offset }` | 201 `SlotDto` | 400 `startsAt` (lead time, whole minute); 401; 403; 409 `conflict` (overlap, or no profile) |
 | `DELETE /api/availability/slots?id=` | uuid | 200 `{ id }` | 404 unknown or foreign; 409 booked |
 
@@ -456,6 +458,7 @@ type SlotDto = { id: string; startsAt: string /* ISO UTC */; booked: boolean };
     // no prefill; idempotency_key_in_use throws ConflictError (409)
     findAccounts(input: { payoutAccountId: string; mentorProfileId: string }): Promise<PayoutAccountSnapshot[]>;
     // exhausts GET /v1/accounts pages and matches both metadata IDs exactly; throws on an incomplete listing
+    // a match on only one ID is a reconciliation conflict, never a zero-match result
     createOnboardingLink(accountId: string, urls: { returnUrl: URL; refreshUrl: URL }): Promise<URL>;
     fetchAccount(accountId: string): Promise<PayoutAccountSnapshot>;
     parseWebhook(rawBody: string, signature: string | null): { id: string; type: string; accountId: string | null };
@@ -467,14 +470,14 @@ type SlotDto = { id: string; startsAt: string /* ISO UTC */; booked: boolean };
   - The checkout half (`PaymentGateway`) stays provisional for E04.
 - **P14 webhook handler, without the inbox** (G10). `app/src/server/webhooks/webhook-handler.ts`:
   ```ts
-  webhookHandler<E, D>({
+  createWebhookHandler(container)<E, D>({
     provider: string,
     parse: (cradle, rawBody: string, signature: string | null) => E & { id: string; type: string },  // throws ValidationError → 400
     prepare?: (cradle, event: E) => Promise<D>,                     // outside any transaction: external calls go here
-    apply: (em, cradle, event: E, prepared: D) => Promise<void>,    // inside one em.transactional
+    apply: (em, cradle, event: E, prepared: D | undefined) => Promise<void>, // inside one em.transactional
   })
   ```
-  The order: read the raw body (no CSRF check, no session); `parse` (invalid → 400; configuration/unexpected failures → logged 500); `prepare`; `apply` in one transaction; success → 200 `{ received: true }`; anything that throws → logged 500, nothing committed, the provider retries. There is no event-ID deduplication: E02's effect is a fetch-and-overwrite, so a repeat is harmless. E04 adds the inbox insert (`provider`, `event_id`) to this wrapper when it finalizes P14.
+  The order: read at most 1 MiB of raw body (413 when exceeded, including streamed bodies; review hardening added 2026-11-01; no CSRF check, no session); `parse` (invalid → 400; configuration/unexpected failures → logged 500); `prepare`; `apply` in one transaction; success → 200 `{ received: true }`; anything that throws → logged 500, nothing committed, the provider retries. There is no event-ID deduplication: E02's effect is a fetch-and-overwrite, so a repeat is harmless. E04 adds the inbox insert (`provider`, `event_id`) to this wrapper when it finalizes P14.
 - **P17 money.** `core/src/validators/money/money.schema.ts`, isomorphic:
   ```ts
   CURRENCY = "USD"; type Money = { amountMinor: number; currency: "USD" };
@@ -536,6 +539,29 @@ type SlotDto = { id: string; startsAt: string /* ISO UTC */; booked: boolean };
 | Remove races with E04's booking claim | The conditional delete and the conditional claim touch the same row; exactly one wins. The loser sees 409 "booked" or E04's "slot is gone". |
 | Removing someone else's slot by id | 404, which does not reveal it exists (P5). |
 
+### Phase 2 implementation notes (2026-10-31)
+
+PR #63 implements the Connect adapter, payout table, onboarding and webhook
+routes, setup UI and bookability predicate. Its local-stub integration suite
+exercises the nine Phase 2 scenarios, including an SDK request timeout after
+creation, duplicate signed delivery, a webhook binding before the creation
+response, and overlapping starts. This validates our integration against the
+stub, not Stripe's real hosted flow or production configuration. The Phase 3 full local gate passed, including the automated fake-gateway
+acceptance scenarios. Independent risk-high review remains open. Real Stripe integration has not been validated and
+must be separately validated for US and Poland before production release. See the
+run folder for current evidence and handoff. The application currently shows
+plain-text contact guidance because no real contact destination has been specified.
+
+The implemented `config.stripe().onboardingOrigin` is an origin **string**,
+not a `URL` object; `apiUrl` remains an optional `URL`. The webhook wrapper is
+exposed as `createWebhookHandler(container)(options)`; its optional `prepare`
+means the `apply` prepared argument can be `undefined`. The validation and
+transaction boundaries above are unchanged. Operational reconciliation and
+wrong-country replacement are documented in the README's Stripe payout
+reconciliation runbook. E04 must re-fetch with `syncAccount` before checkout,
+add the P14 inbox, enforce payment/checkout business uniqueness, and claim a
+slot atomically.
+
 ## 📝 Risks & Impact Review
 
 - **PO decision recorded (gate.Q1 a):** #39 AC 1 ("a start time and format") is read as "a start time; the formats come from the profile's two prices". Every slot reserves 50 minutes. A reviewer should not flag the AC wording.
@@ -561,7 +587,7 @@ type SlotDto = { id: string; startsAt: string /* ISO UTC */; booked: boolean };
 - **Mentor reach (A04, accepted by the PO).** This product only onboards mentors in the US, UK, EEA, Canada and Switzerland. It narrows A04 by an unknown amount because the prospect list has no country data. Hosted verification can take days, so setup cannot promise readiness within twenty minutes.
 - **E04 inputs, not decisions here:** the fee currency (Research #47); the `syncAccount` re-fetch right before checkout (MD9); the `booked_at` claim; any slot hold during checkout; P14's event-ID inbox.
 - **Accepted profile/slot rules.** MD2's whole-dollar $5–$1,000 bounds stay. Description length is 1–2,000 characters after trim. Slots retain the two-hour lead time and 50-minute spacing without a product-imposed maximum future date.
-- **Stripe acceptance prerequisites.** Configure required bank-account collection and complete the manual test-mode run in Phase 2 (G6).
+- **Stripe release validation.** Before production release, validate real Stripe onboarding for both US and Poland, including required bank-account collection. These flows have not yet been validated; automated fake-gateway tests do not establish real Stripe behavior.
 - **Rollback.** Each phase is one PR. Deploy previous compatible code while keeping tables/data and Stripe accounts. On redeploy, provisioned bindings are reused; unresolved rows go through recovery before another creation.
 
 ## 📝 Decisions in play
@@ -591,7 +617,7 @@ Phases ship in order 1 → 2 → 3 (G5).
 | Phase | Story | Ships | Primitives finalized | Done when |
 |---|---|---|---|---|
 | 1 ✅ PR #62 | #37 E02-S01 | Profile + prices, `/mentor` with item 1 and the line "Not bookable yet.", public `/mentors/[id]` (always "Not taking bookings yet"), invitation lands on `/mentor` | P17; `CrudForm` textarea/select | #37 ACs 1–4 pass. |
-| 2 | #47 + #38 E02-S02-T01, E02-S02 | Item 2: Stripe onboarding round trip, webhook, status banners, MD7 bookability on `/mentor` and the public page | P13 onboarding half; P14 `webhookHandler` without inbox | #38 ACs 1–4 and the recovery cases pass with the stub, **and the manual test-mode run is recorded** (G6). #47 may close on the Research deliverable. |
+| 2 | #47 + #38 E02-S02-T01, E02-S02 | Item 2: Stripe onboarding round trip, webhook, status banners, MD7 bookability on `/mentor` and the public page | P13 onboarding half; P14 `webhookHandler` without inbox | #38 ACs 1–4 and all nine recovery/onboarding scenarios pass in automated integration tests using the fake Stripe gateway (G6). Real Stripe onboarding for both US and Poland is validated separately before production release; neither is part of Phase 2 acceptance and neither has yet been validated. #47 may close on the Research deliverable. |
 | 3 | #39 E02-S03 | Item 3: slot publish/list/withdraw, `LocalTime` and the "no upcoming slots" status line | P5 (`assertOwner`) | #39 ACs 1–4 pass; AC 4 uses `booked_at` set through the test database. |
 
 Each phase needs E01 Phase 3 (the `mentor` role) merged first. Every phase ends with the full gate:
@@ -678,11 +704,11 @@ Each step leaves the app working and names its tests. Unit tests are colocated; 
      7. the webhook arrives before the ID is persisted → it attaches through metadata
      8. a failed return → **Try checking again** fetches again
      9. concurrent starts → one row and one account
-9. **Manual Stripe test-mode run (Phase 2 acceptance, G6).** One US and one PL individual, as described under Research "#47 completion and evidence". Record only safe results in the Phase 2 run log. Passing the stub is not a substitute.
+9. **Automated fake-gateway acceptance (Phase 2, G6).** Run and record the automated integration scenarios defined in step 8 against the fake Stripe gateway. This is the required Phase 2 acceptance evidence and validates DevMentor's integration behavior only. Real Stripe onboarding has not been validated; separately validate both US and Poland onboarding before production release and record safe outcomes in that integration-validation record.
 10. **Documentation:**
     - `README.md`: Stripe configuration, the bank-account setting, and the D12 runbook for manual Stripe Dashboard/database reconciliation and wrong-country replacement
     - `BACKWARD_COMPATIBILITY.md`: new env/routes/error code; platform catalog: canonical links and status only
-    - release conditions: liability acknowledgement, tax advice, live webhook endpoint; the run log distinguishes documentation research, stub validation and the manual test-mode run
+    - release conditions: liability acknowledgement, tax advice, live webhook endpoint, and separate real Stripe onboarding validation for both US and Poland; the run log distinguishes documentation research, fake-gateway automated acceptance, and the unperformed real Stripe validation
     - E04 handoff: `syncAccount` right before checkout (MD9); P14's inbox plus payment/checkout uniqueness and the atomic slot claim
 
 ### Phase 3 — #39 slots

@@ -20,6 +20,8 @@ describe("composition root", () => {
     const { BcryptPasswordHasher } = await import("@/server/services/auth/adapters/bcrypt-password-hasher");
     const { PasswordAccountService } = await import("@/server/services/auth/password-account.service");
     const { MentorInvitationService } = await import("@/server/services/auth/mentor-invitation.service");
+    const { StripePayoutOnboarding } = await import("@/server/services/payments/adapters/stripe-payout-onboarding");
+    const { PayoutOnboardingService } = await import("@/server/services/payments/payout-onboarding.service");
     const { MentorProfileService } = await import("@/server/services/mentors/mentor-profile.service");
     expect(cache.__devmentorContainer).toBe(container);
     expect(Object.keys(container.registrations)).toEqual(expect.arrayContaining(["logger", "clock", "config", "principalResolver", "orm", "em", "userService", "roleService", "authSessionService", "githubOAuth", "githubSignInService", "emailSender", "rateLimiter", "passwordHasher", "passwordAccountService", "mentorInvitationService", "mentorProfileService"]));
@@ -52,6 +54,8 @@ describe("composition root", () => {
     expect(first.cradle.mentorInvitationService).not.toBe(first.cradle.mentorInvitationService);
     expect(first.cradle.mentorProfileService).toBeInstanceOf(MentorProfileService);
     expect(first.cradle.mentorProfileService).not.toBe(first.cradle.mentorProfileService);
+    expect(first.cradle.payoutOnboarding).toBeInstanceOf(StripePayoutOnboarding);
+    expect(first.cradle.payoutOnboardingService).toBeInstanceOf(PayoutOnboardingService);
     // No session cookie: signed out without touching config or the database.
     const req = new Request("http://localhost/");
     await expect(first.cradle.principalResolver.resolve(req, new ResponseCookies())).resolves.toBeNull();

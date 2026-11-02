@@ -3,6 +3,7 @@ import {
   NotFoundError,
   toCents,
   type Money,
+  type Cradle,
   type Principal,
 } from "@devmentor/core";
 import {
@@ -11,7 +12,9 @@ import {
   type MentorProfileInput,
 } from "@devmentor/core/validators/mentors/mentor-profile.schema";
 import {
+  AvailabilitySlot,
   MentorProfile,
+  PayoutAccount,
   UniqueConstraintViolationException,
   User,
   UserRole,
@@ -33,9 +36,9 @@ export type PublicMentorProfileDto = MentorProfileDto & {
 
 export type MentorSetupDto = {
   profile: MentorProfileDto | null;
-  payout: { status: "not_started"; country: null; provisioningState: null };
-  upcomingSlots: { open: 0; booked: 0 };
-  bookable: false;
+  payout: { status: "not_started" | "incomplete" | "pending" | "ready" | "blocked"; country: string | null; provisioningState: "pending" | "provisioned" | "reconciliation_required" | "failed" | null };
+  upcomingSlots: { open: number; booked: number };
+  bookable: boolean;
   publicUrl: string | null;
 };
 
@@ -65,9 +68,11 @@ function values(input: MentorProfileInput) {
 /** Profile persistence and Phase 1's single source of public visibility/setup state. */
 export class MentorProfileService {
   private readonly em: EntityManager;
+  private readonly clock: Cradle["clock"];
 
-  constructor({ em }: { em: EntityManager }) {
+  constructor({ em, clock }: { em: EntityManager; clock: Cradle["clock"] }) {
     this.em = em;
+    this.clock = clock;
   }
 
   async getOwn(principal: Principal): Promise<MentorProfileDto | null> {
@@ -92,24 +97,32 @@ export class MentorProfileService {
     if (!profile) throw new NotFoundError("Mentor profile not found");
     const mentorRole = await this.em.findOne(UserRole, { user: profile.user.id, role: "mentor" });
     if (!mentorRole) throw new NotFoundError("Mentor profile not found");
-    return { ...toDto(profile), displayName: profile.user.name, bookable: await this.isBookable(profile.id) };
+    const payout = await this.em.findOne(PayoutAccount, { mentorProfile: profile.id });
+    return { ...toDto(profile), displayName: profile.user.name, bookable: payout?.provisioningState === "provisioned" && payout.status === "ready" };
   }
 
   async getSetup(principal: Principal): Promise<MentorSetupDto> {
     const profile = await this.getOwn(principal);
+    const payout = profile ? await this.em.findOne(PayoutAccount, { mentorProfile: profile.id }) : null;
+    const slots = profile ? await this.em.find(AvailabilitySlot, { mentorProfile: profile.id, startsAt: { $gt: this.clock.now() } }) : [];
+    const booked = slots.filter((slot) => slot.bookedAt !== null).length;
     return {
       profile,
-      payout: { status: "not_started", country: null, provisioningState: null },
-      upcomingSlots: { open: 0, booked: 0 },
-      bookable: false,
+      payout: payout ? { status: payout.status, country: payout.country, provisioningState: payout.provisioningState } : { status: "not_started", country: null, provisioningState: null },
+      upcomingSlots: { open: slots.length - booked, booked },
+      bookable: !!profile && principal.roles.includes("mentor") && payout?.provisioningState === "provisioned" && payout.status === "ready",
       publicUrl: profile ? `/mentors/${profile.id}` : null,
     };
   }
 
-  /** Phase 1 has no payout account, so no profile can be bookable yet. */
-  async isBookable(profileId: string): Promise<false> {
-    void profileId;
-    return false;
+  /** A saved profile, current mentor role and ready provisioned payout are all required. */
+  async isBookable(profileId: string): Promise<boolean> {
+    const profile = await this.em.findOne(MentorProfile, { id: profileId }, { populate: ["user"] });
+    if (!profile) return false;
+    const role = await this.em.findOne(UserRole, { user: profile.user.id, role: "mentor" });
+    if (!role) return false;
+    const payout = await this.em.findOne(PayoutAccount, { mentorProfile: profile.id });
+    return payout?.provisioningState === "provisioned" && payout.status === "ready";
   }
 
   async #saveOnce(em: EntityManager, userId: string, input: MentorProfileInput): Promise<MentorProfile> {

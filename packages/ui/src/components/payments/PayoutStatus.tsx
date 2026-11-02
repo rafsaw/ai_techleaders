@@ -33,7 +33,9 @@ export interface PayoutStatusProps {
   /** Follows the Stripe link (window.location.assign). */
   onOnboardingUrl: (url: string) => void;
   /** Where "Contact the DevMentor team" goes (not set by the spec). */
-  contactHref: string;
+  contactHref?: string;
+  /** Allows a page to preserve errors while refreshing its server state. */
+  onError?: (message: string) => void;
   /**
    * Whether this item holds the page's one primary action: the first unfinished item with an
    * action to take (R01.6, P-M4, Q-SC1). `false` turns its action outline. SetupChecklist
@@ -75,10 +77,10 @@ const LABELS: Record<PayoutSetup["status"], { state: string; variant: SetupState
     note: "We need to check an earlier setup attempt.",
   },
   failed: { state: "Setup failed", variant: "destructive" },
-  incomplete: { state: "Incomplete", variant: "warning" },
-  pending: { state: "Pending", variant: "secondary", note: "Stripe is checking your details." },
-  blocked: { state: "Blocked", variant: "destructive" },
-  ready: { state: "Confirmed", variant: "success" },
+  incomplete: { state: "Incomplete", variant: "warning", note: "Stripe onboarding isn’t finished. Continue where you left off." },
+  pending: { state: "Pending", variant: "secondary", note: "Stripe is checking your details. This can take a few minutes to a few business days." },
+  blocked: { state: "Blocked", variant: "destructive", note: "Stripe can’t enable payouts for this account. Contact the DevMentor team." },
+  ready: { state: "Confirmed", variant: "success", note: "Stripe confirmed your account." },
 };
 
 /** One POST to onboarding: disabled with an -ing label while it runs, the server's message on failure. */
@@ -89,8 +91,10 @@ function OnboardingForm({
   onUrl,
   countries,
   next,
+  onError,
 }: {
   next: boolean;
+  onError?: (message: string) => void;
   label: string;
   pendingLabel: string;
   run: (body: { country?: string }) => Promise<ApiResult<{ url: string }>>;
@@ -112,6 +116,7 @@ function OnboardingForm({
     const result = await run(value ? { country: value } : {});
     setPending(false);
     if (result.ok) onUrl(result.data.url);
+    else if (onError) onError(result.error.message);
     else setError(result.error.message);
   }
   return (
@@ -163,10 +168,10 @@ function OnboardingForm({
 
 function nextAction(
   payout: PayoutSetup,
-  { startOnboarding, onOnboardingUrl, contactHref, next = true }: Omit<PayoutStatusProps, "payout">
+  { startOnboarding, onOnboardingUrl, contactHref, onError, next = true }: Omit<PayoutStatusProps, "payout">
 ) {
   const onboarding = (label: string, pendingLabel: string) => (
-    <OnboardingForm next={next} label={label} pendingLabel={pendingLabel} run={startOnboarding} onUrl={onOnboardingUrl} />
+    <OnboardingForm next={next} label={label} pendingLabel={pendingLabel} run={startOnboarding} onUrl={onOnboardingUrl} onError={onError} />
   );
   switch (payout.status) {
     case "no-row":
@@ -177,6 +182,7 @@ function nextAction(
           pendingLabel="Starting Stripe setup…"
           run={startOnboarding}
           onUrl={onOnboardingUrl}
+          onError={onError}
           countries={payout.countries}
         />
       );
@@ -190,7 +196,7 @@ function nextAction(
     case "failed":
     case "blocked":
       // A real link styled as a button (buttonVariants on <a>), never role="button".
-      return <a href={contactHref} className={buttonVariants({ variant: next ? "default" : "outline" })}>Contact the DevMentor team</a>;
+      return contactHref ? <a href={contactHref} className={buttonVariants({ variant: next ? "default" : "outline" })}>Contact the DevMentor team</a> : <p>Contact the DevMentor team.</p>;
     case "locked":
     case "ready":
       return null;
