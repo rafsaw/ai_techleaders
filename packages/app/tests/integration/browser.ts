@@ -24,7 +24,11 @@ export function redactTokens(text: string): string {
 
 /** Execute the installed agent-browser CLI without a shell or shared browser session. */
 export class IntegrationBrowser {
-  constructor(private readonly session: string, private readonly artifactsDirectory: string) {}
+  /**
+   * `launchVariables` apply when the session's first command starts the browser (e.g. `TZ` to pin
+   * the browser's time zone); they have no effect on a session that is already running.
+   */
+  constructor(private readonly session: string, private readonly artifactsDirectory: string, private readonly launchVariables: Record<string, string> = {}) {}
 
   async command(...arguments_: string[]): Promise<Record<string, unknown>> {
     const args = ["--session", this.session, "--json", ...arguments_];
@@ -33,6 +37,7 @@ export class IntegrationBrowser {
         cwd: repositoryRoot,
         timeout: 30_000,
         killSignal: "SIGKILL",
+        ...(Object.keys(this.launchVariables).length > 0 ? { env: { ...globalThis.process.env, ...this.launchVariables } } : {}),
         maxBuffer: 8 * 1024 * 1024,
       });
       await appendFile(join(this.artifactsDirectory, "browser.log"), redactTokens(`${JSON.stringify(arguments_)}\n${stdout}${stderr}\n`));

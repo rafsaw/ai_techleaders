@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-11-02 — Read a skill's local override before using the skill's own text
+
+**Context:** `/om-integration-tests` loaded only the base `SKILL.md`, whose step 8 and last rule say the Markdown scenario is optional. The mandatory-scenario override lives in `.ai/skills/om-integration-tests/SKILL.md` and was not read, although the base skill opens with "ALWAYS check first". The agent wrote the test and reported the scenario as optional; MENTOR-002 had to be added afterwards. Cues were available and missed: untracked `.ai/qa/MENTOR/`, and an existing test citing MENTOR-001 in its header.
+**Lesson:** Before executing any skill, open `.ai/skills/<skill-name>/SKILL.md` if it exists, and treat it as replacing the base text where it says so. A skill invocation delivers only the base skill, so the override is not loaded for you. Do not describe a deliverable as optional until the override has been read. Task Router now states this rule.
+**Applies to:** every skill invocation, especially `om-integration-tests` (mandatory `.ai/qa/{AREA}/` scenarios) and `om-code-review`.
+
 ### 2026-11-01 — QA build identity must include untracked sources
 
 **Context:** A QA launcher could reuse a running dirty build while its descriptor named a clean commit, and Git's tracked diff missed untracked source files.
