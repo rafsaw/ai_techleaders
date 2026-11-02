@@ -28,6 +28,18 @@
   },
   "reviewChecklist": null,
   "closeKeywords": [],
+  "autofix": {
+    "label": "cez-autofix",
+    "eligibility": { "lookbackDays": 30, "analyzeLimit": 100, "limit": 20, "excludeLabels": ["blocked", "do-not-fix"] }
+  },
+  "automerge": {
+    "label": "automerge",
+    "mode": "prepare-and-merge",
+    "requireIndependentReview": false,
+    "defaultToHumanQa": false,
+    "windowMinutes": 120,
+    "maxAttempts": 3
+  },
   "discovery": {
     "enabled": true,
     "roles": { "domainExpert": false, "designer": true }
