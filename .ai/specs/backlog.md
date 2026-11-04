@@ -8,7 +8,7 @@ Last filed: 2026-10-17
 |---|---|---|---|---|---|
 | E01 | #28 | Accounts and access | — | — | no |
 | E02 | #29 | Mentor profile, pricing, slots and Stripe onboarding | — | — | no |
-| E03 | #30 | Discovery | — | — | no |
+| E03 | [#30](https://github.com/rafsaw/ai_techleaders/issues/30) | Discovery | — | — | no |
 | E04 | #31 | Booking and payment | — | — | no |
 | E05 | #32 | Text session | — | — | no |
 | E06 | #33 | Later | — | — | no |
@@ -18,7 +18,7 @@ Last filed: 2026-10-17
 | E02-S01 | #37 | A mentor publishes a profile with area, public-work links, description and a price per format | #29 | #36 | no |
 | E02-S02 | #38 | A mentor completes Stripe onboarding and only then becomes bookable | #29 | #37 | no |
 | E02-S03 | #39 | A mentor publishes availability slots | #29 | #37 | no |
-| E03-S01 | #40 | A mentee browses the public listing filtered by area and opens a mentor profile, also by direct link | #30 | #38, #39 | no |
+| E03-S01 | [#40](https://github.com/rafsaw/ai_techleaders/issues/40) | A mentee browses the public listing filtered by area and opens a mentor profile, also by direct link | #30 | #38, #39 | no |
 | E04-S01 | #41 | A mentee picks an eligible slot and duration, sees the price, and returns to the same slot after signing in | #31 | #40, #34 | no |
 | E04-S02 | #42 | A mentee pays through Stripe and the booking is confirmed only on payment confirmation | #31 | #41, #38 | no |
 | E04-S03 | #43 | Both participants receive booking information in the product and by email | #31 | #42 | no |
