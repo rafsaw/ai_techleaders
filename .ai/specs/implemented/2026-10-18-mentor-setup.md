@@ -497,7 +497,7 @@ type SlotDto = { id: string; startsAt: string /* ISO UTC */; booked: boolean };
 | `/mentors/[id]` | public | "Not taking bookings yet"; no rating UI anywhere |
 | Header | personalized public and signed-in | **Mentor setup** link for mentors from Phase 1; `/error` keeps its identity-free header |
 
-- **Times** render through a Tailwind-only client component colocated at `app/src/app/(app)/mentor/slots/local-time.tsx`. It formats an ISO instant in the viewer's zone with the zone's short name; before mount it renders the ISO string inside `<time dateTime>`, avoiding a hydration mismatch. E02 has one consuming page, so no shared UI export or special public-import allowance is added. E03-S01 now plans the second consumer: when its public availability view is implemented, extract the component to `ui/src/components/availability/LocalTime.tsx` with the corresponding contract tests. E02's current behavior and component contract are unchanged.
+- **Times** render through a Tailwind-only client component colocated at `app/src/app/(app)/mentor/slots/local-time.tsx`. It formats an ISO instant in the viewer's zone with the zone's short name; before mount it renders the ISO string inside `<time dateTime>`, avoiding a hydration mismatch. E02 has one consuming page, so no shared UI export or special public-import allowance is added by E02. [E03-S01](../2026-11-03-mentor-discovery.md) plans the second consumer: its Phase 2 extracts the component to `ui/src/components/availability/LocalTime.tsx`, adds the `availability/LocalTime` public Tailwind lint allowance and allowed-import test, registers Storybook/design-system documentation, and records the additive package export in `BACKWARD_COMPATIBILITY.md`. E02's current behavior and component contract are unchanged until then.
 - **Field kinds.** `CrudForm` (F2 `useSchemaForm`) gains `textarea` and `select` field kinds, built on shadcn `textarea` and `native-select` added with `npm run ui:add`. The change is additive; existing props and tests are unchanged.
 - **The slot form** is colocated (`mentor/slots/slot-form.tsx`) on `useSchemaForm`. The client-side schema only requires a non-empty value, and `onSubmit` converts it to an ISO instant. Server errors on `startsAt` land on the same field.
 - **Remove confirmation** uses shadcn `alert-dialog`, added with `npm run ui:add`.
@@ -731,7 +731,7 @@ Each step leaves the app working and names its tests. Unit tests are colocated; 
 5. **Routes** `POST`/`DELETE /api/availability/slots`.
    - Tests: access matrix and the error mapping.
 6. **UI:** `/mentor/slots` with colocated Tailwind-only `local-time.tsx` and the slot form, setup item 3 and the "bookable, but no upcoming slots" status line.
-   - Tests: RTL for each state and `LocalTime` before/after mount. No shared export or public-import exception is introduced until E04 adds a second consumer.
+   - Tests: RTL for each state and `LocalTime` before/after mount. No shared export or public-import exception is introduced by E02; E03-S01 Phase 2 adds the second consumer and extracts it with the lint allowance, import test, Storybook/design-system registration and compatibility record described above while preserving E02 behavior.
 7. **Integration:**
    - publish a slot 3 hours ahead → listed with the zone label. Use a fixed browser time zone if agent-browser supports one. Otherwise read the zone from the page (`Intl` evaluated in the browser) and assert against it.
    - a time 1 hour ahead → the 2-hour message

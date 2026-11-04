@@ -396,8 +396,11 @@ zostają w specyfikacji E01 Phase 2; design system ich nie dodaje.
 
 ## „What is missing” (już ustalone wpisy)
 
-- E03 Discovery (#30, #40), E04 Booking and payment (#31, #41–#43), E05 Text session
-  (#32, #44–#45): brak specyfikacji, brak ekranów i komponentów.
+- E03 Discovery (#30, #40): specyfikacja jest w `.ai/specs/2026-11-03-mentor-discovery.md`;
+  ekrany i komponenty E03 nie są jeszcze wdrożone. Jej faza 2 planuje przeniesienie
+  `LocalTime` do wspólnego eksportu UI, z aktualizacją Storybooka i `docs/design-system.md`.
+- E04 Booking and payment (#31, #41–#43) i E05 Text session (#32, #44–#45):
+  brak specyfikacji, ekranów i komponentów.
 - E06 Later (#33).
 - Prymitywy poza zestawem: Checkbox, RadioGroup, Switch, Avatar, Dialog, Menu, Popover,
   Tooltip, Tabs (żaden ekran E01/E02 ich nie potrzebuje).
