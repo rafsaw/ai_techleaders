@@ -26,6 +26,8 @@ No product implementation, new issue, acceptance-criteria change, or change to o
 
 The issue-body update lives on GitHub rather than in this branch. The PR only records links; reviewers should check #40 for the accepted wording. No runtime behavior changes.
 
+Review completion is blocked: GitHub rejects an approving review from the PR author's own account. The draft remains `Status: in-progress` until an eligible reviewer approves. The documentation review found no issue; CI is still running.
+
 ## Progress
 
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
