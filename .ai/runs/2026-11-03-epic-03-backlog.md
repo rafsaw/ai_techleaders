@@ -30,6 +30,8 @@ Review completion is blocked: GitHub rejects an approving review from the PR aut
 
 ## Progress
 
+PR: #68
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Record the approved change
