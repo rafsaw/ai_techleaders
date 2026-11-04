@@ -1,7 +1,7 @@
 # Platform primitives — the reusable backend and frontend layer for Now
 
 - Companion spec: [`2026-10-17-accounts-and-roles.md`](./implemented/2026-10-17-accounts-and-roles.md) (epic #28), the first consumer. It builds every primitive marked **E01** below, inside its own phases.
-- Design authority: `.ai/specs/product-brief.md` (Now scope), `AGENTS.md` (stack and layer rules), `BACKWARD_COMPATIBILITY.md` (protected surfaces)
+- Design authority: `.ai/specs/product-brief.md` (Now scope), `AGENTS.md` (stack and layer rules), `BACKWARD_COMPATIBILITY.md` (protected surfaces). E03's first-consumer details are in [`2026-11-03-mentor-discovery.md`](./2026-11-03-mentor-discovery.md).
 - Status: **draft for review** (PO revisions, accounts design review and platform grilling 2026-10-18). P5 (`assertOwner`), P13 (onboarding half) and P17 have their final design contracts in the E02 spec [`2026-10-18-mentor-setup.md`](./implemented/2026-10-18-mentor-setup.md), section "Final primitive contracts"; E02 also builds P14's signature-only `webhookHandler` wrapper, while P14's inbox stays provisional for E04; stacked E02 branches implement P5 `assertOwner`, P13 onboarding, P14’s wrapper and P17, with the full Phase 3 local gate passed; P5 `assertParticipant`, P13 checkout, P14 inbox and the remaining E02–E05 candidates remain provisional
 
 ## 📝 TLDR
@@ -423,7 +423,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   isBookable(slotStart, now, minLeadMs)  // D16: two hours from the moment of selection
   sessionWindow(start, durationMinutes, now): "upcoming" | "open" | "ended"  // D10
   ```
-- These are pure functions over P2. The server always decides; the client only displays.
+- These are pure functions over P2. The server always decides; the client only displays. E03-S01's read-only public availability uses E02's existing `MIN_LEAD_MINUTES` and the scoped clock for its two-hour filter; it does not create P15 early. E04 finalizes a shared selection rule when it adds the transactional booking check.
 
 ### P16. Domain events (provisional, first builder E04-S03)
 
@@ -483,7 +483,7 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   - Public pages and `ui/src/frontend/**` cannot import shadcn primitives, backend panel components, or Base UI directly. Enforce both package aliases and relative imports; transitive wrappers cannot hide a forbidden dependency.
   - Concept-specific Tailwind-only components keep the canonical home `ui/src/components/<concept>/` and may be imported by public pages. They must not import shadcn/backend/Base UI code transitively. Do not ban the entire `components/*` namespace: it also contains these domain components.
   - `tests/eslint-config.test.ts` gains the matching cases.
-- **Built only on demand:** Phase 1 uses native links and colocated Tailwind sign-in banners, with no shared public-form infrastructure. Phase 2 introduces the form pieces and `PasswordField`; extract `Notice`/`LinkButton` only when their second consumer exists. Listing cards/filters arrive with E03-S01. Phase 1's docs establish these placement rules; enforcement expands with the Phase 2 kit.
+- **Built only on demand:** Phase 1 uses native links and colocated Tailwind sign-in banners, with no shared public-form infrastructure. Phase 2 introduces the form pieces and `PasswordField`; extract `Notice`/`LinkButton` only when their second consumer exists. E03-S01 adds its listing cards, area links and public empty-state text beside `/mentors`; it does not add a generic list or empty-state primitive to F3. E03 Phase 2 extracts E02's `LocalTime` for its second consumer under `ui/src/components/availability/LocalTime.tsx`. Add `"availability/LocalTime"` to `tailwindDomainComponents` and its allowed-import test so both public and signed-in pages can use the same Tailwind-only component. Phase 1's docs establish these placement rules; enforcement expands with the Phase 2 kit.
 
 ### F4. Area layouts (E01-S01)
 
@@ -495,18 +495,21 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
 
 A public header that reads the session makes public pages render per request. That is acceptable: E03's pages query the database anyway, and `AGENTS.md` already requires `connection()` for those.
 
+E03-S01 adds `/mentors` and uses the existing `/mentors/[id]` public profile under this F4 area. It puts “Find a mentor” on the public homepage without extending E01's `SiteHeader` API or changing that header's behavior. The listing has basic title/description metadata and uses the same public leaf `getPrincipal()` and request-time `connection()` rules.
+
 ### F5. Read on the server, write through `/api` (convention, E01-S01)
 
 - **Reads:** pages and layouts call services in Server Components through `createRequestScope().cradle` and render DTOs, as `/backend/page.tsx` already does.
 - **Writes:** client components call `/api/*` with `apiCall`.
 - **After auth changes:** successful password sign-in, email confirmation, sign-out and invitation acceptance use full browser navigation to their validated destination, refreshing headers, layouts and role-dependent UI. OAuth already uses browser navigation. Failed mutations do not navigate; the invitation switch-account flow preserves its validated invitation path.
 - **Result:** one write contract (`apiHandler`), no client data-fetching library, and no duplicated authorization. Page guards (P4) and `apiHandler` (P3) resolve the same principal through the same service.
+- **E03 read ownership:** `MentorProfileService` owns MD7 bookability for public profile and listing projections; the profile gates its public slot read on that result. `SlotService.listPublicAvailable` validates the profile ID, then retrieves open slots meeting the two-hour cutoff at read time. E04 rechecks bookability and slot eligibility transactionally before booking. Public empty states use page-local Tailwind text; signed-in/backend `EmptyState` is not imported into public pages.
 
 ### F6. Lists (provisional, first builder E05-S01)
 
 - **Signed-in lists:** they reuse `DataTable` and the feedback states.
 - **Upcoming/past split:** computed on the server with P15.
-- **Public lists:** E03-S01's listing gets a Tailwind card grid and an `EmptyState` twin in F3 when that story is built.
+- **Public lists:** E03-S01 uses page-local Tailwind presentation for its mentor listing and empty state. It does not build F6 or a new shared F3 list primitive. Its public availability is one chronological list of all eligible starts, with no pagination or batching; E04 later owns duration and price selection. The current `@devmentor/ui/backend/feedback/EmptyState` and signed-in `@devmentor/ui/components/empty` remain for their existing audiences.
 
 ## 📝 API Contracts (framework surface changes)
 
