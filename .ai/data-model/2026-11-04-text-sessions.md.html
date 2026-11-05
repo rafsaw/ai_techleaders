@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>E05 text sessions data model</title>
+  <style>
+    body { margin: 0; font: 16px system-ui, sans-serif; color: #111827; background: #f9fafb; }
+    header { padding: 1rem 1.5rem; }
+    h1 { margin: 0 0 .25rem; font-size: 1.25rem; }
+    p { margin: 0; color: #4b5563; }
+    svg { display: block; width: 100%; height: min(78vh, 780px); background: white; touch-action: none; cursor: grab; }
+    svg:active { cursor: grabbing; }
+    .edge { stroke: #6b7280; stroke-width: 2; }
+    .edge-label { fill: #374151; font-size: 13px; }
+    .node text { font-size: 15px; }
+    .node .node-fields { font-size: 11px; }
+    .node { cursor: pointer; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>E05 text sessions data model</h1>
+    <p>Drag to pan, scroll to zoom, click a box to focus its direct relations; click again to reset. Blue: new E05. Amber: planned E04. Gray: existing.</p>
+  </header>
+  <svg id="canvas" viewBox="0 0 1100 650" aria-label="E05 data model graph"></svg>
+  <script id="graph-data" type="application/json">{"nodes":[{"id":"entity_1","label":"SessionMessage","fields":"bookingId, senderUserId, clientMessageId, body, createdAt","kind":"new","x":520,"y":180},{"id":"entity_2","label":"Booking (planned E04)","fields":"id, menteeUserId, mentorProfileId, start, duration","kind":"planned","x":170,"y":180},{"id":"entity_3","label":"User","fields":"id","kind":"existing","x":520,"y":430},{"id":"entity_4","label":"MentorProfile","fields":"id, userId","kind":"existing","x":170,"y":430}],"edges":[{"from":"entity_2","to":"entity_1","label":"1-n"},{"from":"entity_1","to":"entity_3","label":"n-1"},{"from":"entity_2","to":"entity_3","label":"n-1"},{"from":"entity_2","to":"entity_4","label":"n-1"},{"from":"entity_4","to":"entity_3","label":"n-1"}]}</script>
+  <script>
+    const data = JSON.parse(document.getElementById("graph-data").textContent);
+    const svg = document.getElementById("canvas");
+    const ns = "http://www.w3.org/2000/svg";
+    const world = document.createElementNS(ns, "g");
+    svg.append(world);
+    const make = (tag, attrs = {}) => {
+      const element = document.createElementNS(ns, tag);
+      for (const [key, value] of Object.entries(attrs)) element.setAttribute(key, String(value));
+      return element;
+    };
+    const positions = new Map(data.nodes.map(node => [node.id, node]));
+    const edgeElements = [];
+    for (const edge of data.edges) {
+      const from = positions.get(edge.from);
+      const to = positions.get(edge.to);
+      const group = make("g");
+      const line = make("line", {
+        x1: from.x + 140, y1: from.y + 50,
+        x2: to.x + 140, y2: to.y + 50,
+        class: "edge"
+      });
+      const label = make("text", {
+        x: (from.x + to.x) / 2 + 140,
+        y: (from.y + to.y) / 2 + 36,
+        "text-anchor": "middle",
+        class: "edge-label"
+      });
+      label.textContent = edge.label;
+      group.append(line, label);
+      world.append(group);
+      edgeElements.push({ edge, group });
+    }
+    const colors = {
+      new: { fill: "#2f6feb", text: "#fff", stroke: "#1b4fb0" },
+      planned: { fill: "#fef3c7", text: "#111", stroke: "#d97706" },
+      existing: { fill: "#e5e7eb", text: "#111", stroke: "#9ca3af" }
+    };
+    const nodeElements = [];
+    let focused = null;
+    for (const node of data.nodes) {
+      const group = make("g", { class: "node", transform: `translate(${node.x} ${node.y})`, tabindex: "0", role: "button", "aria-label": node.label });
+      const color = colors[node.kind];
+      group.append(make("rect", { width: 280, height: 100, rx: 10, fill: color.fill, stroke: color.stroke, "stroke-width": 2 }));
+      const title = make("text", { x: 14, y: 29, fill: color.text, "font-weight": "bold" });
+      title.textContent = node.label;
+      const fields = make("text", { x: 14, y: 55, fill: color.text, class: "node-fields" });
+      const items = node.fields.split(", ");
+      const midpoint = Math.ceil(items.length / 2);
+      const first = make("tspan", { x: 14, dy: 0 });
+      first.textContent = items.slice(0, midpoint).join(", ");
+      const second = make("tspan", { x: 14, dy: 20 });
+      second.textContent = items.slice(midpoint).join(", ");
+      fields.append(first, second);
+      group.append(title, fields);
+      const activate = () => {
+        focused = focused === node.id ? null : node.id;
+        const neighbors = new Set([focused]);
+        for (const edge of data.edges) {
+          if (edge.from === focused) neighbors.add(edge.to);
+          if (edge.to === focused) neighbors.add(edge.from);
+        }
+        for (const item of nodeElements) item.group.style.opacity = !focused || neighbors.has(item.node.id) ? "1" : ".2";
+        for (const item of edgeElements) item.group.style.opacity = !focused || item.edge.from === focused || item.edge.to === focused ? "1" : ".2";
+      };
+      group.addEventListener("click", activate);
+      group.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); activate(); }
+      });
+      world.append(group);
+      nodeElements.push({ node, group });
+    }
+    let x = 0, y = 0, scale = 1, dragging = false, lastX = 0, lastY = 0;
+    const render = () => world.setAttribute("transform", `translate(${x} ${y}) scale(${scale})`);
+    svg.addEventListener("pointerdown", event => {
+      if (event.target.closest(".node")) return;
+      dragging = true; lastX = event.clientX; lastY = event.clientY; svg.setPointerCapture(event.pointerId);
+    });
+    svg.addEventListener("pointermove", event => {
+      if (!dragging) return;
+      x += event.clientX - lastX; y += event.clientY - lastY;
+      lastX = event.clientX; lastY = event.clientY; render();
+    });
+    svg.addEventListener("pointerup", () => { dragging = false; });
+    svg.addEventListener("wheel", event => {
+      event.preventDefault();
+      scale = Math.min(3, Math.max(.5, scale * (event.deltaY < 0 ? 1.1 : .9)));
+      render();
+    }, { passive: false });
+  </script>
+</body>
+</html>

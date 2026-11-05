@@ -2,7 +2,7 @@
 
 - Companion spec: [`2026-10-17-accounts-and-roles.md`](./implemented/2026-10-17-accounts-and-roles.md) (epic #28), the first consumer. It builds every primitive marked **E01** below, inside its own phases.
 - Design authority: `.ai/specs/product-brief.md` (Now scope), `AGENTS.md` (stack and layer rules), `BACKWARD_COMPATIBILITY.md` (protected surfaces). E03's first-consumer details are in [`2026-11-03-mentor-discovery.md`](./2026-11-03-mentor-discovery.md).
-- Status: **draft for review** (PO revisions, accounts design review and platform grilling 2026-10-18). P5 (`assertOwner`), P13 (onboarding half) and P17 have their final design contracts in the E02 spec [`2026-10-18-mentor-setup.md`](./implemented/2026-10-18-mentor-setup.md), section "Final primitive contracts"; E02 also builds P14's signature-only `webhookHandler` wrapper, while E04 now finalizes P14's opt-in inbox design; stacked E02 branches implement P5 `assertOwner`, P13 onboarding, P14’s wrapper and P17, with the full Phase 3 local gate passed; E04 finalizes P13 CheckoutGateway, opt-in P14 inbox and P15 lead-time checks; P16 is not adopted. P5 `assertParticipant` and remaining E05 candidates remain provisional
+- Status: **draft for review** (PO revisions, accounts design review and platform grilling 2026-10-18). P5 (`assertOwner`), P13 (onboarding half) and P17 have their final design contracts in the E02 spec [`2026-10-18-mentor-setup.md`](./implemented/2026-10-18-mentor-setup.md), section "Final primitive contracts"; E02 also builds P14's signature-only `webhookHandler` wrapper, while E04 finalizes P13 CheckoutGateway, opt-in P14 inbox and P15 lead-time checks; stacked E02 branches implement P5 `assertOwner`, P13 onboarding, P14’s wrapper and P17. P16 is not adopted. E05 finalizes P5 `assertParticipant` and P15 `sessionWindow`, and declines F6. These E05 contracts are design only; no E05 runtime implementation is claimed.
 
 ## 📝 TLDR
 
@@ -19,7 +19,7 @@
 - idempotent external callbacks
 - frontend forms for three page areas
 
-**Proposed (future behavior).** This spec records E01's primitive contracts and provisional candidates for the rest of Now. Each gets a proposed home and first consumer. E01 builds only what E01 uses; public-form infrastructure starts in Phase 2. P5 (`assertOwner`), P13 onboarding and P17 are finalized by E02, which also builds P14's `webhookHandler` wrapper without the inbox; E04 finalizes checkout, opt-in inbox and lead-time checks and declines P16; remaining E05 candidates are finalized when their first feature is specified, following the `AGENTS.md` rule to add a piece "with the first feature that needs it".
+**Proposed (future behavior).** This spec records E01's primitive contracts and the later feature decisions. Each gets a home and first consumer. E01 builds only what E01 uses; public-form infrastructure starts in Phase 2. P5 (`assertOwner`), P13 onboarding and P17 are finalized by E02, which also builds P14's `webhookHandler` wrapper without the inbox; E04 finalizes checkout, opt-in inbox and lead-time checks and declines P16; E05 finalizes P5 `assertParticipant` and P15 `sessionWindow` and declines F6. Build each piece with its first consuming feature.
 
 **Identifier legend.** `PD` = platform decision; `P` = server primitive; `F` = frontend primitive. `AD` belongs to the companion accounts spec. `D`, `N`, `R`, `A` and zero-padded `Q` belong to the product brief (decision, non-goal, rule, assumption, question). `E01-S01` is a backlog story. Historical authoring questions use `platform.gate.Q4`, never bare `Q4`; use `brief.Q05` for a brief question and `accounts.AD2` / `platform.P3` across documents. Unqualified PD/P/F references below are local.
 
@@ -83,8 +83,8 @@ Every Now story reduces to a small set of capability types. The primitives below
 | Owner-scoped editor form (signed-in) | E01 account, E02-S01 profile, E02-S03 slots | existing `CrudForm`; F2 extraction only in Phase 2 |
 | Public form (signed-out) | E01-S02 email sign-in, sign-up | F2 form core + F3 Tailwind kit |
 | Public read page (no sign-in) | E03-S01 listing and profile with E04 slot links; E04 review redirects signed-out visitors at its leaf | F4 area layouts, F5 server-read convention |
-| Participant list with upcoming/past and empty state | E05-S01 | F6 lists (reuses `DataTable`/feedback) |
-| Text exchange refreshed manually (no realtime, D10) | E05-S02 | none (refresh is enough; **realtime explicitly skipped**) |
+| Participant list with upcoming/past and empty state | E05-S01 | F6 declined; two server-rendered semantic lists with page-local rows and existing `EmptyState`. |
+| Text exchange refreshed every five seconds while the newest open-session page and tab are visible (D18) | E05-S02 | Existing `apiHandler`, `apiCall` and Postgres rate limiter with a page-local timer and incremental reads; pause while hidden or on older history, refresh on return/Latest, stop recurring reads and make one final visible newest-page read at booked end. No WebSocket or shared polling service. |
 
 ## 📝 Proposed Solution
 
@@ -176,13 +176,13 @@ flowchart LR
     sut --> sec
 ```
 
-Takeaway: everything new hangs off the two existing seams, `apiHandler` and the form and API client. Solid blue boxes are built in E01. Dashed boxes represent the original E02–E05 plan; P5 `assertOwner`, P13 onboarding, P14’s wrapper and P17 are implemented on stacked E02 branches; E04 finalizes P13 checkout, P14’s opt-in inbox and P15 lead time without claiming implementation; P16 is declined and E05 candidates stay provisional. F2/F3 are built in E01 Phase 2; the page-cookie Proxy does no authorization.
+Takeaway: everything new hangs off the two existing seams, `apiHandler` and the form and API client. Solid blue boxes are built in E01. Dashed boxes represent the original E02–E05 plan; P5 `assertOwner`, P13 onboarding, P14’s wrapper and P17 are implemented on stacked E02 branches; E04 finalizes P13 checkout, P14’s opt-in inbox and P15 lead time without claiming implementation; P16 is declined. E05 finalizes P5 `assertParticipant` and P15 `sessionWindow` and declines F6, without claiming implementation. F2/F3 are built in E01 Phase 2; the page-cookie Proxy does no authorization.
 
 **Isomorphism rule (new, written into `AGENTS.md`).** `@devmentor/core`'s `.` entry is server-side and may use `node:crypto`. `@devmentor/core/validators/*` must stay isomorphic, because client components import it. Anything a client needs (role names, the `returnTo` schema) goes in `validators/`.
 
 ## 📝 Primitive catalog — server
 
-Each entry gives the home, the contract (TypeScript shape, abbreviated), what it reuses, and the **first builder**. E02 holds the **final design contracts** for P5 (`assertOwner`), P13 onboarding, P14's `webhookHandler` wrapper and P17; the entries below point to that authority rather than duplicate it. [E04](2026-11-04-booking-and-payment.md) finalizes P13 checkout, P14 inbox and P15 lead time, and declines P16. P5 (`assertParticipant`), E05 time windows and F6 remain **provisional candidates**. Their consuming feature spec decides whether each abstraction is needed and finalizes its shape. These four E02 contracts are implemented on stacked branches; the provisional candidates are not.
+Each entry gives the home, the contract (TypeScript shape, abbreviated), what it reuses, and the **first builder**. E02 holds the **final design contracts** for P5 (`assertOwner`), P13 onboarding, P14's `webhookHandler` wrapper and P17; the entries below point to that authority rather than duplicate it. [E04](2026-11-04-booking-and-payment.md) finalizes P13 checkout, P14 inbox and P15 lead time, and declines P16. [E05](2026-11-04-text-sessions.md) finalizes P5 `assertParticipant` and P15 `sessionWindow`, and declines F6. These E05 decisions are not implementation claims.
 
 ### P1. Config, a lazily validated env (E01-S01)
 
@@ -272,14 +272,14 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
   - the leaf pages that render private data, which repeat the check, per the Next docs' warning that layouts don't re-run on navigation
   - every public leaf except `/error` via `getPrincipal()` for optional identity/activity, even if its header already called it; test public-to-public RSC navigation, prefetch and full document visits
 
-### P5. Access assertions (`assertOwner` final in E02, built in E02-S03; `assertParticipant` provisional, E05)
+### P5. Access assertions (`assertOwner` final in E02, built in E02-S03; `assertParticipant` final design in E05)
 
 - **Final E02 contract:** [`2026-10-18-mentor-setup.md`](./implemented/2026-10-18-mentor-setup.md), section "Final primitive contracts", is authoritative for `assertOwner` and its home. Its E02 caller is `SlotService.withdraw`; it conceals foreign slots with 404. It is implemented on the E02 Phase 3 branch.
-- **Provisional E05 candidate:**
+- **Final E05 contract:** [text sessions](2026-11-04-text-sessions.md), “Architecture”, owns the following additive assertion beside `assertOwner` in `core/src/http/auth.ts`, exported from `@devmentor/core`:
   ```ts
-  assertParticipant(principal, participantUserIds, { conceal: true })  // NotFoundError when conceal
+  assertParticipant(principal: Principal, participantUserIds: readonly string[]): void
   ```
-  E05 decides its shape and home when a session flow needs it.
+  It always throws `NotFoundError` for a nonparticipant. The caller supplies user IDs from a loaded Booking, never request input; operators have no override. E04 detail and E05 reads/sends keep neutral 404 behavior.
 - **E01 needs none:** its "me" endpoints act on `principal.userId` by construction. Services receive a trusted principal (or its user ID); routes never treat a body-supplied ID as the owner.
 
 ### P6. `returnTo` (E01-S01)
@@ -413,11 +413,11 @@ Each entry gives the home, the contract (TypeScript shape, abbreviated), what it
 - **E04 additive contract:** optional `deduplicate` hook, absent by default, within the same transaction as `apply`; Checkout alone opts in. Unique `(provider, eventId)` is committed with the booking/closure/refund obligation, never before. Rollback leaves delivery retryable. Optional post-commit hook for durable refund work must not undo the committed effect on failure; operator/retry resumes the obligation. No provider I/O under locks. Different event IDs still need unique payment/session bindings and slot claims.
 - [E04 API contract](2026-11-04-booking-and-payment.md) names the accepted Checkout/refund events, safely ignored types, response statuses and separate signing secret. Preserve Connect response and signature behavior. Record wrapper additions in `BACKWARD_COMPATIBILITY.md` during implementation.
 
-### P15. Time windows (lead-time design final in E04; E05 session window provisional)
+### P15. Time windows (lead-time design final in E04; session window final design in E05)
 
 - **Home:** `core/src/time/windows.ts`, pure `isBookable(slotStart, now, minLeadMs)` using P2 clock and existing `MIN_LEAD_MINUTES`. Current cutoff is inclusive: `slotStart >= now + 120 minutes`.
 - E03 public reads and E04 selection/review, post-auth return, checkout/resume and paid claim each revalidate current D16. No stored selection time, entitlement or Selection entity. Test whole-minute slot precision; already-paid ineligible claims require compensation.
-- `sessionWindow(start, durationMinutes, now): "upcoming" | "open" | "ended"` remains an E05 candidate. E04 does not build it early.
+- **Final E05 contract:** [text sessions](2026-11-04-text-sessions.md), “Architecture”, adds pure `sessionWindow(start, durationMinutes, now): "upcoming" | "open" | "ended"` in `core/src/time/windows.ts`. It uses the immutable Booking start and 25/50-minute duration with the half-open `[start, end)` window: start is open and end is ended. Server `clock.now()` decides send acceptance and list state. E04 does not build it early.
 
 ### P16. Domain events (not adopted by E04; deferred without a first builder)
 
@@ -492,10 +492,11 @@ E03-S01 adds `/mentors` and uses the existing `/mentors/[id]` public profile und
 - **Result:** one write contract (`apiHandler`), no client data-fetching library, and no duplicated authorization. Page guards (P4) and `apiHandler` (P3) resolve the same principal through the same service.
 - **E03 read ownership:** `MentorProfileService` owns MD7 bookability for public profile and listing projections; the profile gates its public slot read on that result. `SlotService.listPublicAvailable` validates the profile ID, then retrieves open slots meeting the two-hour cutoff at read time. E04 rechecks bookability and current slot eligibility on selection/review, post-auth return, checkout/resume and paid claim; its projection excludes current holds but includes overdue-held candidates for safe reconciliation. Public empty states use page-local Tailwind text; signed-in/backend `EmptyState` is not imported into public pages.
 
-### F6. Lists (provisional, first builder E05-S01)
+- **E05 live read exception:** the newest `/bookings/[id]` view renders initial history on the server, then a page-local client makes incremental participant-checked GETs through `apiCall` every five seconds only during the open window and while the tab is visible. Older-history views pause; Latest or a returned tab refreshes immediately. At the exact end, stop recurring reads and make one final read if the newest page is visible. The existing Postgres limiter allows about 60 message reads per user per minute. This is not a general client data-fetching layer; the same session service and authorization rule serve the page and GET.
 
-- **Signed-in lists:** they reuse `DataTable` and the feedback states.
-- **Upcoming/past split:** computed on the server with P15.
+### F6. Lists (declined by E05-S01)
+
+- **E05 signed-in lists:** `/sessions` uses two simple server-rendered semantic lists, Upcoming and Past, with page-local row components and existing `EmptyState`. `BookingService.listForParticipant(principal)` owns the scoped DTO query; Upcoming sorts by start, Past by actual end (`start + duration`). No `DataTable`, client wrapper, generic list primitive or list pagination is needed for course scale.
 - **Public lists:** E03-S01 uses page-local Tailwind presentation for its mentor listing and empty state. It does not build F6 or a new shared F3 list primitive. Its public availability is one chronological list of all eligible starts, with no pagination or batching; E04 later owns duration and price selection. The current `@devmentor/ui/backend/feedback/EmptyState` and signed-in `@devmentor/ui/components/empty` remain for their existing audiences.
 
 ## 📝 API Contracts (framework surface changes)
@@ -534,7 +535,7 @@ E03-S01 adds `/mentors` and uses the existing `/mentors/[id]` public profile und
 - **The PD2 rule change is a direction call.** It was made by the product owner, and it reverses part of a standing `AGENTS.md` rule. Rollback is cheap while the signed-in area has one page (`/account`) and grows with each E02 and E05 page.
 - **Rate limiting no longer constrains hosting.** P11 is Postgres-backed from Phase 2, so serverless or multi-instance hosting needs no limiter change. The remaining hosting condition is the trusted client-IP edge contract (P11) before `TRUST_PROXY=true`; until then per-IP rules are skipped and per-email rules still apply.
 - **Release email condition (PD1).** The PO selects an SMTP-capable provider, configures the production sender and verifies delivery to a real inbox before launch. No production invitation/confirmation test writes its token to evidence or logs.
-- **Build budget (brief.A02).** Deferring abstractions does not establish that all Now fits 25 hours. Phase 1 is one focused PR; public forms wait for Phase 2; the remaining E02–E05 candidates stay provisional; E02-finalized contracts are implemented as their feature work lands, subject to their own gates. The budget decision against A02 is made at brief level in #49, not in these specs.
+- **Build budget (brief.A02).** Deferring abstractions does not establish that all Now fits 25 hours. Phase 1 is one focused PR; public forms wait for Phase 2; E02-finalized contracts are implemented as their feature work lands, and E04/E05 final designs still require their own implementation gates. The budget decision against A02 is made at brief level in #49, not in these specs.
 - **Rollback.** Deploy compatible previous code while keeping additive schema. `down()` migrations are for disposable environments only and are never the production rollback. No E01 phase reaches production with real users before accounts Phase 3 and the release conditions.
 
 ## 📝 Decisions in play
@@ -543,7 +544,7 @@ E03-S01 adds `/mentors` and uses the existing `/mentors/[id]` public profile und
   - D12 (no operator screens: the CLI, not the admin UI, is the operator's tool)
   - D13 (sign-in methods)
   - D14 (invitation by the operator)
-  - D10 (refresh, not realtime: no realtime primitive)
+  - D10 (refresh suffices; E05's later PO choice adds visible-tab five-second polling, with no WebSocket or new infrastructure)
   - D15 and E04-S03 (email: direct post-commit P10; P16 declined)
   - D16 and D10 (time rules: P2, P15)
   - D05 (onboarding gate: P13, P14)
@@ -565,16 +566,17 @@ This spec has no phases of its own. By the product owner's instruction, each acc
 | P17 money (final: E02 spec) | E02-S01 (#37) |
 | P13 onboarding port, P14 `webhookHandler` wrapper (final: E02 spec) | E02-S02 (#38) |
 | P5 `assertOwner` (final: E02 spec) | E02-S03 (#39) |
-| P5 `assertParticipant` | E05 |
-| P15 lead-time rule (E05 session windows remain provisional) | E04-S01 (#41) |
+| P5 `assertParticipant` (final design: E05) | E05-S01 (#44) |
+| P15 lead-time rule | E04-S01 (#41) |
+| P15 `sessionWindow` (final design: E05) | E05-S01 (#44) |
 | P13 payment port (checkout) | E04-S02 (#42) |
 | P14 webhook inbox | E04-S02 (#42) |
 | P10 direct post-commit EmailSender call (E04 declines P16) | E04-S03 (#43) |
-| F6 lists | E05-S01 (#44) |
+| F6 lists | Declined by E05-S01 (#44); use page-local semantic lists and existing `EmptyState` |
 
 ## 📋 Implementation Plan
 
-The executable steps for every E01-built primitive are in the accounts spec's Implementation Plan. Each step names the primitive ids it delivers. E04 final contracts and steps live in [booking and payment](2026-11-04-booking-and-payment.md); remaining provisional candidates get final contracts only in their first consuming feature’s spec; citing this catalog does not make the provisional design mandatory.
+The executable steps for every E01-built primitive are in the accounts spec's Implementation Plan. Each step names the primitive ids it delivers. E04 final contracts and steps live in [booking and payment](2026-11-04-booking-and-payment.md); E05 final contracts and steps live in [text sessions](2026-11-04-text-sessions.md). Citing this catalog does not claim runtime implementation.
 
 **Completion status:** E01 completion does not complete this whole catalog. Keep this file in `.ai/specs/` after accounts Phase 3; record E01 entries as implemented only after their validation passes. Move it to `implemented/` only when all remaining candidates have been implemented, explicitly deferred, or transferred to their consuming specs with links and status. Never mark E02–E05 runtime work complete merely because its design is written here.
 
