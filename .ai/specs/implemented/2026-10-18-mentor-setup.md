@@ -7,6 +7,10 @@
 - Grey prototype (mentor onboarding, source of the questions at the end): `.ai/prototypes/discovery/mentor-onboarding/revision-002/`
 - Status: **implemented on stacked branches** (gate answered by the PO 2026-10-18; joint E01/E02 review and grilling decisions G1–G12 applied 2026-10-18). Phase 1 is on PR #62, Phase 2 on PR #63, and Phase 3 on PR #64. The Phase 3 full local gate passed, including fake-gateway integration scenarios. These branches are not claimed as merged. Real Stripe test-mode onboarding for both US and Poland remains unvalidated and must be validated separately before production release.
 
+## Planned E04 integration amendment — approved 2026-11-04, not implemented by E02
+
+[E04 booking and payment](../2026-11-04-booking-and-payment.md) extends slot withdrawal to refuse an unreleased checkout hold with 409 `conflict`: “This slot has a checkout in progress. Try again after payment is resolved.” An overdue hold must be reconciled outside database row locks before retrying withdrawal; provider uncertainty preserves the hold/refusal. Lock slot then attempt in withdrawal, checkout and confirmation. Only safe release permits deletion of an unbooked slot; existing booked-slot error and foreign-slot 404 remain unchanged. The existing `/mentor/slots` booked entry gains a protected booking detail link; no new list. Update `BACKWARD_COMPATIBILITY.md` for this outcome and additive DTO/link at E04 implementation. The historical E02 delete-only contract below remains the description of E02 before this amendment lands; E04's contract then governs holds. Connect webhook remains fetch-and-overwrite without deduplication; Checkout's inbox is opt-in only.
+
 ## 📝 TLDR
 
 **Baseline before E02:** an invited mentor (E01) holds the `mentor` role but has no profile, price, payout account or schedule. Phase 1 adds the profile; the Phase 2 branch adds payout onboarding. Slots and checkout remain future work.

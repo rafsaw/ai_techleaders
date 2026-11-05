@@ -271,6 +271,37 @@ npm run dev
 Open http://localhost:3000. Backend pages are under `/backend`; the users
 panel is at `/backend/users`.
 
+### Booking payment recovery (planned E04 operator runbook)
+
+This command and Checkout configuration are **specified, not implemented**.
+See the [E04 specification](.ai/specs/2026-11-04-booking-and-payment.md).
+Once E04 lands, keep `CHECKOUT_ENABLED=false` until all three phases,
+participant access and Stripe test-mode evidence pass. Configure the separate
+`STRIPE_CHECKOUT_WEBHOOK_SECRET` and validated `STRIPE_CHECKOUT_ORIGIN`
+(default `https://checkout.stripe.com`), reusing existing Stripe credentials
+and `APP_URL`. Enable successful-payment receipt emails on the platform Stripe
+account; verify the server account email recipient and manually send a test
+receipt (test payments do not automatically email receipts).
+
+After an abandoned/uncertain checkout or refund report, the planned commands are:
+
+```bash
+npm run operator -- booking reconcile
+npm run operator -- booking reconcile --attempt <uuid>
+# Production requires --yes:
+npm run operator -- booking reconcile --attempt <uuid> --yes
+```
+
+Repeat after provider recovery. Exit 0 means the selected work resolved; exit 1
+means provider failure/unresolved obligations requiring investigation; exit 2
+means invalid usage. Never force-release a hold because five minutes elapsed:
+Stripe must confirm that payment cannot succeed and creation must be settled.
+Refunds may remain pending; retain their records. Recover recorded booking email
+failures through the existing `EmailSender` without recreating the booking or
+charging again; participant details remain accessible in product. Use a named
+operator and a routine for reconciliation, without a scheduler or new monitoring
+infrastructure. Activate and smoke-test this runbook with the E04 CLI implementation.
+
 ### Release email test
 
 A green test suite proves only that an SMTP server **accepted** the message
