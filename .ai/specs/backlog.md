@@ -26,3 +26,7 @@ Last filed: 2026-10-17
 | E05-S02 | #45 | Two participants exchange text messages on the session screen during the booked window | #32 | #44 | no |
 | E01-S03-T01 | #46 | Operator can create a single-use mentor invitation link without a UI | #36 | — | no |
 | E02-S02-T01 | #47 | Verify Stripe's onboarding requirements | #38 | — | no |
+
+## E04 design clarification — PO approved 2026-11-04
+
+[E04 specification](2026-11-04-booking-and-payment.md) now covers epic #31 and the existing three phases/stories #41–#43. [D17](research/decisions/2026-11-04-d17-checkout-holds-and-compensation.md) replaces the earlier undecided/no-hold assumption: public-slot URL plus existing sign-in returnTo, hold only at Pay with a five-minute target, safe Stripe reconciliation before release, and automatic compensation for paid attempts that cannot book. Current D16 is rechecked, never frozen. Phase 2 builds booking/payment/refund mechanics; Phase 3 adds participant-facing details and emails before live checkout is enabled. No Selection entity, new booking list or event bus. GitHub issue wording updates are deferred as itemized in E04; Q13 remains a release condition. This note changes no story IDs, dependencies or implementation-completion status.
