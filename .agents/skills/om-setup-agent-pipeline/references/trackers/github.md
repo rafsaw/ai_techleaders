@@ -113,6 +113,17 @@ Cross-repository targets need no extra flags: `tracker_repo` resolves `$REPO` wh
 
 Read the labels back (`gh pr view {prNumber} --json labels`) whenever the label state gates a later decision — a mutation the guard logged as skipped is a normal outcome, and a run that assumes it landed will branch wrongly.
 
+## Bot assignment limitations
+
+A GitHub App installation token may be unable to assign its own `[bot]` account.
+A confirmed assignment restriction permits the skill's bot-assignment fallback:
+use the verified `in-progress` label as the claim flag and retain a timestamped
+claim comment identifying the bot and run/chain. A generic HTTP 403 alone does
+not establish this restriction; distinguish endpoint permissions from an
+unassignable account. Do not change authentication or request a user token just
+to self-assign. Existing claims, label/comment permissions and other gates still
+apply; never remove human assignees during bot-claim cleanup.
+
 ## Operations
 
 ### Identity and repository
@@ -345,6 +356,19 @@ gh pr diff {prNumber} --name-only
 gh api "repos/{owner}/{repo}/pulls/{prNumber}/files" --paginate --jq '.[] | {path: .filename, status: .status}'
 ```
 
+#### get-pr-author-association
+`{prNumber}` → `{login, association}`, normalized from GitHub's `author_association`. GitHub reports `COLLABORATOR` for anyone with explicit repository access who is not an organization member, so on an organization-owned repository that is an `outside-collaborator`. `FIRST_TIMER` (first PR anywhere on GitHub) folds into `first-time-contributor`, and `MANNEQUIN` folds into `none`.
+```bash
+gh api "repos/{owner}/{repo}/pulls/{prNumber}" --jq '{login: .user.login, association: (
+  .author_association as $a | .base.repo.owner.type as $t |
+  if $a == "OWNER" then "owner"
+  elif $a == "MEMBER" then "member"
+  elif $a == "COLLABORATOR" then (if $t == "Organization" then "outside-collaborator" else "collaborator" end)
+  elif $a == "CONTRIBUTOR" then "contributor"
+  elif $a == "FIRST_TIME_CONTRIBUTOR" or $a == "FIRST_TIMER" then "first-time-contributor"
+  else "none" end)}'
+```
+
 #### checkout-pr
 `{prNumber}` → the PR's head available locally (needed for cross-repository fork PRs where the head branch cannot be fetched from `origin`).
 ```bash
@@ -481,7 +505,7 @@ gh label create in-progress       --color c5def5 --description "An automated ski
 gh label create ci-monitoring     --color d4c5f9 --description "Work complete and reported; agent is watching CI results"
 gh label create do-not-close      --color c5def5 --description "Humans only: never auto-close this issue"
 gh label create "${AUTOFIX_LABEL:-cez-autofix}" --color 5319e7 --description "Human-confirmed issue ready for the configured autofix worker"
-gh label create "${AUTOMERGE_LABEL:-automerge}" --color 5319e7 --description "Humans only: drive this PR to merge once every gate is green"
+gh label create "${AUTOMERGE_LABEL:-automerge}" --color 5319e7 --description "Human-confirmed: drive this PR to merge once every gate is green"
 gh label create automerge-signal-1-cr --color 1d76db --description "om-auto-merge-buddy: code review signal holds for the current head"
 gh label create automerge-signal-2-qa --color 1d76db --description "om-auto-merge-buddy: QA signal holds for the current head"
 gh label create automerge-signal-3-ci --color 1d76db --description "om-auto-merge-buddy: CI signal holds for the current head"
