@@ -99,9 +99,9 @@ Non-goals (explicitly out):
 
 ### Phase 1: shared bookable rule and read projection
 
-- [ ] 1.1 Factor E02 MD7 into one private MentorProfileService helper
-- [ ] 1.2 Add PublicMentorSummaryDto, excerpt normalizer and listBookable(area?)
-- [ ] 1.3 Unit-test predicate parity, ordering, excerpt boundaries and query count
+- [x] 1.1 Factor E02 MD7 into one private MentorProfileService helper — be156d6
+- [x] 1.2 Add PublicMentorSummaryDto, excerpt normalizer and listBookable(area?) — be156d6
+- [x] 1.3 Unit-test predicate parity, ordering, excerpt boundaries and query count — be156d6
 
 ### Phase 2: public listing, homepage entry and return path
 
