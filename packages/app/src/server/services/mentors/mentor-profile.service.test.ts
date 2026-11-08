@@ -238,7 +238,7 @@ describe("MentorProfileService.listBookable", () => {
         readyPayout(grace),
         readyPayout(ada),
         readyPayout(withoutRole),
-        readyPayout(withoutReadyPayout, "provisioned", "incomplete" as "ready"),
+        { mentorProfile: withoutReadyPayout, provisioningState: "provisioned", status: "incomplete" },
       ]);
 
     await expect(s.service.listBookable()).resolves.toEqual([

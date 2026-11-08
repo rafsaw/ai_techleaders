@@ -48,6 +48,7 @@ describe("/mentors", () => {
     expect(metadata.title).toBe("Find a mentor");
     expect(metadata.description).toMatch(/TypeScript, React or Python/);
     expect(screen.getByRole("heading", { level: 1, name: "Find a mentor" })).toBeVisible();
+    expect(screen.getByText("Showing all mentors.")).toBeVisible();
 
     const mentors = screen.getByRole("list", { name: "Mentors" });
     expect(within(mentors).getAllByRole("listitem")).toHaveLength(2);
@@ -63,6 +64,8 @@ describe("/mentors", () => {
     listBookable.mockResolvedValue([grace]);
     render(await page({ area }));
     expect(listBookable).toHaveBeenCalledWith(area);
+    // The chosen filter is named in text, not only implied by the filled link.
+    expect(screen.getByText(/^Showing \w+ mentors\.$/)).toBeVisible();
     // The card hands the profile the filter back, so "Back to mentors" can return to it.
     expect(screen.getByRole("link", { name: "Grace Hopper" })).toHaveAttribute(
       "href",

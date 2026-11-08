@@ -15,13 +15,14 @@ import {
 } from "@/app/(frontend)/mentors/mentor-areas";
 import { getPrincipal } from "@/server/auth/page-guards";
 import { createRequestScope } from "@/server/container";
+import type { PublicMentorSummaryDto } from "@/server/services/mentors/mentor-profile.service";
 
 export const metadata: Metadata = {
   title: "Find a mentor",
   description: "Browse the DevMentor mentors taking text sessions in TypeScript, React or Python.",
 };
 
-export const UNKNOWN_AREA = "Unknown area";
+const UNKNOWN_AREA = "Unknown area";
 const ALL_MENTORS = "All mentors";
 
 /** A link back to the unfiltered listing: the way out of both an unknown area and an empty one. */
@@ -46,6 +47,29 @@ function NoMentors({ selection }: { selection: AreaSelection }) {
           : "No mentors are taking bookings yet."}
       </p>
       {selection.kind === "area" ? <AllMentorsLink /> : null}
+    </div>
+  );
+}
+
+/**
+ * The results, headed by the current filter in plain words. The filter links already mark the
+ * choice with aria-current and a filled style, and this names it in text as well, so the scope
+ * of the list does not rest on telling two button styles apart.
+ */
+function MentorList({ mentors, selection }: { mentors: PublicMentorSummaryDto[]; selection: AreaSelection }) {
+  if (mentors.length === 0) return <NoMentors selection={selection} />;
+  return (
+    <div className="flex flex-col gap-between-groups">
+      <p className="text-body text-muted-foreground">
+        {selection.kind === "area" ? `Showing ${AREA_LABELS[selection.area]} mentors.` : "Showing all mentors."}
+      </p>
+      <ul aria-label="Mentors" className="flex flex-col gap-between-groups">
+        {mentors.map((mentor) => (
+          <li key={mentor.id}>
+            <MentorCard mentor={mentor} href={mentorProfileHref(mentor.id, selection)} />
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -77,16 +101,8 @@ export default async function MentorsPage({ searchParams }: PageProps<"/mentors"
           <Notice variant="info" title={UNKNOWN_AREA}>
             <AllMentorsLink />
           </Notice>
-        ) : mentors.length === 0 ? (
-          <NoMentors selection={selection} />
         ) : (
-          <ul aria-label="Mentors" className="flex flex-col gap-between-groups">
-            {mentors.map((mentor) => (
-              <li key={mentor.id}>
-                <MentorCard mentor={mentor} href={mentorProfileHref(mentor.id, selection)} />
-              </li>
-            ))}
-          </ul>
+          <MentorList mentors={mentors} selection={selection} />
         )}
       </div>
     </main>
