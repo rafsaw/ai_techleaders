@@ -38,10 +38,11 @@ Non-goals (explicitly out):
 - Any change to `SiteHeader`, prices on listing cards, booking controls,
   sign-in prompts, ratings, pagination, caching or a public JSON route.
 - Marking the spec implemented, editing its status, or closing #40.
-- `npm run test:integration` and the spec's Phase 1 step 3 browser journey: this
-  worktree has no `.env` and no provisioned database, so the real-database
-  journey cannot be executed here. Verified instead through unit tests at the
-  page-orchestration level (see Risks).
+- Originally scoped out: the spec's Phase 1 step-3 real-database journey, on the
+  assumption that this worktree could not run it. Docker turned out to be
+  available, so it was implemented after all — see Outcome. What remains out is
+  the browser-driven (agent-browser) variant, which cannot start from this
+  worktree's path.
 
 ## 📋 Implementation Plan
 
@@ -85,15 +86,16 @@ Non-goals (explicitly out):
 - **Coverage gate.** 100% per source file; every new branch (empty `area=`,
   repeated `area`, unknown area, collator tie, truncation boundary) needs a
   case.
-- **No integration run.** The database-backed Phase 1 step-3 journey is not
-  executed in this worktree (no `.env`, no database). The signed-out and
-  zero-slot paths are covered by unit tests against the real page
-  orchestration; the browser journey remains open work.
+- **Integration reach.** Resolved during the run: the database-backed journey
+  was written and passes. What is left unverified locally is the browser-driven
+  suites, which cannot launch Chromium from this worktree's path; CI covers them.
 - **Shared-file contention.** `BACKWARD_COMPATIBILITY.md` is also touched by the
   Phase 2 slice. This run appends one self-contained Phase 1 bullet to minimise
   conflict.
 
 ## Progress
+
+PR: #74
 
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
@@ -150,11 +152,27 @@ Verification: `npm run lint`, `npm run typecheck`, `npm run test:coverage`
 (123 files, 2,115 tests, 100% per source file), `npm run build`,
 `npm run check:tokens` and `npm run check:agents` all pass.
 
-Not verified: `npm run test:integration`. This worktree has no `.env` and no
-provisioned PostgreSQL, so the spec's Phase 1 step-3 real-database journey did
-not run. The signed-out visit and the ready-mentor-with-no-slots case are
-covered by unit tests against the real page and service orchestration
-(`listBookable` issues no availability query at all, which is what makes a
-mentor's slot count irrelevant to the listing), but the browser journey and
-the browser-level keyboard check remain open work.
+Integration: this plan originally recorded `npm run test:integration` as
+unrunnable here. That was wrong — Docker is available in this worktree — so the
+spec's Phase 1 step-3 real-database journey was written after all, as
+`packages/app/tests/integration/public-mentor-directory.test.ts`. It passes 5/5
+against real PostgreSQL, with the mentor role arranged through the real
+invitation flow and payout readiness through the real hosted-onboarding flow,
+reading every page without a cookie.
+
+Partial limit: in the full integration run, the 10 suites that drive
+`IntegrationBrowser` fail (58 tests) because Chromium cannot start from this
+worktree — `Socket path too long: …/.ai/cezar/tmp/7d091915-…/SingletonSocket`,
+the constraint `packages/app/tests/integration/AGENTS.md` documents. Confirmed by
+launching `agent-browser` directly against `about:blank` outside any test, which
+fails identically. Every non-browser suite passes, including the new scenario
+(5/5), `mentor-profile.test.ts` (9/9) and `migrations.test.ts` (21/21). Those
+browser suites cover password, invitation and Stripe-onboarding UI, none of which
+this slice touches; CI runs them from a short checkout path.
+
+Lesson for future runs in a cezar worktree: browser-driven integration tests
+cannot run from `.ai/cezar/worktrees/<uuid>/` — the path alone exceeds Chromium's
+singleton-socket limit. Prefer non-browser integration coverage where the
+behaviour allows it (fetching rendered HTML from the production build proved this
+whole discovery journey) and leave the browser suites to CI.
 
