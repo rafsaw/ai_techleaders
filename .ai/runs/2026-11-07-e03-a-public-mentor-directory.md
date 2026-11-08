@@ -105,13 +105,56 @@ Non-goals (explicitly out):
 
 ### Phase 2: public listing, homepage entry and return path
 
-- [ ] 2.1 Add the page-local area/fromArea reader and back-link helper with tests
-- [ ] 2.2 Add the /mentors listing page with filters, empty and unknown-area states
-- [ ] 2.3 Add the Find a mentor homepage entry without touching SiteHeader
-- [ ] 2.4 Add Back to mentors to /mentors/[id] from a validated fromArea
-- [ ] 2.5 Unit-test listing, homepage and return journeys including signed-out access
+- [x] 2.1 Add the page-local area/fromArea reader and back-link helper with tests — a1e0458
+- [x] 2.2 Add the /mentors listing page with filters, empty and unknown-area states — a1e0458
+- [x] 2.3 Add the Find a mentor homepage entry without touching SiteHeader — a1e0458
+- [x] 2.4 Add Back to mentors to /mentors/[id] from a validated fromArea — a1e0458
+- [x] 2.5 Unit-test listing, homepage and return journeys including signed-out access — a1e0458
 
 ### Phase 3: gate and contract record
 
-- [ ] 3.1 Record the additive route, parameter and DTO in BACKWARD_COMPATIBILITY.md
-- [ ] 3.2 Run the full validation gate and the token/agents checks
+- [x] 3.1 Record the additive route, parameter and DTO in BACKWARD_COMPATIBILITY.md
+- [x] 3.2 Run the full validation gate and the token/agents checks
+
+## Outcome
+
+Phase 1 steps 1–2 of the mentor-discovery spec are implemented. The run is a
+success for its stated slice; the spec itself stays open, because Phase 2 and
+Phase 1 step 3 are not part of it.
+
+What landed:
+
+- `MentorProfileService.listBookable(area?)` plus one private MD7 helper shared
+  with `getPublic`, `getSetup` and `isBookable`.
+- Public `/mentors` with area filters, empty and unknown-area states, metadata
+  and page-local cards.
+- "Find a mentor" on the homepage; `SiteHeader` untouched.
+- "Back to mentors" on `/mentors/[id]`, honouring a validated `fromArea`.
+- The additive contract record in `BACKWARD_COMPATIBILITY.md`.
+
+Key decisions:
+
+- The MD7 helper takes what each caller already proved (profile presence,
+  current mentor role) and owns only the payout rule, so `getSetup` can keep
+  reading the role from the principal while `getPublic` keeps its two 404s.
+- `listBookable` reads profiles, then roles and payout accounts in two `$in`
+  queries. A test asserts exactly three `em.find` calls, which is what keeps an
+  N+1 from creeping back in.
+- A repeated `area` or `fromArea` is treated as a mistake, not as a choice of
+  its first value — the listing shows "Unknown area" and the profile's return
+  link falls back to the whole listing.
+- The excerpt counts Unicode code points, so an emoji costs one character
+  rather than two; verified at 159, 160 and 161 code points.
+
+Verification: `npm run lint`, `npm run typecheck`, `npm run test:coverage`
+(123 files, 2,115 tests, 100% per source file), `npm run build`,
+`npm run check:tokens` and `npm run check:agents` all pass.
+
+Not verified: `npm run test:integration`. This worktree has no `.env` and no
+provisioned PostgreSQL, so the spec's Phase 1 step-3 real-database journey did
+not run. The signed-out visit and the ready-mentor-with-no-slots case are
+covered by unit tests against the real page and service orchestration
+(`listBookable` issues no availability query at all, which is what makes a
+mentor's slot count irrelevant to the listing), but the browser journey and
+the browser-level keyboard check remain open work.
+

@@ -42,6 +42,13 @@ Once a surface has consumers outside this repository (a published package, a pub
 - **Mentor setup Phase 3 (`.ai/specs/implemented/2026-10-18-mentor-setup.md`):** additive mentor slot management at `/mentor/slots` and mentor-only `POST /api/availability/slots` (`{ startsAt }` → 201 `{ id, startsAt, booked }`) and `DELETE /api/availability/slots?id=<uuid>` (`{ id }`). Validation uses the existing 400 envelope; overlap or booked removal returns 409, and an absent or foreign slot returns 404. `LocalTime` remains colocated with the page and is not a shared export.
   - Additive schema: `availability_slots` in `Migration20261101041447`, including uniqueness and `down()` for disposable environments. Production rollback deploys previous code while preserving the table and slot data; dropping it destroys published slots and requires a separate data decision.
 
+- **Mentor discovery Phase 1 (`.ai/specs/2026-11-03-mentor-discovery.md`):** no breaking change. Everything is additive, and there is no migration, no new environment variable and no new `/api/*` route.
+  - New public page `GET /mentors` with an optional `area=typescript|react|python`. A missing or single empty value lists all bookable mentors; an unknown non-empty or repeated value renders "Unknown area" with a link to the unfiltered listing, and never reaches the database. Filter URLs are shareable and open to signed-out visitors.
+  - `GET /mentors/[id]` accepts a new optional `fromArea` query parameter, which only chooses where its new "Back to mentors" link points. Existing profile URLs, access rules, 404 behaviour and page content are unchanged, and an absent, empty, unknown or repeated value behaves exactly like a direct link.
+  - Additive service surface: `MentorProfileService.listBookable(area?)` returning `PublicMentorSummaryDto[]` (`id`, `displayName`, `area`, `descriptionExcerpt`), plus the exported `MENTOR_EXCERPT_MAX_CODE_POINTS`. The existing E02 MD7 check moved into one private helper now shared by `getPublic`, `getSetup`, `isBookable` and `listBookable`; their public signatures, return shapes, 404s and `false` results are unchanged.
+  - The homepage adds one "Find a mentor" link in its page body. `SiteHeader` is deliberately untouched, so its E01 contract and existing props are unaffected.
+  - Listing components stay colocated under `packages/app/src/app/(frontend)/mentors/`; no new `@devmentor/ui` export, so nothing is added to a package export map. Rolling back removes the listing page and the profile's return link and leaves profiles, payouts and slots untouched.
+
 ## Protected surfaces
 
 ### 1. HTTP API envelope and routes (`/api/*`)
