@@ -76,18 +76,37 @@ Non-goals (explicitly left to the parallel slice and to later spec steps):
 
 ## Progress
 
+PR: #73
+
 > Convention: `- [ ]` pending, `- [x]` done. Append ` — <commit sha>` when a step lands. Do not rename step titles.
 
 ### Phase 1: Public availability read
 
-- [ ] 1.1 Add `PublicSlotDto` and `SlotService.listPublicAvailable(profileId)` with pre-query id validation, the read-time D16 cutoff, open-slot filter and stable order
-- [ ] 1.2 Add colocated unit tests: invalid-id no-query path, exact two-hour inclusion and one-minute-short exclusion, booked/past exclusion, more than 20 eligible starts with none omitted, stable order and the two-field DTO
+- [x] 1.1 Add `PublicSlotDto` and `SlotService.listPublicAvailable(profileId)` with pre-query id validation, the read-time D16 cutoff, open-slot filter and stable order — c8dc563
+- [x] 1.2 Add colocated unit tests: invalid-id no-query path, exact two-hour inclusion and one-minute-short exclusion, booked/past exclusion, more than 20 eligible starts with none omitted, stable order and the two-field DTO — c8dc563
 
 ### Phase 2: Gate and contract record
 
-- [ ] 2.1 Run the full validation gate (`npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run build`)
+- [x] 2.1 Run the full validation gate (`npm run lint`, `npm run typecheck`, `npm run test:coverage`, `npm run build`)
 - [ ] 2.2 Record the outcome in this run log and open/refresh the PR
 - [ ] 2.3 Authoritative review pass and any follow-up fixes
+
+## Validation
+
+Run in this worktree on commit c8dc563 (`npm ci` first — the Cezar worktree had no `node_modules`):
+
+| Command | Result |
+| --- | --- |
+| `npm run lint` | ✅ exit 0 |
+| `npm run typecheck` | ✅ all four workspaces plus `tests/` clean |
+| `npm run test:coverage` | ✅ 121 files, 2084 tests; 100% statements/branches/functions/lines, per-file gate satisfied |
+| `npm run build` | ✅ exit 0 — the known agent-mode `SecurityFatalError` (`.ai/lessons.md`, 2026-10-27) did not reproduce |
+| `npm run check:agents` | ✅ 16 routes resolve, every `AGENTS.md` within budget |
+
+`npm run test:integration` was **not** run: it needs the live Postgres/Mailpit
+environment and exercises journeys through routes, and this slice changes no
+route or page. The spec assigns the profile-availability journey tests to
+Phase 2 step 3, which is outside this run.
 
 ## Outcome
 
