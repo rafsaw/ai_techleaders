@@ -1,4 +1,5 @@
 import { ConflictError, fixedClock, NotFoundError, ValidationError, type Principal } from "@devmentor/core";
+import { MIN_LEAD_MINUTES } from "@devmentor/core/validators/availability/slot-create.schema";
 import { AvailabilitySlot, LockMode, MentorProfile, UniqueConstraintViolationException, type EntityManager } from "@devmentor/db";
 import { describe, expect, it, vi } from "vitest";
 import { SlotService } from "./slot.service";
@@ -8,6 +9,31 @@ const now = "2026-10-31T00:00:00.000Z";
 const start = "2026-10-31T02:00:00.000Z";
 const profile = { id: "p1", user: { id: "u1" } };
 const slot = (time = start, bookedAt: Date | null = null) => ({ id: "slot1", mentorProfile: profile, startsAt: new Date(time), bookedAt });
+
+const publicProfileId = "11111111-1111-4111-8111-111111111111";
+/** The earliest start a read at `now` may show: exactly two hours ahead. */
+const cutoff = new Date(new Date(now).getTime() + MIN_LEAD_MINUTES * 60_000);
+const fromCutoff = (offsetMinutes: number) => new Date(cutoff.getTime() + offsetMinutes * 60_000);
+type Row = { id: string; mentorProfile: string; startsAt: Date; bookedAt: Date | null };
+const row = (id: string, startsAt: Date, overrides: Partial<Row> = {}): Row =>
+  ({ id, mentorProfile: publicProfileId, startsAt, bookedAt: null, ...overrides });
+
+/** Applies the service's own where/orderBy the way the database would, so the filter is what is under test. */
+function queryRows(rows: Row[]) {
+  return async (
+    _entity: unknown,
+    where: { mentorProfile: string; bookedAt: null; startsAt: { $gte: Date } },
+    options: { orderBy: Record<string, "asc"> },
+  ) => {
+    const keys = Object.keys(options.orderBy);
+    const sortKey = (candidate: Row) => keys.map((key) => (key === "startsAt" ? candidate.startsAt.toISOString() : candidate.id)).join("|");
+    return rows
+      .filter((candidate) => candidate.mentorProfile === where.mentorProfile
+        && candidate.bookedAt === where.bookedAt
+        && candidate.startsAt.getTime() >= where.startsAt.$gte.getTime())
+      .sort((left, right) => (sortKey(left) < sortKey(right) ? -1 : 1));
+  };
+}
 function setup() {
   const tx = {
     findOne: vi.fn().mockResolvedValueOnce(profile).mockResolvedValue(null),
@@ -92,5 +118,68 @@ describe("SlotService", () => {
     await expect(s.service.withdraw(principal, "unknown")).rejects.toEqual(new NotFoundError());
     await expect(s.service.withdraw(principal, "foreign")).rejects.toEqual(new NotFoundError());
     expect(s.em.nativeDelete).not.toHaveBeenCalled();
+  });
+
+  describe("listPublicAvailable", () => {
+    it.each(["", "p1", "not-a-uuid", `${publicProfileId}1`, "11111111-1111-4111-8111-11111111111"])(
+      "answers the neutral 404 for id %j without reaching the database",
+      async (id) => {
+        const { em, service } = setup();
+        await expect(service.listPublicAvailable(id)).rejects.toEqual(new NotFoundError("Mentor profile not found"));
+        expect(em.find).not.toHaveBeenCalled();
+      },
+    );
+
+    it("returns only this mentor's open starts at or after the read-time cutoff, by start then id", async () => {
+      const { em, service } = setup();
+      em.find.mockImplementation(queryRows([
+        row("later", fromCutoff(60)),
+        row("tie-b", cutoff),
+        row("tie-a", cutoff),
+        row("one-minute-short", fromCutoff(-1)),
+        row("already-past", new Date(new Date(now).getTime() - 60_000)),
+        row("booked", fromCutoff(30), { bookedAt: new Date(now) }),
+        row("other-mentor", cutoff, { mentorProfile: "22222222-2222-4222-8222-222222222222" }),
+      ]));
+
+      await expect(service.listPublicAvailable(publicProfileId)).resolves.toEqual([
+        { id: "tie-a", startsAt: cutoff.toISOString() },
+        { id: "tie-b", startsAt: cutoff.toISOString() },
+        { id: "later", startsAt: fromCutoff(60).toISOString() },
+      ]);
+      expect(em.find).toHaveBeenCalledWith(
+        AvailabilitySlot,
+        { mentorProfile: publicProfileId, bookedAt: null, startsAt: { $gte: cutoff } },
+        { orderBy: { startsAt: "asc", id: "asc" } },
+      );
+    });
+
+    it.each([[0, true], [-1, false], [1, true], [-MIN_LEAD_MINUTES, false]])(
+      "treats a start %i minutes from the two-hour mark as eligible: %s",
+      async (offsetMinutes, eligible) => {
+        const { em, service } = setup();
+        em.find.mockImplementation(queryRows([row("only", fromCutoff(offsetMinutes))]));
+        await expect(service.listPublicAvailable(publicProfileId)).resolves.toEqual(
+          eligible ? [{ id: "only", startsAt: fromCutoff(offsetMinutes).toISOString() }] : [],
+        );
+      },
+    );
+
+    it("caps nothing on a long schedule and exposes no duration, price or booked flag", async () => {
+      const { em, service } = setup();
+      const rows = Array.from({ length: 25 }, (_, index) => row(`s${String(index).padStart(2, "0")}`, fromCutoff(index * 60)));
+      em.find.mockImplementation(queryRows([...rows].reverse()));
+
+      const result = await service.listPublicAvailable(publicProfileId);
+      expect(result).toHaveLength(rows.length);
+      expect(result.map((item) => item.id)).toEqual(rows.map((candidate) => candidate.id));
+      expect(result.flatMap((item) => Object.keys(item))).toEqual(rows.flatMap(() => ["id", "startsAt"]));
+    });
+
+    it("reports an empty schedule as an empty list rather than a 404", async () => {
+      const { em, service } = setup();
+      em.find.mockImplementation(queryRows([]));
+      await expect(service.listPublicAvailable(publicProfileId)).resolves.toEqual([]);
+    });
   });
 });
