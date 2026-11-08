@@ -27,6 +27,12 @@ better way to do something that isn't already documented in code or specs.
 
 <!-- New entries go below this line, most recent first. -->
 
+### 2026-11-07 — Browser integration tests cannot run from a Cezar worktree
+
+**Context:** E03-A ran `npm run test:integration` from `.ai/cezar/worktrees/<uuid>/`. Every non-browser suite passed; all 10 suites using `IntegrationBrowser` failed (58 tests) with `Command failed: agent-browser … open`. Running `agent-browser --session <s> open about:blank` directly, outside any test, failed the same way: `FATAL … process_singleton_posix.cc: Socket path too long: /home/.../.ai/cezar/tmp/<uuid>/org.chromium.Chromium.XXXX/SingletonSocket`. The worktree path alone pushes Chromium's singleton socket past the UNIX socket limit, before the session-name budget `packages/app/tests/integration/AGENTS.md` already warns about.
+**Lesson:** Don't read a wall of failing `*-ui.test.ts` suites in an agent worktree as a regression — probe `agent-browser` directly first, and compare against the non-browser suites. The browser suites belong to CI, which checks out to a short path. When a new flow needs real-database evidence from such a worktree, write the scenario without the browser: `fetch` the rendered HTML of the production build (see `public-mentor-directory.test.ts`), which still exercises real PostgreSQL, the real invitation flow and the Stripe stub.
+**Applies to:** `packages/app/tests/integration/**`, any autonomous run executing in `.ai/cezar/worktrees/`.
+
 ### 2026-11-02 — Read a skill's local override before using the skill's own text
 
 **Context:** `/om-integration-tests` loaded only the base `SKILL.md`, whose step 8 and last rule say the Markdown scenario is optional. The mandatory-scenario override lives in `.ai/skills/om-integration-tests/SKILL.md` and was not read, although the base skill opens with "ALWAYS check first". The agent wrote the test and reported the scenario as optional; MENTOR-002 had to be added afterwards. Cues were available and missed: untracked `.ai/qa/MENTOR/`, and an existing test citing MENTOR-001 in its header.

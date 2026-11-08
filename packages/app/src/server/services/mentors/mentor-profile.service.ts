@@ -34,6 +34,14 @@ export type PublicMentorProfileDto = MentorProfileDto & {
   bookable: boolean;
 };
 
+/** One card on the public listing (E03): never email, payout or price data. */
+export type PublicMentorSummaryDto = {
+  id: string;
+  displayName: string;
+  area: MentorArea;
+  descriptionExcerpt: string;
+};
+
 export type MentorSetupDto = {
   profile: MentorProfileDto | null;
   payout: { status: "not_started" | "incomplete" | "pending" | "ready" | "blocked"; country: string | null; provisioningState: "pending" | "provisioned" | "reconciliation_required" | "failed" | null };
@@ -53,6 +61,31 @@ function toDto(profile: MentorProfile): MentorProfileDto {
       50: { amountMinor: profile.price50Cents, currency: CURRENCY },
     },
   };
+}
+
+/** Listing excerpt length in Unicode code points (E03 PO review, 2026-11-04). */
+export const MENTOR_EXCERPT_MAX_CODE_POINTS = 160;
+
+/**
+ * Collapses the stored plain text to one line and cuts it at
+ * `MENTOR_EXCERPT_MAX_CODE_POINTS`, appending `…` only when something was cut.
+ * Code points, not UTF-16 units, so an emoji or other non-BMP character counts once.
+ * The full description stays on the profile page.
+ */
+function excerpt(description: string): string {
+  const normalized = description.replace(/\s+/gu, " ").trim();
+  const points = [...normalized];
+  if (points.length <= MENTOR_EXCERPT_MAX_CODE_POINTS) return normalized;
+  return `${points.slice(0, MENTOR_EXCERPT_MAX_CODE_POINTS).join("")}…`;
+}
+
+/** Listing order (E03 PO follow-up): case-insensitive English display name, profile id breaks ties. */
+const byDisplayName = new Intl.Collator("en", { sensitivity: "accent" });
+
+function compareSummaries(a: PublicMentorSummaryDto, b: PublicMentorSummaryDto): number {
+  const byName = byDisplayName.compare(a.displayName, b.displayName);
+  // Profile ids are unique, so the tie-break never returns 0.
+  return byName !== 0 ? byName : a.id < b.id ? -1 : 1;
 }
 
 function values(input: MentorProfileInput) {
@@ -98,7 +131,34 @@ export class MentorProfileService {
     const mentorRole = await this.em.findOne(UserRole, { user: profile.user.id, role: "mentor" });
     if (!mentorRole) throw new NotFoundError("Mentor profile not found");
     const payout = await this.em.findOne(PayoutAccount, { mentorProfile: profile.id });
-    return { ...toDto(profile), displayName: profile.user.name, bookable: payout?.provisioningState === "provisioned" && payout.status === "ready" };
+    // The two 404s above already proved the profile and the current mentor role.
+    return { ...toDto(profile), displayName: profile.user.name, bookable: this.#bookable(true, true, payout) };
+  }
+
+  /**
+   * The public listing (E03): every bookable mentor, optionally narrowed to one area.
+   * Independent of slot count — a ready mentor with no times is still listed.
+   * Roles and payout accounts are read in two set-based queries, because the
+   * entities carry no inverse relations and a per-card lookup would be an N+1.
+   */
+  async listBookable(area?: MentorArea): Promise<PublicMentorSummaryDto[]> {
+    const profiles = await this.em.find(MentorProfile, area ? { area } : {}, { populate: ["user"] });
+    if (profiles.length === 0) return [];
+    const [roles, payouts] = await Promise.all([
+      this.em.find(UserRole, { user: { $in: profiles.map((profile) => profile.user.id) }, role: "mentor" }),
+      this.em.find(PayoutAccount, { mentorProfile: { $in: profiles.map((profile) => profile.id) } }),
+    ]);
+    const mentors = new Set(roles.map((role) => role.user.id));
+    const payoutByProfile = new Map(payouts.map((payout) => [payout.mentorProfile.id, payout]));
+    return profiles
+      .filter((profile) => this.#bookable(true, mentors.has(profile.user.id), payoutByProfile.get(profile.id) ?? null))
+      .map((profile) => ({
+        id: profile.id,
+        displayName: profile.user.name,
+        area: profile.area,
+        descriptionExcerpt: excerpt(profile.description),
+      }))
+      .sort(compareSummaries);
   }
 
   async getSetup(principal: Principal): Promise<MentorSetupDto> {
@@ -110,7 +170,7 @@ export class MentorProfileService {
       profile,
       payout: payout ? { status: payout.status, country: payout.country, provisioningState: payout.provisioningState } : { status: "not_started", country: null, provisioningState: null },
       upcomingSlots: { open: slots.length - booked, booked },
-      bookable: !!profile && principal.roles.includes("mentor") && payout?.provisioningState === "provisioned" && payout.status === "ready",
+      bookable: this.#bookable(!!profile, principal.roles.includes("mentor"), payout),
       publicUrl: profile ? `/mentors/${profile.id}` : null,
     };
   }
@@ -122,7 +182,17 @@ export class MentorProfileService {
     const role = await this.em.findOne(UserRole, { user: profile.user.id, role: "mentor" });
     if (!role) return false;
     const payout = await this.em.findOne(PayoutAccount, { mentorProfile: profile.id });
-    return payout?.provisioningState === "provisioned" && payout.status === "ready";
+    return this.#bookable(true, true, payout);
+  }
+
+  /**
+   * E02 MD7 in one place: `getPublic`, `getSetup`, `isBookable` and `listBookable`
+   * all decide bookability here, so the public listing and the profile can never
+   * disagree. Callers pass what they already established about the profile and the
+   * current mentor role; this method owns the payout rule.
+   */
+  #bookable(hasProfile: boolean, hasMentorRole: boolean, payout: Pick<PayoutAccount, "provisioningState" | "status"> | null): boolean {
+    return hasProfile && hasMentorRole && payout?.provisioningState === "provisioned" && payout.status === "ready";
   }
 
   async #saveOnce(em: EntityManager, userId: string, input: MentorProfileInput): Promise<MentorProfile> {

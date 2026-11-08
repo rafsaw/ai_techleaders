@@ -1,5 +1,9 @@
+import { linkButtonVariants } from "@devmentor/ui/frontend/actions/LinkButton";
+import Link from "next/link";
+
 import { first, INVITATION_ACCEPTED_FLAG } from "@/app/(frontend)/auth-links";
 import { InvitationAcceptedNotice } from "@/app/(frontend)/invitation-accepted-notice";
+import { MENTORS_PATH } from "@/app/(frontend)/mentors/mentor-areas";
 import { getPrincipal } from "@/server/auth/page-guards";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -25,6 +29,13 @@ export default async function Home({ searchParams }: { searchParams: Promise<Sea
       <p className="max-w-xl text-lg text-pretty text-muted-foreground">
         A project for tech leaders who use AI in their teams&apos; daily work.
       </p>
+      {/* Discovery entry (E03 Flow 1). A plain link in the page body: SiteHeader keeps the
+          contract E01 designed for it and gains no navigation item. */}
+      <div>
+        <Link href={MENTORS_PATH} className={linkButtonVariants()}>
+          Find a mentor
+        </Link>
+      </div>
     </main>
   );
 }
