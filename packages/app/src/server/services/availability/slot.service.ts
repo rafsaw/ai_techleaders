@@ -1,8 +1,12 @@
 import { assertOwner, ConflictError, NotFoundError, ValidationError, type Cradle, type Principal } from "@devmentor/core";
 import { MIN_LEAD_MINUTES, SLOT_BLOCK_MINUTES } from "@devmentor/core/validators/availability/slot-create.schema";
+import { mentorProfileIdSchema } from "@devmentor/core/validators/mentors/mentor-profile.schema";
 import { AvailabilitySlot, LockMode, MentorProfile, UniqueConstraintViolationException, type EntityManager } from "@devmentor/db";
 
 export type SlotDto = { id: string; startsAt: string; booked: boolean };
+
+/** A public session start. A slot is a start, not a duration or price: E04 chooses those. */
+export type PublicSlotDto = { id: string; startsAt: string };
 
 function toDto(slot: AvailabilitySlot): SlotDto {
   return { id: slot.id, startsAt: slot.startsAt.toISOString(), booked: slot.bookedAt !== null };
@@ -26,6 +30,28 @@ export class SlotService {
       mentorProfile: { user: principal.userId }, startsAt: { $gt: this.clock.now() },
     }, { orderBy: { startsAt: "asc" } });
     return slots.map(toDto);
+  }
+
+  /**
+   * Every start a visitor may still see for one mentor: open, and at least
+   * MIN_LEAD_MINUTES away from the server clock at this read (D16). The cutoff is
+   * recomputed per read, so an open slot that has drifted too close disappears by
+   * itself; a withdrawn slot was hard-deleted, so there is no withdrawn status to
+   * filter. The complete eligible set is returned — one simple list, no result cap.
+   *
+   * The caller gates this on `MentorProfileService.getPublic().bookable`; MD7 lives
+   * there and is deliberately not repeated here. Reading never reserves a slot: E04
+   * rechecks MD7 and the slot itself transactionally before claiming one.
+   */
+  async listPublicAvailable(profileId: string): Promise<PublicSlotDto[]> {
+    const parsedId = mentorProfileIdSchema.safeParse(profileId);
+    if (!parsedId.success) throw new NotFoundError("Mentor profile not found");
+    const slots = await this.em.find(AvailabilitySlot, {
+      mentorProfile: parsedId.data,
+      bookedAt: null,
+      startsAt: { $gte: new Date(this.clock.now().getTime() + MIN_LEAD_MINUTES * 60_000) },
+    }, { orderBy: { startsAt: "asc", id: "asc" } });
+    return slots.map((slot) => ({ id: slot.id, startsAt: slot.startsAt.toISOString() }));
   }
 
   async publish(principal: Principal, startsAt: string): Promise<SlotDto> {
