@@ -275,7 +275,7 @@ describe("MentorProfileService.listBookable", () => {
       { id: "id-1", displayName: "Grace Hopper", area: "react", descriptionExcerpt: "TypeScript systems" },
     ]);
     // The listing never reads availability, so zero slots cannot remove a ready mentor.
-    expect(Object.keys(mentors[0])).toEqual(["id", "displayName", "area", "descriptionExcerpt"]);
+    expect(Object.keys(mentors[0] ?? {})).toEqual(["id", "displayName", "area", "descriptionExcerpt"]);
     expect(s.em.find).toHaveBeenNthCalledWith(1, MentorProfile, { area: "react" }, { populate: ["user"] });
     expect(s.em.find).toHaveBeenCalledTimes(3);
   });
@@ -303,7 +303,7 @@ describe("MentorProfileService.listBookable", () => {
       // A non-BMP emoji is one code point but two UTF-16 units, so counting units would truncate early.
       const ada = listed({ id: "id-1", name: "Ada", description: "\u{1F600}".repeat(points) });
       listing(s.em, [ada], [ada], [ada]);
-      const [{ descriptionExcerpt }] = await s.service.listBookable();
+      const descriptionExcerpt = (await s.service.listBookable())[0]?.descriptionExcerpt ?? "";
       expect([...descriptionExcerpt]).toHaveLength(truncated ? MENTOR_EXCERPT_MAX_CODE_POINTS + 1 : points);
       expect(descriptionExcerpt.endsWith("…")).toBe(truncated);
     }

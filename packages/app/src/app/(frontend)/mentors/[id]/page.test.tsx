@@ -32,8 +32,8 @@ const profile = {
   bookable: false,
 };
 
-function page(id = "profile-id") {
-  return PublicMentorProfilePage({ params: Promise.resolve({ id }), searchParams: Promise.resolve({}) });
+function page(id = "profile-id", searchParams: Record<string, string | string[] | undefined> = {}) {
+  return PublicMentorProfilePage({ params: Promise.resolve({ id }), searchParams: Promise.resolve(searchParams) });
 }
 
 beforeEach(() => {
@@ -65,6 +65,22 @@ describe("/mentors/[id]", () => {
     render(await page());
     expect(screen.queryByText("Not taking bookings yet")).not.toBeInTheDocument();
   });
+
+  it("returns to the area a filtered listing visit used", async () => {
+    render(await page("profile-id", { fromArea: "python" }));
+    expect(screen.getByRole("link", { name: "Back to mentors" })).toHaveAttribute("href", "/mentors?area=python");
+  });
+
+  it.each([{}, { fromArea: "" }, { fromArea: "golang" }, { fromArea: ["react", "python"] }])(
+    "returns to the whole listing after a direct link or unusable return context: %j",
+    async (searchParams) => {
+      render(await page("profile-id", searchParams));
+      expect(screen.getByRole("link", { name: "Back to mentors" })).toHaveAttribute("href", "/mentors");
+      // The parameter changes the link and nothing else: the same profile content is served.
+      expect(getPublic).toHaveBeenCalledWith("profile-id");
+      expect(screen.getByRole("heading", { level: 1, name: "Ada Lovelace" })).toBeVisible();
+    }
+  );
 
   it("maps a service 404 to the neutral Next not-found boundary", async () => {
     getPublic.mockRejectedValue(new NotFoundError("Mentor profile not found"));

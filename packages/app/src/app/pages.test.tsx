@@ -48,12 +48,14 @@ describe("page composition", () => {
       expect(await usersMetadata()).toEqual({ title: "Page not found" });
     });
 
-  it("renders the public heading without a backend link, reading the principal for activity", async () => {
+  it("offers discovery from the public heading without a backend link, reading the principal for activity", async () => {
     render(await Home({ searchParams: Promise.resolve({}) }));
     expect(getPrincipal).toHaveBeenCalled();
     expect(screen.getByRole("heading", { name: "DevMentor" })).toBeVisible();
-    // The (frontend) header carries the sign-in state and Backend for operators.
-    expect(screen.queryByRole("link")).not.toBeInTheDocument();
+    // The (frontend) header carries the sign-in state and Backend for operators; the page body
+    // holds exactly one link, the E03 discovery entry.
+    expect(screen.getAllByRole("link")).toHaveLength(1);
+    expect(screen.getByRole("link", { name: "Find a mentor" })).toHaveAttribute("href", "/mentors");
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
